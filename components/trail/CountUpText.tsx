@@ -1,23 +1,18 @@
-import { useEffect, useRef } from 'react';
-import { Platform, Text, TextInput, type StyleProp, type TextStyle } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, Text, type StyleProp, type TextStyle } from 'react-native';
 import Animated, {
-  useAnimatedProps,
   useAnimatedReaction,
-  useDerivedValue,
   useSharedValue,
   withDelay,
   withSpring,
 } from 'react-native-reanimated';
-
-Animated.addWhitelistedNativeProps({ text: true });
-
-const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
+import { scheduleOnRN } from 'react-native-worklets';
 
 /** Softer than screen entrance; clamp so metrics never overshoot. */
 const COUNT_SPRING = {
-  damping: 22,
-  stiffness: 200,
-  mass: 0.9,
+  damping: 24,
+  stiffness: 120,
+  mass: 1,
   overshootClamping: true,
 } as const;
 
@@ -62,7 +57,8 @@ function formatCountUp(kind: CountUpFormat, raw: number): string {
 }
 
 /**
- * UI-thread count-up for telemetry digits. Units stay glued to the number.
+ * Count-up for telemetry digits. Springs on the UI thread, mirrors into
+ * React state so web + native both paint reliably.
  */
 export function CountUpText({
   value,
@@ -71,7 +67,7 @@ export function CountUpText({
   style,
 }: CountUpTextProps) {
   const progress = useSharedValue(0);
-  const inputRef = useRef<TextInput>(null);
+  const [display, setDisplay] = useState(() => formatCountUp(format, 0));
   const mono = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
   const valueTextStyle: StyleProp<TextStyle> = [
@@ -82,6 +78,7 @@ export function CountUpText({
       color: '#F4F4F5',
       fontSize: 14,
       lineHeight: 20,
+      fontVariant: ['tabular-nums'],
     },
     style,
   ];
@@ -89,40 +86,23 @@ export function CountUpText({
   useEffect(() => {
     if (value == null) return;
     progress.value = 0;
+    setDisplay(formatCountUp(format, 0));
     progress.value = withDelay(delayMs, withSpring(value, COUNT_SPRING));
-  }, [value, delayMs, progress]);
-
-  const text = useDerivedValue(
-    () => formatCountUp(format, progress.value),
-    [format],
-  );
+  }, [value, delayMs, format, progress]);
 
   useAnimatedReaction(
-    () => text.value,
-    (data, prev) => {
-      if (Platform.OS === 'web' && data !== prev && inputRef.current) {
-        // @ts-expect-error web TextInput value
-        inputRef.current.value = data;
+    () => formatCountUp(format, progress.value),
+    (next, prev) => {
+      if (next !== prev) {
+        scheduleOnRN(setDisplay, next);
       }
     },
+    [format],
   );
-
-  const animatedProps = useAnimatedProps(() => {
-    const next = text.value;
-    return { text: next, defaultValue: next };
-  });
 
   if (value == null) {
     return <Text style={valueTextStyle}>—</Text>;
   }
 
-  return (
-    <AnimatedTextInput
-      ref={Platform.select({ web: inputRef })}
-      underlineColorAndroid="transparent"
-      editable={false}
-      animatedProps={animatedProps as object}
-      style={valueTextStyle}
-    />
-  );
+  return <Animated.Text style={valueTextStyle}>{display}</Animated.Text>;
 }
