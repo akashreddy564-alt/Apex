@@ -12,8 +12,8 @@ interface CountUpTextProps {
   style?: StyleProp<TextStyle>;
 }
 
-/** Cinematic count — long ease, not a snappy spring. */
-const COUNT_MS = 3000;
+/** Deliberate count — slow enough to read every digit. */
+const COUNT_MS = 5600;
 
 /** Mirrors `lib/format.ts` (no locale APIs — deterministic on web/SSR). */
 function formatCountUp(kind: CountUpFormat, raw: number): string {

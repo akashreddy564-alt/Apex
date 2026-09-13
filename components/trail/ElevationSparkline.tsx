@@ -1,17 +1,17 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Text, View, type ViewStyle } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { LineChart } from 'react-native-wagmi-charts';
 
 import type { ElevationSample } from '@/types/trail';
 
-/** Accent sage — slight bloom uses the same hue. */
+/** Accent sage — crisp stroke only, no bloom. */
 const LINE_COLOR = '#8B9A6D';
 
-/** Cinematic left→right map-out along distance. */
-const PATH_REVEAL_MS = 3400;
-/** Short beat before the wipe so the chart doesn't flash. */
-const PATH_REVEAL_DELAY_MS = 220;
+/** Slow left→right map-out along distance. */
+const PATH_REVEAL_MS = 6800;
+/** Brief beat before the wipe so the chart doesn't flash. */
+const PATH_REVEAL_DELAY_MS = 320;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -39,7 +39,6 @@ function easeOutQuint(t: number): number {
  * Scrubbable distance × elevation profile.
  * Wagmi LineChart timestamp channel carries distance_m.
  * Mount reveal clips left→right so the path maps out along distance.
- * Soft sage bloom under the crisp stroke for a restrained glow.
  */
 export function ElevationSparkline({
   samples,
@@ -99,15 +98,6 @@ export function ElevationSparkline({
   const endKm = (samples[samples.length - 1].distance_m / 1000).toFixed(1);
   const mono = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
-  const glowStyle: ViewStyle | undefined =
-    Platform.OS === 'web'
-      ? ({
-          // Soft sage halo around the mapped stroke (web SVG).
-          filter:
-            'drop-shadow(0 0 2.5px rgba(139, 154, 109, 0.75)) drop-shadow(0 0 9px rgba(139, 154, 109, 0.4))',
-        } as ViewStyle)
-      : undefined;
-
   return (
     <View className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
       <LineChart.Provider
@@ -144,21 +134,7 @@ export function ElevationSparkline({
         >
           {chartWidth > 0 ? (
             <View style={{ width: clipWidth, overflow: 'hidden' }}>
-              <View style={[{ width: chartWidth, height }, glowStyle]}>
-                {/* Soft sage bloom — absolute so it sits under the crisp stroke */}
-                <LineChart height={height} absolute>
-                  <LineChart.Path
-                    color={LINE_COLOR}
-                    width={9}
-                    showInactivePath={false}
-                    pathProps={{
-                      strokeOpacity: 0.34,
-                      strokeLinecap: 'round',
-                      strokeLinejoin: 'round',
-                    }}
-                  />
-                </LineChart>
-                {/* Crisp mapped line + scrub */}
+              <View style={{ width: chartWidth }}>
                 <LineChart height={height}>
                   <LineChart.Path
                     color={LINE_COLOR}
