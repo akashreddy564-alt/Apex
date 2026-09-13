@@ -1,19 +1,12 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Text, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { LineChart } from 'react-native-wagmi-charts';
 
 import type { ElevationSample } from '@/types/trail';
 
 /** Left→right clip reveal — maps the profile along distance. */
-const PATH_REVEAL_MS = 1100;
-const PATH_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
+const PATH_REVEAL_MS = 1200;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -32,10 +25,15 @@ function formatDistFromTimestamp(timestamp: string | number): string {
   return `${(meters / 1000).toFixed(2)} km`;
 }
 
+function easeOutCubic(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
 /**
  * Scrubbable distance × elevation profile.
  * Wagmi LineChart timestamp channel carries distance_m.
  * Mount reveal clips the chart left→right so the path maps out along distance.
+ * Clip width is rAF-driven so the wipe paints reliably on web.
  */
 export function ElevationSparkline({
   samples,
@@ -43,7 +41,7 @@ export function ElevationSparkline({
 }: ElevationSparklineProps) {
   const lastIndex = useRef<number | null>(null);
   const [chartWidth, setChartWidth] = useState(0);
-  const reveal = useSharedValue(0);
+  const [clipWidth, setClipWidth] = useState(0);
 
   const data = useMemo(
     () =>
@@ -60,17 +58,25 @@ export function ElevationSparkline({
 
   useEffect(() => {
     if (chartWidth <= 0 || data.length < 2) return;
-    reveal.value = 0;
-    reveal.value = withTiming(1, {
-      duration: PATH_REVEAL_MS,
-      easing: PATH_REVEAL_EASING,
-    });
-  }, [samples, chartWidth, data.length, reveal]);
 
-  const clipStyle = useAnimatedStyle(() => ({
-    width: Math.max(chartWidth * reveal.value, 0),
-    overflow: 'hidden' as const,
-  }));
+    setClipWidth(0);
+    let raf = 0;
+    let cancelled = false;
+    const startAt = performance.now();
+
+    const tick = (now: number) => {
+      if (cancelled) return;
+      const t = Math.min(1, (now - startAt) / PATH_REVEAL_MS);
+      setClipWidth(chartWidth * easeOutCubic(t));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+    };
+  }, [samples, chartWidth, data.length]);
 
   if (data.length < 2) {
     return (
@@ -118,7 +124,7 @@ export function ElevationSparkline({
           }}
         >
           {chartWidth > 0 ? (
-            <Animated.View style={clipStyle}>
+            <View style={{ width: clipWidth, overflow: 'hidden' }}>
               <View style={{ width: chartWidth }}>
                 <LineChart height={height}>
                   <LineChart.Path color="#8B9A6D" width={1.75} />
@@ -146,7 +152,7 @@ export function ElevationSparkline({
                   {Platform.OS === 'web' ? <LineChart.HoverTrap /> : null}
                 </LineChart>
               </View>
-            </Animated.View>
+            </View>
           ) : (
             <View style={{ height }} />
           )}
