@@ -1,9 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef } from 'react';
 import { Platform, Text, View } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 import { LineChart } from 'react-native-wagmi-charts';
 
 import type { ElevationSample } from '@/types/trail';
+
+/** Left→right clip reveal — maps the profile along distance. */
+const PATH_REVEAL_MS = 900;
+const PATH_REVEAL_EASING = Easing.bezier(0.22, 1, 0.36, 1);
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -84,7 +89,16 @@ export function ElevationSparkline({
         </View>
 
         <LineChart height={height} style={{ paddingHorizontal: 8 }}>
-          <LineChart.Path color="#8B9A6D" width={1.75} />
+          <LineChart.Path
+            color="#8B9A6D"
+            width={1.75}
+            inactiveColor="transparent"
+            showInactivePath
+            animateOnMount="foreground"
+            mountAnimationDuration={PATH_REVEAL_MS}
+            mountAnimationProps={{ easing: PATH_REVEAL_EASING }}
+            pathProps={{ isTransitionEnabled: Platform.OS !== 'web' }}
+          />
           <LineChart.CursorCrosshair color="#E4E4E7" outerSize={14} size={6}>
             <LineChart.Tooltip
               cursorGutter={12}
