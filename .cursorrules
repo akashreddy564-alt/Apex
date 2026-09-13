@@ -1,0 +1,26 @@
+# Apex — Cursor Rules
+
+## Stack
+- React Native + Expo (SDK 57+), file-based expo-router
+- NativeWind v4 (Tailwind utility classes via `className`)
+- Reanimated 3/4 + Gesture Handler for UI-thread motion only
+- Supabase (PostgreSQL + PostGIS, Auth, Storage)
+- TanStack React Query + Zustand (offline trail cache)
+- Icons: lucide-react-native or SF Symbols (stroke 1.5–1.75)
+
+## Design
+- High-density, utilitarian, tactile, restrained (Linear / Beli / Arc)
+- Monochrome zinc/slate foundation; single earthy accent (sage/olive)
+- No purple gradients, no floaty shadows, no bubbly cards, no emoji spam
+- Borders: 1px zinc-800; radii ≤ `rounded-xl`
+- Micro-haptics on toggle/log; spring physics (not ease-in-out float)
+- Sheets via `@gorhom/bottom-sheet`
+
+## Architecture
+- Strict TypeScript interfaces
+- Business logic in hooks (`useTrailTracker`, `useRankings`, `useTrailComparison`)
+- Optimistic UI for ranking + logging
+- Keep screens thin; components presentational
+
+## Accent token
+- `--accent` / `accent`: #8B9A6D (sage olive)
