@@ -47,5 +47,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web --port 43127"
   },
-  "private": true
+  "private": true,
+  "description": "Utilitarian hiking log and pairwise trail ranking for outdoorsy tech people",
+  "keywords": "[\"expo\",\"react-native\",\"hiking\",\"trails\",\"elo\",\"nativewind\"]"
 }
