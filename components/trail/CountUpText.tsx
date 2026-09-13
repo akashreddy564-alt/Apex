@@ -12,7 +12,8 @@ interface CountUpTextProps {
   style?: StyleProp<TextStyle>;
 }
 
-const COUNT_MS = 1400;
+/** Cinematic count — long ease, not a snappy spring. */
+const COUNT_MS = 3000;
 
 /** Mirrors `lib/format.ts` (no locale APIs — deterministic on web/SSR). */
 function formatCountUp(kind: CountUpFormat, raw: number): string {
@@ -42,8 +43,9 @@ function formatCountUp(kind: CountUpFormat, raw: number): string {
   return `${m}m`;
 }
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
+/** Slow settle — holds the early climb, eases into the final digit. */
+function easeOutQuint(t: number): number {
+  return 1 - (1 - t) ** 5;
 }
 
 /**
@@ -87,7 +89,7 @@ export function CountUpText({
         return;
       }
       const t = Math.min(1, (now - startAt) / COUNT_MS);
-      setDisplay(formatCountUp(format, value * easeOutCubic(t)));
+      setDisplay(formatCountUp(format, value * easeOutQuint(t)));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
 

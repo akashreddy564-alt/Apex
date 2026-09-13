@@ -24,7 +24,8 @@ function Cell({ label, children }: CellProps) {
   );
 }
 
-const STAGGER_MS = 60;
+/** Wider stagger so each cell reads before the next starts climbing. */
+const STAGGER_MS = 180;
 
 export function TelemetryRow({ telemetry }: TelemetryRowProps) {
   return (

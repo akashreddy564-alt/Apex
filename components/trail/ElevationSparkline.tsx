@@ -1,12 +1,17 @@
 import * as Haptics from 'expo-haptics';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Text, View } from 'react-native';
+import { Platform, Text, View, type ViewStyle } from 'react-native';
 import { LineChart } from 'react-native-wagmi-charts';
 
 import type { ElevationSample } from '@/types/trail';
 
-/** Left→right clip reveal — maps the profile along distance. */
-const PATH_REVEAL_MS = 1400;
+/** Accent sage — slight bloom uses the same hue. */
+const LINE_COLOR = '#8B9A6D';
+
+/** Cinematic left→right map-out along distance. */
+const PATH_REVEAL_MS = 3400;
+/** Short beat before the wipe so the chart doesn't flash. */
+const PATH_REVEAL_DELAY_MS = 220;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -25,15 +30,16 @@ function formatDistFromTimestamp(timestamp: string | number): string {
   return `${(meters / 1000).toFixed(2)} km`;
 }
 
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
+/** Slow settle — same family as count-up. */
+function easeOutQuint(t: number): number {
+  return 1 - (1 - t) ** 5;
 }
 
 /**
  * Scrubbable distance × elevation profile.
  * Wagmi LineChart timestamp channel carries distance_m.
- * Mount reveal clips the chart left→right so the path maps out along distance.
- * Clip width is rAF-driven so the wipe paints reliably on web.
+ * Mount reveal clips left→right so the path maps out along distance.
+ * Soft sage bloom under the crisp stroke for a restrained glow.
  */
 export function ElevationSparkline({
   samples,
@@ -62,12 +68,16 @@ export function ElevationSparkline({
     setClipWidth(0);
     let raf = 0;
     let cancelled = false;
-    const startAt = performance.now();
+    const startAt = performance.now() + PATH_REVEAL_DELAY_MS;
 
     const tick = (now: number) => {
       if (cancelled) return;
+      if (now < startAt) {
+        raf = requestAnimationFrame(tick);
+        return;
+      }
       const t = Math.min(1, (now - startAt) / PATH_REVEAL_MS);
-      setClipWidth(chartWidth * easeOutCubic(t));
+      setClipWidth(chartWidth * easeOutQuint(t));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
 
@@ -88,6 +98,15 @@ export function ElevationSparkline({
 
   const endKm = (samples[samples.length - 1].distance_m / 1000).toFixed(1);
   const mono = Platform.select({ ios: 'Menlo', default: 'monospace' });
+
+  const glowStyle: ViewStyle | undefined =
+    Platform.OS === 'web'
+      ? ({
+          // Soft sage halo around the mapped stroke (web SVG).
+          filter:
+            'drop-shadow(0 0 2.5px rgba(139, 154, 109, 0.75)) drop-shadow(0 0 9px rgba(139, 154, 109, 0.4))',
+        } as ViewStyle)
+      : undefined;
 
   return (
     <View className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
@@ -125,9 +144,29 @@ export function ElevationSparkline({
         >
           {chartWidth > 0 ? (
             <View style={{ width: clipWidth, overflow: 'hidden' }}>
-              <View style={{ width: chartWidth }}>
+              <View style={[{ width: chartWidth }, glowStyle]}>
                 <LineChart height={height}>
-                  <LineChart.Path color="#8B9A6D" width={1.75} />
+                  {/* Soft bloom under the stroke */}
+                  <LineChart.Path
+                    color={LINE_COLOR}
+                    width={8}
+                    showInactivePath={false}
+                    pathProps={{
+                      strokeOpacity: 0.32,
+                      strokeLinecap: 'round',
+                      strokeLinejoin: 'round',
+                    }}
+                  />
+                  {/* Crisp mapped line */}
+                  <LineChart.Path
+                    color={LINE_COLOR}
+                    width={1.75}
+                    showInactivePath={false}
+                    pathProps={{
+                      strokeLinecap: 'round',
+                      strokeLinejoin: 'round',
+                    }}
+                  />
                   <LineChart.CursorCrosshair
                     color="#E4E4E7"
                     outerSize={14}
