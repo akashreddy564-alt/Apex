@@ -78,20 +78,13 @@ export function CountUpText({
     let intervalId: ReturnType<typeof setInterval> | null = null;
     const startAt = Date.now() + delayMs;
 
-    let lastLoggedSecond = -1;
     const tick = () => {
       if (cancelled) return;
       const elapsed = Date.now() - startAt;
       if (elapsed < 0) return;
       const t = Math.min(1, elapsed / COUNT_MS);
-      const sec = Math.floor(elapsed / 1000);
-      if (sec !== lastLoggedSecond && format === 'elevation' && delayMs === 0) {
-        lastLoggedSecond = sec;
-        console.log(`[CountUp] Peak Elev t=${t.toFixed(2)} elapsed=${elapsed}ms → ${formatCountUp(format, value * t)}`);
-      }
       setDisplay(formatCountUp(format, value * t));
       if (t >= 1 && intervalId != null) {
-        console.log(`[CountUp] Peak Elev DONE at ${elapsed}ms`);
         clearInterval(intervalId);
         intervalId = null;
       }
