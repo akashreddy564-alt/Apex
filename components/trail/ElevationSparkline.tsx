@@ -6,7 +6,7 @@ import { LineChart } from 'react-native-wagmi-charts';
 import type { ElevationSample } from '@/types/trail';
 
 /** Left→right clip reveal — maps the profile along distance. */
-const PATH_REVEAL_MS = 1200;
+const PATH_REVEAL_MS = 1400;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];

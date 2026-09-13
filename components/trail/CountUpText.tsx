@@ -12,7 +12,7 @@ interface CountUpTextProps {
   style?: StyleProp<TextStyle>;
 }
 
-const COUNT_MS = 1100;
+const COUNT_MS = 1400;
 
 /** Mirrors `lib/format.ts` (no locale APIs — deterministic on web/SSR). */
 function formatCountUp(kind: CountUpFormat, raw: number): string {
