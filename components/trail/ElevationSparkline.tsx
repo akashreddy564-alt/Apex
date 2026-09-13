@@ -9,9 +9,9 @@ import type { ElevationSample } from '@/types/trail';
 const LINE_COLOR = '#8B9A6D';
 
 /** Slow left→right map-out along distance. */
-const PATH_REVEAL_MS = 6800;
+const PATH_REVEAL_MS = 10000;
 /** Brief beat before the wipe so the chart doesn't flash. */
-const PATH_REVEAL_DELAY_MS = 320;
+const PATH_REVEAL_DELAY_MS = 400;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -30,9 +30,9 @@ function formatDistFromTimestamp(timestamp: string | number): string {
   return `${(meters / 1000).toFixed(2)} km`;
 }
 
-/** Slow settle — same family as count-up. */
-function easeOutQuint(t: number): number {
-  return 1 - (1 - t) ** 5;
+/** Linear pacing — steady map-out, no rush. */
+function easeLinear(t: number): number {
+  return t;
 }
 
 /**
@@ -76,7 +76,7 @@ export function ElevationSparkline({
         return;
       }
       const t = Math.min(1, (now - startAt) / PATH_REVEAL_MS);
-      setClipWidth(chartWidth * easeOutQuint(t));
+      setClipWidth(chartWidth * easeLinear(t));
       if (t < 1) raf = requestAnimationFrame(tick);
     };
 

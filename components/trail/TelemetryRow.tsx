@@ -25,7 +25,7 @@ function Cell({ label, children }: CellProps) {
 }
 
 /** Slow stagger so each cell settles before the next climbs. */
-const STAGGER_MS = 280;
+const STAGGER_MS = 400;
 
 export function TelemetryRow({ telemetry }: TelemetryRowProps) {
   return (
