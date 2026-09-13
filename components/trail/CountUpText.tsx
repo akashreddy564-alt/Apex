@@ -14,6 +14,7 @@ interface CountUpTextProps {
 
 /** Deliberate count — slow enough to read every digit. */
 const COUNT_MS = 8000;
+const TICK_MS = 40;
 
 /** Mirrors `lib/format.ts` (no locale APIs — deterministic on web/SSR). */
 function formatCountUp(kind: CountUpFormat, raw: number): string {
@@ -43,14 +44,9 @@ function formatCountUp(kind: CountUpFormat, raw: number): string {
   return `${m}m`;
 }
 
-/** Linear pacing — no ease that rushes the middle. */
-function easeLinear(t: number): number {
-  return t;
-}
-
 /**
- * Count-up for telemetry digits. rAF-driven so every intermediate frame
- * paints on web and native (Reanimated text props are unreliable on web).
+ * Count-up for telemetry digits. Interval-driven for steady wall-clock
+ * pacing on web (rAF can be coalesced under automation / background tabs).
  */
 export function CountUpText({
   value,
@@ -78,25 +74,32 @@ export function CountUpText({
     if (value == null) return;
 
     setDisplay(formatCountUp(format, 0));
-    let raf = 0;
     let cancelled = false;
-    const startAt = performance.now() + delayMs;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const startAt = Date.now() + delayMs;
 
-    const tick = (now: number) => {
+    const tick = () => {
       if (cancelled) return;
-      if (now < startAt) {
-        raf = requestAnimationFrame(tick);
-        return;
+      const elapsed = Date.now() - startAt;
+      if (elapsed < 0) return;
+      const t = Math.min(1, elapsed / COUNT_MS);
+      setDisplay(formatCountUp(format, value * t));
+      if (t >= 1 && intervalId != null) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
-      const t = Math.min(1, (now - startAt) / COUNT_MS);
-      setDisplay(formatCountUp(format, value * easeLinear(t)));
-      if (t < 1) raf = requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
+    const delayId = setTimeout(() => {
+      if (cancelled) return;
+      tick();
+      intervalId = setInterval(tick, TICK_MS);
+    }, Math.max(0, delayMs));
+
     return () => {
       cancelled = true;
-      cancelAnimationFrame(raf);
+      clearTimeout(delayId);
+      if (intervalId != null) clearInterval(intervalId);
     };
   }, [value, delayMs, format]);
 

@@ -12,6 +12,7 @@ const LINE_COLOR = '#8B9A6D';
 const PATH_REVEAL_MS = 10000;
 /** Brief beat before the wipe so the chart doesn't flash. */
 const PATH_REVEAL_DELAY_MS = 400;
+const TICK_MS = 40;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -30,11 +31,6 @@ function formatDistFromTimestamp(timestamp: string | number): string {
   return `${(meters / 1000).toFixed(2)} km`;
 }
 
-/** Linear pacing — steady map-out, no rush. */
-function easeLinear(t: number): number {
-  return t;
-}
-
 /**
  * Scrubbable distance × elevation profile.
  * Wagmi LineChart timestamp channel carries distance_m.
@@ -45,6 +41,7 @@ export function ElevationSparkline({
   height = 168,
 }: ElevationSparklineProps) {
   const lastIndex = useRef<number | null>(null);
+  const lockedWidth = useRef(0);
   const [chartWidth, setChartWidth] = useState(0);
   const [clipWidth, setClipWidth] = useState(0);
 
@@ -59,31 +56,41 @@ export function ElevationSparkline({
 
   useEffect(() => {
     lastIndex.current = null;
+    lockedWidth.current = 0;
+    setChartWidth(0);
+    setClipWidth(0);
   }, [samples]);
 
   useEffect(() => {
     if (chartWidth <= 0 || data.length < 2) return;
 
     setClipWidth(0);
-    let raf = 0;
     let cancelled = false;
-    const startAt = performance.now() + PATH_REVEAL_DELAY_MS;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const startAt = Date.now() + PATH_REVEAL_DELAY_MS;
 
-    const tick = (now: number) => {
+    const tick = () => {
       if (cancelled) return;
-      if (now < startAt) {
-        raf = requestAnimationFrame(tick);
-        return;
+      const elapsed = Date.now() - startAt;
+      if (elapsed < 0) return;
+      const t = Math.min(1, elapsed / PATH_REVEAL_MS);
+      setClipWidth(chartWidth * t);
+      if (t >= 1 && intervalId != null) {
+        clearInterval(intervalId);
+        intervalId = null;
       }
-      const t = Math.min(1, (now - startAt) / PATH_REVEAL_MS);
-      setClipWidth(chartWidth * easeLinear(t));
-      if (t < 1) raf = requestAnimationFrame(tick);
     };
 
-    raf = requestAnimationFrame(tick);
+    const delayId = setTimeout(() => {
+      if (cancelled) return;
+      tick();
+      intervalId = setInterval(tick, TICK_MS);
+    }, PATH_REVEAL_DELAY_MS);
+
     return () => {
       cancelled = true;
-      cancelAnimationFrame(raf);
+      clearTimeout(delayId);
+      if (intervalId != null) clearInterval(intervalId);
     };
   }, [samples, chartWidth, data.length]);
 
@@ -129,7 +136,11 @@ export function ElevationSparkline({
           className="px-2"
           onLayout={(e) => {
             const next = Math.round(e.nativeEvent.layout.width);
-            if (next > 0 && next !== chartWidth) setChartWidth(next);
+            // Lock width once so layout jitter doesn't restart / stall the wipe.
+            if (next > 0 && lockedWidth.current === 0) {
+              lockedWidth.current = next;
+              setChartWidth(next);
+            }
           }}
         >
           {chartWidth > 0 ? (
