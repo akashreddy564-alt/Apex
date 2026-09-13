@@ -144,20 +144,22 @@ export function ElevationSparkline({
         >
           {chartWidth > 0 ? (
             <View style={{ width: clipWidth, overflow: 'hidden' }}>
-              <View style={[{ width: chartWidth }, glowStyle]}>
-                <LineChart height={height}>
-                  {/* Soft bloom under the stroke */}
+              <View style={[{ width: chartWidth, height }, glowStyle]}>
+                {/* Soft sage bloom — absolute so it sits under the crisp stroke */}
+                <LineChart height={height} absolute>
                   <LineChart.Path
                     color={LINE_COLOR}
-                    width={8}
+                    width={9}
                     showInactivePath={false}
                     pathProps={{
-                      strokeOpacity: 0.32,
+                      strokeOpacity: 0.34,
                       strokeLinecap: 'round',
                       strokeLinejoin: 'round',
                     }}
                   />
-                  {/* Crisp mapped line */}
+                </LineChart>
+                {/* Crisp mapped line + scrub */}
+                <LineChart height={height}>
                   <LineChart.Path
                     color={LINE_COLOR}
                     width={1.75}
