@@ -140,7 +140,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
       statusBarTranslucent
     >
       <View
-        className="flex-1 bg-zinc-950/92"
+        className="flex-1 bg-zinc-950"
         style={{ paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 }}
       >
         <Animated.View style={sheetStyle} className="flex-1 px-4">
