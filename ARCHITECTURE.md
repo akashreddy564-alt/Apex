@@ -65,4 +65,3 @@
 3. `useTrailComparison` binary-searches the sorted ranking list via pairwise choices.
 4. Each choice updates Elo (`lib/elo.ts`) optimistically in Zustand + React Query.
 5. When `low > high`, insertion index is final → `LeaderboardReveal` + haptic.
-```
