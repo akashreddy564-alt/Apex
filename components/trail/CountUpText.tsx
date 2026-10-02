@@ -1,10 +1,11 @@
-import { useEffect, useRef, type Ref } from 'react';
+import { useCallback, useEffect, useRef, type RefObject } from 'react';
 import { Platform, Text, TextInput, type StyleProp, type TextStyle } from 'react-native';
 import { useIsFocused } from 'expo-router';
 import { cssInterop } from 'nativewind';
 import Animated, {
   cancelAnimation,
   Easing,
+  runOnJS,
   useAnimatedProps,
   useAnimatedReaction,
   useDerivedValue,
@@ -35,8 +36,6 @@ interface CountUpTextProps {
 /** Deliberate count — slow enough to read every digit. */
 const COUNT_MS = 8000;
 
-Animated.addWhitelistedNativeProps({ text: true });
-
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 const VALUE_CLASS =
@@ -53,7 +52,7 @@ function CountUpFace({
 }: {
   className?: string;
   style?: StyleProp<TextStyle>;
-  inputRef: Ref<TextInput>;
+  inputRef: RefObject<TextInput | null>;
   accessibilityLabel: string;
   defaultValue: string;
   animatedProps: { text?: string };
@@ -63,6 +62,9 @@ function CountUpFace({
       ref={inputRef}
       underlineColorAndroid="transparent"
       editable={false}
+      accessible={false}
+      importantForAccessibility="no"
+      accessibilityElementsHidden
       accessibilityLabel={accessibilityLabel}
       defaultValue={defaultValue}
       style={style}
@@ -100,13 +102,13 @@ function useLinearProgress(
   const progress = useSharedValue(reducedMotion ? 1 : 0);
   const seenKey = useRef(resetKey);
 
-  if (seenKey.current !== resetKey) {
-    seenKey.current = resetKey;
-    cancelAnimation(progress);
-    progress.value = reducedMotion ? 1 : 0;
-  }
-
   useEffect(() => {
+    if (seenKey.current !== resetKey) {
+      seenKey.current = resetKey;
+      cancelAnimation(progress);
+      progress.value = reducedMotion ? 1 : 0;
+    }
+
     if (reducedMotion) {
       cancelAnimation(progress);
       progress.value = 1;
@@ -158,15 +160,6 @@ export function CountUpText({
     return formatProgress(format, value * progress.value);
   });
 
-  useAnimatedReaction(
-    () => text.value,
-    (next, prev) => {
-      if (Platform.OS !== 'web' || next === prev || !inputRef.current) return;
-      // Web ignores animated `text` props; write the DOM value directly.
-      (inputRef.current as unknown as { value: string }).value = next;
-    },
-  );
-
   const animatedProps = useAnimatedProps(() => ({
     text: text.value,
   }));
@@ -184,13 +177,49 @@ export function CountUpText({
   }
 
   return (
-    <CountUpFace
-      inputRef={inputRef}
-      accessibilityLabel={label}
-      defaultValue={reducedMotion ? label : formatProgress(format, 0)}
-      className={VALUE_CLASS}
-      style={style}
-      animatedProps={animatedProps}
-    />
+    <>
+      <CountUpFace
+        inputRef={inputRef}
+        accessibilityLabel={label}
+        defaultValue={reducedMotion ? label : formatProgress(format, 0)}
+        className={VALUE_CLASS}
+        style={style}
+        animatedProps={animatedProps}
+      />
+      {Platform.OS === 'web' ? (
+        <WebValueSync text={text} inputRef={inputRef} />
+      ) : null}
+    </>
   );
+}
+
+/**
+ * Web ignores the animated `text` prop. The reaction stays on web only, and
+ * the DOM write runs on the JS thread so the worklet never closes over a ref.
+ */
+function WebValueSync({
+  text,
+  inputRef,
+}: {
+  text: SharedValue<string>;
+  inputRef: RefObject<TextInput | null>;
+}) {
+  const writeDomValue = useCallback(
+    (next: string) => {
+      const node = inputRef.current as unknown as { value: string } | null;
+      if (node) node.value = next;
+    },
+    [inputRef],
+  );
+
+  useAnimatedReaction(
+    () => text.value,
+    (next, prev) => {
+      if (next === prev) return;
+      runOnJS(writeDomValue)(next);
+    },
+    [writeDomValue],
+  );
+
+  return null;
 }

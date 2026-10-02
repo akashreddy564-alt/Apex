@@ -21,7 +21,7 @@ import {
   useLineChart,
 } from 'react-native-wagmi-charts';
 
-import { formatElevationM } from '@/lib/format';
+import { formatDistanceKm, formatElevationM } from '@/lib/format';
 import type { ElevationSample } from '@/types/trail';
 
 /** Accent sage — crisp stroke only, no bloom. */
@@ -55,7 +55,7 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 function formatDistFromTimestamp(timestamp: string | number): string {
   const meters = typeof timestamp === 'string' ? Number(timestamp) : timestamp;
   if (Number.isNaN(meters)) return '—';
-  return `${(meters / 1000).toFixed(2)} km`;
+  return formatDistanceKm(meters / 1000);
 }
 
 /**
@@ -168,13 +168,15 @@ export function ElevationSparkline({
     [samples],
   );
 
-  if (seenSamples.current !== samples) {
-    seenSamples.current = samples;
-    cancelAnimation(reveal);
-    reveal.value = reducedMotion ? 1 : 0;
-  }
-
   useEffect(() => {
+    const samplesChanged = seenSamples.current !== samples;
+    if (samplesChanged) {
+      seenSamples.current = samples;
+      lastIndex.current = null;
+      cancelAnimation(reveal);
+      reveal.value = reducedMotion ? 1 : 0;
+    }
+
     if (chartWidth <= 0 || data.length < 2) return;
 
     if (reducedMotion) {
