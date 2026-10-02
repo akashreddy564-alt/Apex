@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { Footprints, ListOrdered, Mountain } from 'lucide-react-native';
 
-import { colors, fonts } from '@/theme/tokens';
+import { colors, fonts, navTitle } from '@/theme/tokens';
 
 export default function TabsLayout() {
   return (
@@ -9,6 +9,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.fg,
+        headerTitleStyle: navTitle,
         headerShadowVisible: false,
         tabBarStyle: {
           backgroundColor: colors.bg,

@@ -49,7 +49,9 @@ export const elevationGradientMid = 0.6;
  * stack. Inter is `font-ui` so those keys are not replaced.
  */
 export const fonts = {
+  /** Bricolage Grotesque 700. Nav titles and medium display. */
   display: 'BricolageGrotesque_700Bold',
+  /** Bricolage Grotesque 800. Large display titles only. */
   displayExtraBold: 'BricolageGrotesque_800ExtraBold',
   ui: 'Inter_400Regular',
   uiMedium: 'Inter_500Medium',
@@ -90,6 +92,18 @@ export const heading = {
   color: colors.fg,
   fontFamily: fonts.display,
 } as const;
+
+/**
+ * Stack and tab headers. The 700 cut is its own family name.
+ * `fontWeight` stays `normal` so web matches the `@font-face` expo-font
+ * registers (it does not set a weight). 800 is not used here.
+ */
+export const navTitle = {
+  color: colors.fg,
+  fontFamily: fonts.display,
+  fontSize: 17,
+  fontWeight: 'normal' as const,
+};
 
 /** Text styles. Titles use `heading.color` only — never a second color inside the line. */
 export const type = {
