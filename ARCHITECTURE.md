@@ -38,7 +38,8 @@
 │
 ├── components/
 │   ├── trail/
-│   │   ├── ElevationSparkline.tsx      # wagmi LineChart, scrub + haptic
+│   │   ├── ElevationSparkline.tsx      # wagmi LineChart, scrub + moving stroke
+│   │   ├── CountUpText.tsx             # interval count-up for telemetry
 │   │   ├── TelemetryRow.tsx            # dense mono telemetry grid
 │   │   └── TrailCard.tsx               # list row (no card chrome bloat)
 │   └── ranking/

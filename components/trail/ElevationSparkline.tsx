@@ -1,9 +1,36 @@
 import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useRef } from 'react';
-import { Platform, Text, View } from 'react-native';
-import { LineChart } from 'react-native-wagmi-charts';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  useAnimatedProps,
+  useFrameCallback,
+  useSharedValue,
+} from 'react-native-reanimated';
+import { getYForX } from 'react-native-redash';
+import { Circle, Path, Svg } from 'react-native-svg';
+import {
+  LineChart,
+  LineChartDimensionsContext,
+} from 'react-native-wagmi-charts';
 
 import type { ElevationSample } from '@/types/trail';
+
+/** Accent sage — crisp stroke only, no bloom. */
+const LINE_COLOR = '#8B9A6D';
+/** Solid bead that rides the stroke. No shadow, no blur. */
+const TRACE_COLOR = '#F4F4F5';
+
+/** Slow left→right map-out along distance. */
+const PATH_REVEAL_MS = 10000;
+/** Brief beat before the wipe so the chart doesn't flash. */
+const PATH_REVEAL_DELAY_MS = 400;
+const TICK_MS = 32;
+/** One pass of the traveling dash along the stroke. */
+const TRACE_PERIOD_MS = 3200;
+const TRACE_DASH = 22;
+const TRACE_GAP = 148;
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
@@ -23,14 +50,94 @@ function formatDistFromTimestamp(timestamp: string | number): string {
 }
 
 /**
+ * Short zinc segment that crawls the sage stroke. Solid dash, no blur.
+ * UI-thread clock so the line keeps moving after the reveal finishes.
+ */
+function FlowingTrace() {
+  const { path, width, height } = useContext(LineChartDimensionsContext);
+  const offset = useSharedValue(0);
+
+  useFrameCallback((frame) => {
+    const cycle = TRACE_DASH + TRACE_GAP;
+    const t = (frame.timeSinceFirstFrame % TRACE_PERIOD_MS) / TRACE_PERIOD_MS;
+    offset.value = -t * cycle;
+  });
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: offset.value,
+  }));
+
+  if (!path || width <= 0 || height <= 0) return null;
+
+  return (
+    <Svg
+      width={width}
+      height={height}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+    >
+      <AnimatedPath
+        d={path}
+        animatedProps={animatedProps}
+        stroke={TRACE_COLOR}
+        strokeWidth={1.75}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray={`${TRACE_DASH} ${TRACE_GAP}`}
+      />
+    </Svg>
+  );
+}
+
+/**
+ * Leading bead while the profile is still mapping out. Hidden once the
+ * wipe finishes so the crosshair stays the only cursor.
+ */
+function RevealHead({
+  progress,
+  active,
+}: {
+  progress: number;
+  active: boolean;
+}) {
+  const { parsedPath, pathWidth, width, height } = useContext(
+    LineChartDimensionsContext,
+  );
+
+  if (!active || width <= 0 || height <= 0 || progress <= 0) return null;
+  if (!parsedPath?.curves?.length) return null;
+
+  const x = progress * pathWidth;
+  const y = getYForX(parsedPath, x) ?? 0;
+
+  return (
+    <Svg
+      width={width}
+      height={height}
+      style={StyleSheet.absoluteFill}
+      pointerEvents="none"
+    >
+      <Circle cx={x} cy={y} r={3.25} fill={TRACE_COLOR} />
+    </Svg>
+  );
+}
+
+/**
  * Scrubbable distance × elevation profile.
  * Wagmi LineChart timestamp channel carries distance_m.
+ * Mount reveal clips left→right so the path maps out along distance.
+ * A solid dash keeps traveling the stroke (no glow).
  */
 export function ElevationSparkline({
   samples,
   height = 168,
 }: ElevationSparklineProps) {
   const lastIndex = useRef<number | null>(null);
+  const lockedWidth = useRef(0);
+  const [chartWidth, setChartWidth] = useState(0);
+  const [clipWidth, setClipWidth] = useState(0);
+  const [reveal, setReveal] = useState(0);
 
   const data = useMemo(
     () =>
@@ -43,7 +150,46 @@ export function ElevationSparkline({
 
   useEffect(() => {
     lastIndex.current = null;
+    lockedWidth.current = 0;
+    setChartWidth(0);
+    setClipWidth(0);
+    setReveal(0);
   }, [samples]);
+
+  useEffect(() => {
+    if (chartWidth <= 0 || data.length < 2) return;
+
+    setClipWidth(0);
+    setReveal(0);
+    let cancelled = false;
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+    const startAt = Date.now() + PATH_REVEAL_DELAY_MS;
+
+    const tick = () => {
+      if (cancelled) return;
+      const elapsed = Date.now() - startAt;
+      if (elapsed < 0) return;
+      const t = Math.min(1, elapsed / PATH_REVEAL_MS);
+      setClipWidth(chartWidth * t);
+      setReveal(t);
+      if (t >= 1 && intervalId != null) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    };
+
+    const delayId = setTimeout(() => {
+      if (cancelled) return;
+      tick();
+      intervalId = setInterval(tick, TICK_MS);
+    }, PATH_REVEAL_DELAY_MS);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(delayId);
+      if (intervalId != null) clearInterval(intervalId);
+    };
+  }, [samples, chartWidth, data.length]);
 
   if (data.length < 2) {
     return (
@@ -54,10 +200,13 @@ export function ElevationSparkline({
   }
 
   const endKm = (samples[samples.length - 1].distance_m / 1000).toFixed(1);
-  const mono = Platform.select({ ios: 'Menlo', default: 'monospace' });
+  const mono = 'SpaceMono';
 
   return (
-    <View className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+    <View
+      accessibilityLabel="Elevation profile"
+      className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
+    >
       <LineChart.Provider
         data={data}
         onCurrentIndexChange={(index) => {
@@ -83,26 +232,63 @@ export function ElevationSparkline({
           </View>
         </View>
 
-        <LineChart height={height} style={{ paddingHorizontal: 8 }}>
-          <LineChart.Path color="#8B9A6D" width={1.75} />
-          <LineChart.CursorCrosshair color="#E4E4E7" outerSize={14} size={6}>
-            <LineChart.Tooltip
-              cursorGutter={12}
-              textStyle={{
-                color: '#FAFAFA',
-                fontFamily: mono,
-                fontSize: 11,
-                backgroundColor: '#18181B',
-                borderColor: '#27272A',
-                borderWidth: 1,
-                overflow: 'hidden',
-                paddingHorizontal: 8,
-                paddingVertical: 4,
-                borderRadius: 8,
-              }}
-            />
-          </LineChart.CursorCrosshair>
-        </LineChart>
+        <View className="px-2">
+          <View
+            onLayout={(e) => {
+              const next = Math.round(e.nativeEvent.layout.width);
+              // Lock width once so layout jitter doesn't restart / stall the wipe.
+              if (next > 0 && lockedWidth.current === 0) {
+                lockedWidth.current = next;
+                setChartWidth(next);
+              }
+            }}
+          >
+            {chartWidth > 0 ? (
+              <View style={{ width: clipWidth, overflow: 'hidden' }}>
+                <View style={{ width: chartWidth }}>
+                  <LineChart width={chartWidth} height={height}>
+                    <LineChart.Path
+                      color={LINE_COLOR}
+                      width={1.75}
+                      showInactivePath={false}
+                      pathProps={{
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round',
+                        isTransitionEnabled: false,
+                      }}
+                    />
+                    <FlowingTrace />
+                    <RevealHead progress={reveal} active={reveal < 1} />
+                    <LineChart.CursorCrosshair
+                      color="#E4E4E7"
+                      outerSize={14}
+                      size={6}
+                    >
+                      <LineChart.Tooltip
+                        cursorGutter={12}
+                        textStyle={{
+                          color: '#FAFAFA',
+                          fontFamily: mono,
+                          fontSize: 11,
+                          backgroundColor: '#18181B',
+                          borderColor: '#27272A',
+                          borderWidth: 1,
+                          overflow: 'hidden',
+                          paddingHorizontal: 8,
+                          paddingVertical: 4,
+                          borderRadius: 8,
+                        }}
+                      />
+                    </LineChart.CursorCrosshair>
+                    {Platform.OS === 'web' ? <LineChart.HoverTrap /> : null}
+                  </LineChart>
+                </View>
+              </View>
+            ) : (
+              <View style={{ height }} />
+            )}
+          </View>
+        </View>
 
         <View className="flex-row justify-between px-3 pb-2">
           <Text className="font-mono text-[10px] text-zinc-600">0 km</Text>

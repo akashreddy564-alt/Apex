@@ -11,7 +11,7 @@ Early prototype. Mock trail data runs locally without a backend.
 | Feature | Status |
 |---------|--------|
 | Trail list + detail | Done |
-| Elevation profile (scrubbable) | Done |
+| Elevation profile (scrubbable, moving stroke) | Done |
 | Log a hike | Done |
 | Pairwise ranking + Elo | Done |
 | Personal top ranking list | Done |
