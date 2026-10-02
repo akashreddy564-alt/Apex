@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { activeAltitudeCorrector } from '@/lib/altitude';
 import { haversineMeters } from '@/lib/geo';
-import { applyAltitudeStep } from '@/lib/hikeStats';
+import { applyAltitudeStep, applyRecordingEvent, splitClock } from '@/lib/hikeStats';
 
 const KEY = 'apex-active-hike';
 
@@ -99,25 +99,34 @@ async function commit(hike: PersistedHike | null): Promise<PersistedHike | null>
   return next;
 }
 
-export function startHike(trailId: string): Promise<PersistedHike> {
+function freshHike(trailId: string, now: number): PersistedHike {
+  return {
+    trailId,
+    startedAt: now,
+    notes: '',
+    photos: [],
+    points: [],
+    pausedAt: null,
+    pausedMs: 0,
+    distanceM: 0,
+    elevationGainM: 0,
+    elevationLossM: 0,
+    savedAt: now,
+    smoothedAltitude: null,
+    gainBaseline: null,
+  };
+}
+
+export function startHike(trailId: string): Promise<PersistedHike | null> {
   return serialized(async () => {
-    const hike: PersistedHike = {
-      trailId,
-      startedAt: Date.now(),
-      notes: '',
-      photos: [],
-      points: [],
-      pausedAt: null,
-      pausedMs: 0,
-      distanceM: 0,
-      elevationGainM: 0,
-      elevationLossM: 0,
-      savedAt: Date.now(),
-      smoothedAltitude: null,
-      gainBaseline: null,
-    };
-    await commit(hike);
-    return hike;
+    await ensureMemory();
+    const current = memory ?? null;
+    const now = Date.now();
+    const next = applyRecordingEvent(current, 'start', now, () => freshHike(trailId, now));
+    if (next === current) return current;
+    if (!next) return current;
+    await commit(next);
+    return next;
   });
 }
 
@@ -143,17 +152,20 @@ async function ensureMemory(): Promise<void> {
 export function pauseHike(): Promise<PersistedHike | null> {
   return serialized(async () => {
     await ensureMemory();
-    if (!memory || memory.pausedAt != null) return memory ?? null;
-    return commit({ ...memory, pausedAt: Date.now() });
+    const current = memory ?? null;
+    const next = applyRecordingEvent(current, 'pause', Date.now());
+    if (next === current || !next) return current;
+    return commit(next);
   });
 }
 
 export function resumeHike(): Promise<PersistedHike | null> {
   return serialized(async () => {
     await ensureMemory();
-    if (!memory || memory.pausedAt == null) return memory ?? null;
-    const pausedMs = memory.pausedMs + Math.max(0, Date.now() - memory.pausedAt);
-    return commit({ ...memory, pausedAt: null, pausedMs });
+    const current = memory ?? null;
+    const next = applyRecordingEvent(current, 'resume', Date.now());
+    if (next === current || !next) return current;
+    return commit(next);
   });
 }
 
@@ -216,6 +228,5 @@ export function appendFixes(fixes: LocationFix[]): Promise<PersistedHike | null>
 }
 
 export function elapsedSeconds(hike: PersistedHike, now = Date.now()): number {
-  const openPause = hike.pausedAt == null ? 0 : Math.max(0, now - hike.pausedAt);
-  return Math.max(0, Math.floor((now - hike.startedAt - hike.pausedMs - openPause) / 1000));
+  return splitClock(hike.startedAt, hike.pausedMs, hike.pausedAt, now).moving;
 }

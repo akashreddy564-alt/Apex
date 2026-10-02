@@ -13,7 +13,7 @@ import {
   updateHike,
   type PersistedHike,
 } from '@/lib/activeHike';
-import { formatPace, paceSecondsPerKm, totalSeconds } from '@/lib/hikeStats';
+import { formatPace, paceSecondsPerKm, recordingPhase, totalSeconds } from '@/lib/hikeStats';
 import { newId } from '@/lib/geo';
 import { stopTracking } from '@/lib/locationTask';
 import { buildPastHikeLog, type PastHikeDraft } from '@/lib/pastHike';
@@ -29,6 +29,7 @@ export interface UseTrailTrackerResult {
   elapsedSeconds: number;
   isTracking: boolean;
   isPaused: boolean;
+  phase: 'idle' | 'recording' | 'paused';
   start: (trailId: string) => void;
   pause: () => void;
   resume: () => void;
@@ -164,13 +165,15 @@ export function useTrailTracker(): UseTrailTrackerResult {
   }, [upsertLog]);
 
   const elapsed = session ? elapsedSeconds(session, now) : 0;
+  const phase = recordingPhase(session);
 
   return useMemo(
     () => ({
       session,
       elapsedSeconds: elapsed,
-      isTracking: session !== null,
-      isPaused: session?.pausedAt != null,
+      isTracking: phase !== 'idle',
+      isPaused: phase === 'paused',
+      phase,
       start,
       pause,
       resume,
@@ -196,6 +199,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
     [
       session,
       elapsed,
+      phase,
       recovered,
       dismissRecovery,
       start,
