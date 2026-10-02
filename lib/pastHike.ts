@@ -1,4 +1,5 @@
 import { MOCK_USER_ID } from '@/data/mockTrails';
+import { DEFAULT_HIKE_TYPE } from '@/lib/ranking';
 import type { HikeLog } from '@/types/trail';
 
 export interface PastHikeDraft {
@@ -36,16 +37,9 @@ export function formatHikeDay(date: Date): string {
   return `${WEEKDAYS[date.getDay()]}, ${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
 }
 
-/**
- * A starting hike type from distance and gain. The hiker can override it.
- * 8.9 km and 520 m is a day hike. A long day is backpacking. A big climb is a summit.
- */
-export function suggestHikeType(distanceKm: number, gainM: number): string {
-  if (!Number.isFinite(distanceKm) || !Number.isFinite(gainM)) return 'Day Hike';
-  if (distanceKm >= 20) return 'Backpacking';
-  if (gainM >= 800) return 'Summit';
-  if (distanceKm < 5 && gainM < 200) return 'Walk';
-  return 'Day Hike';
+/** The ranking list this hike belongs to. Distance does not invent a second type set. */
+export function suggestHikeType(_distanceKm: number, _gainM: number): string {
+  return DEFAULT_HIKE_TYPE;
 }
 
 export function durationFromParts(hours: number, minutes: number): number {

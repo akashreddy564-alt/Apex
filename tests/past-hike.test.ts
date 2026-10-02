@@ -100,7 +100,7 @@ describe('buildPastHikeLog', () => {
       terrain: ['rock'],
       conditions: ['windy'],
       difficulty: 'hard',
-      hikeType: 'Summit',
+      hikeType: 'hike',
       photos: ['file://ridge.jpg'],
       now,
     });
@@ -109,16 +109,16 @@ describe('buildPastHikeLog', () => {
       terrain: ['rock'],
       conditions: ['windy'],
       difficulty: 'hard',
-      hike_type: 'Summit',
+      hike_type: 'hike',
       photos: ['file://ridge.jpg'],
     });
   });
 
-  it('suggests a day hike for a moderate climb and labels the day', () => {
-    expect(suggestHikeType(8.9, 520)).toBe('Day Hike');
-    expect(suggestHikeType(23, 400)).toBe('Backpacking');
-    expect(suggestHikeType(12, 1060)).toBe('Summit');
-    expect(suggestHikeType(3, 80)).toBe('Walk');
+  it('uses the ranking hike type and labels the day', () => {
+    expect(suggestHikeType(8.9, 520)).toBe('hike');
+    expect(suggestHikeType(23, 400)).toBe('hike');
+    expect(suggestHikeType(12, 1060)).toBe('hike');
+    expect(suggestHikeType(3, 80)).toBe('hike');
     expect(formatHikeDay(new Date(2026, 8, 27))).toBe('Sun, Sep 27, 2026');
   });
 });

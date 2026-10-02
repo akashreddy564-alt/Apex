@@ -15,10 +15,10 @@ import { Path, Svg } from 'react-native-svg';
 
 import { HikeDateField } from '@/components/log/HikeDateField';
 import { formatHikeDay, suggestHikeType } from '@/lib/pastHike';
+import { reencodePhoto } from '@/lib/photoEncode';
+import { DEFAULT_HIKE_TYPE, HIKE_TYPES } from '@/lib/ranking';
 import { colors, fonts, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
-
-const HIKE_TYPES = ['Walk', 'Day Hike', 'Summit', 'Scramble', 'Backpacking'] as const;
 const CHIPS = ['Dry', 'Muddy', 'Snow', 'Rocky', 'Rain', 'Fog', 'Hot', 'Windy'] as const;
 const TERRAIN = new Set(['Snow', 'Rocky']);
 const EFFORT = ['Easy', 'Moderate', 'Hard', 'Very hard'] as const;
@@ -93,7 +93,7 @@ export function PastHikeSheet({
   const [distanceTouched, setDistanceTouched] = useState(false);
   const [editingDistance, setEditingDistance] = useState(false);
   const [typeTouched, setTypeTouched] = useState(false);
-  const [hikeType, setHikeType] = useState<string>('Day Hike');
+  const [hikeType, setHikeType] = useState<string>(DEFAULT_HIKE_TYPE);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
   const [difficulty, setDifficulty] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -115,11 +115,17 @@ export function PastHikeSheet({
   const conditions = selectedChips.filter((chip) => !TERRAIN.has(chip));
 
   const addPhoto = () => {
-    void ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 }).then(
-      (result) => {
+    void ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 }).then(
+      async (result) => {
         if (result.canceled) return;
-        const uri = result.assets[0]?.uri;
-        if (uri) setPhotos((current) => [...current, uri]);
+        const asset = result.assets[0];
+        if (!asset?.uri) return;
+        try {
+          const prepared = await reencodePhoto(asset.uri, asset.width ?? 0, asset.height ?? 0);
+          setPhotos((current) => [...current, prepared.uri]);
+        } catch {
+          // A photo that still has EXIF is not stored.
+        }
       },
     );
   };
@@ -387,7 +393,7 @@ export function PastHikeSheet({
                             numberOfLines={1}
                             adjustsFontSizeToFit
                             style={{
-                              fontSize: type === 'Backpacking' ? 11 : 12,
+                              fontSize: 12,
                               color: on ? colors.onSage : colors.fgMuted,
                               fontFamily: fonts.uiSemibold,
                               fontWeight: 'normal',

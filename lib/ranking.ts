@@ -1,7 +1,11 @@
 import { generateKeyBetween } from 'fractional-indexing';
 
+/** Ranking lists. A past hike stores one of these ids, not a separate label set. */
+export const HIKE_TYPES = ['hike'] as const;
+export type HikeTypeId = (typeof HIKE_TYPES)[number];
+
 /** One list per user, trail, and hike type. D can add types without a new key. */
-export const DEFAULT_HIKE_TYPE = 'hike';
+export const DEFAULT_HIKE_TYPE: HikeTypeId = 'hike';
 
 export const BUCKETS = ['loved', 'fine', 'disliked'] as const;
 
