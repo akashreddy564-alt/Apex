@@ -3,6 +3,7 @@ import { describe, it } from 'node:test';
 
 import { placeByChoices, type ComparisonSide, type FrozenOpponent } from './binaryInsert.ts';
 import { applyElo, DEFAULT_ELO } from './elo.ts';
+import { displayedElo, orderRevealEntries } from './reveal.ts';
 
 function opponents(scores: readonly number[]): FrozenOpponent[] {
   return scores.map((score, index) => ({
@@ -133,5 +134,24 @@ describe('placeByChoices', () => {
     assert.equal(placed.rankScore, DEFAULT_ELO);
     assert.equal(placed.elo, 1400);
     assert.equal(placed.games.length, 0);
+  });
+});
+
+describe('leaderboard reveal', () => {
+  it('prints Elo in Elo order, not the placement score', () => {
+    const byPlacement = [
+      { id: 'new', ranking: { elo_rating: 1009, rank_score: 1600 } },
+      { id: 'above', ranking: { elo_rating: 1400, rank_score: 1500 } },
+    ];
+    assert.ok(byPlacement[0].ranking.elo_rating < byPlacement[1].ranking.elo_rating);
+
+    const revealed = orderRevealEntries(byPlacement);
+    assert.equal(revealed[0].id, 'above');
+    assert.equal(displayedElo(revealed[0].ranking), 1400);
+    assert.equal(displayedElo(revealed[1].ranking), 1009);
+    assert.notEqual(displayedElo(revealed[0].ranking), revealed[0].ranking.rank_score);
+    for (let i = 0; i < revealed.length - 1; i += 1) {
+      assert.ok(displayedElo(revealed[i].ranking) >= displayedElo(revealed[i + 1].ranking));
+    }
   });
 });

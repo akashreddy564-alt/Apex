@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { MOCK_USER_ID } from '@/data/mockTrails';
 import { nextBounds, placeByChoices, type FrozenOpponent } from '@/lib/binaryInsert';
+import { orderRevealEntries } from '@/lib/reveal';
 import { DEFAULT_ELO } from '@/lib/elo';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
@@ -107,16 +108,20 @@ export function useTrailComparison(): UseTrailComparisonResult {
 
       const allTrails = useTrailCache.getState().trails;
       const stored = useRankingStore.getState().getRanking(trailId);
-      const leaderboard: LeaderboardEntry[] = useRankingStore
-        .getState()
-        .rankings.filter((ranking) => allTrails.some((trail) => trail.id === ranking.trail_id))
-        .sort((a, b) => b.rank_score - a.rank_score)
-        .slice(0, 10)
-        .map((ranking) => ({
-          trail: allTrails.find((trail) => trail.id === ranking.trail_id)!,
-          ranking,
-          isNew: ranking.trail_id === trailId,
-        }));
+      const ordered = orderRevealEntries(
+        useRankingStore
+          .getState()
+          .rankings.filter((ranking) => allTrails.some((trail) => trail.id === ranking.trail_id))
+          .map((ranking) => ({
+            trail: allTrails.find((trail) => trail.id === ranking.trail_id)!,
+            ranking,
+            isNew: ranking.trail_id === trailId,
+          })),
+      );
+      const top = ordered.slice(0, 10);
+      const leaderboard: LeaderboardEntry[] = top.some((entry) => entry.trail.id === trailId)
+        ? top
+        : [...top.slice(0, 9), ...ordered.filter((entry) => entry.trail.id === trailId)];
 
       setIsComplete(true);
       setResult({
