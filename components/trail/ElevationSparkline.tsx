@@ -1,40 +1,55 @@
 import * as Haptics from 'expo-haptics';
+import { useIsFocused } from 'expo-router';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { getYForX } from 'react-native-redash';
+import Animated, {
+  cancelAnimation,
+  Easing,
+  useAnimatedProps,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withDelay,
+  withRepeat,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { Circle, Path, Svg } from 'react-native-svg';
 import {
   LineChart,
   LineChartDimensionsContext,
+  useLineChart,
 } from 'react-native-wagmi-charts';
 
+import { formatElevationM } from '@/lib/format';
 import type { ElevationSample } from '@/types/trail';
 
 /** Accent sage — crisp stroke only, no bloom. */
 const LINE_COLOR = '#8B9A6D';
-/** Solid bead that rides the stroke. No shadow, no blur. */
+/** Solid bead and dash. No shadow, no blur. */
 const TRACE_COLOR = '#F4F4F5';
 
 /** Slow left→right map-out along distance. */
 const PATH_REVEAL_MS = 10000;
 /** Brief beat before the wipe so the chart doesn't flash. */
 const PATH_REVEAL_DELAY_MS = 400;
-const TICK_MS = 32;
 /** One pass of the traveling dash along the stroke. */
 const TRACE_PERIOD_MS = 3200;
 const TRACE_DASH = 22;
 const TRACE_GAP = 148;
+const TRACE_CYCLE = TRACE_DASH + TRACE_GAP;
+/** Keep the leading bead fully inside the reveal clip. */
+const BEAD_R = 3.25;
+const BEAD_INSET = 1;
 
 interface ElevationSparklineProps {
   samples: ElevationSample[];
   height?: number;
 }
 
-function formatElev(value: string): string {
-  const n = Number(value);
-  if (Number.isNaN(n)) return value;
-  return `${Math.round(n)} m`;
-}
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 function formatDistFromTimestamp(timestamp: string | number): string {
   const meters = typeof timestamp === 'string' ? Number(timestamp) : timestamp;
@@ -44,21 +59,36 @@ function formatDistFromTimestamp(timestamp: string | number): string {
 
 /**
  * Short zinc segment that crawls the sage stroke. Solid dash, no blur.
- * Wall-clock interval so the segment keeps moving while the reveal
- * re-renders the chart (a UI-thread dash was getting reset each tick).
+ * Hidden while the scrub cursor is active so it never draws past the crosshair.
+ * The repeat lives on the UI thread and stops when the screen blurs.
  */
 function FlowingTrace() {
   const { path, width, height } = useContext(LineChartDimensionsContext);
-  const [offset, setOffset] = useState(0);
+  const { isActive } = useLineChart();
+  const focused = useIsFocused();
+  const dash = useSharedValue(0);
 
   useEffect(() => {
-    const cycle = TRACE_DASH + TRACE_GAP;
-    const id = setInterval(() => {
-      const t = (Date.now() % TRACE_PERIOD_MS) / TRACE_PERIOD_MS;
-      setOffset(-t * cycle);
-    }, TICK_MS);
-    return () => clearInterval(id);
-  }, []);
+    if (!focused) {
+      cancelAnimation(dash);
+      return;
+    }
+    const from = dash.value;
+    dash.value = withRepeat(
+      withTiming(from - TRACE_CYCLE, {
+        duration: TRACE_PERIOD_MS,
+        easing: Easing.linear,
+      }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(dash);
+  }, [dash, focused]);
+
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: dash.value,
+    strokeOpacity: isActive.value ? 0 : 1,
+  }));
 
   if (!path || width <= 0 || height <= 0) return null;
 
@@ -68,7 +98,7 @@ function FlowingTrace() {
       height={height}
       style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
     >
-      <Path
+      <AnimatedPath
         d={path}
         stroke={TRACE_COLOR}
         strokeWidth={1.75}
@@ -76,32 +106,40 @@ function FlowingTrace() {
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray={`${TRACE_DASH} ${TRACE_GAP}`}
-        strokeDashoffset={offset}
+        animatedProps={animatedProps}
       />
     </Svg>
   );
 }
 
 /**
- * Leading bead while the profile is still mapping out. Hidden once the
- * wipe finishes so the crosshair stays the only cursor.
+ * Leading bead while the profile is still mapping out. Its center sits one
+ * radius inside the clip so the circle is not cut in half. Hidden once the
+ * wipe finishes, or while scrubbing, so the crosshair stays the only cursor.
  */
-function RevealHead({
-  progress,
-  active,
-}: {
-  progress: number;
-  active: boolean;
-}) {
+function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
   const { parsedPath, pathWidth, width, height } = useContext(
     LineChartDimensionsContext,
   );
+  const { isActive } = useLineChart();
 
-  if (!active || width <= 0 || height <= 0 || progress <= 0) return null;
-  if (!parsedPath?.curves?.length) return null;
+  const animatedProps = useAnimatedProps(() => {
+    const edge = reveal.value * pathWidth;
+    const cx = edge - BEAD_R - BEAD_INSET;
+    const y = getYForX(parsedPath, Math.max(0, cx)) ?? 0;
+    const visible =
+      !isActive.value &&
+      reveal.value > 0 &&
+      reveal.value < 1 &&
+      edge >= BEAD_R * 2 + BEAD_INSET;
+    return {
+      cx: Math.max(0, cx),
+      cy: y,
+      opacity: visible ? 1 : 0,
+    };
+  });
 
-  const x = progress * pathWidth;
-  const y = getYForX(parsedPath, x) ?? 0;
+  if (width <= 0 || height <= 0) return null;
 
   return (
     <Svg
@@ -109,7 +147,11 @@ function RevealHead({
       height={height}
       style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
     >
-      <Circle cx={x} cy={y} r={3.25} fill={TRACE_COLOR} />
+      <AnimatedCircle
+        animatedProps={animatedProps}
+        r={BEAD_R}
+        fill={TRACE_COLOR}
+      />
     </Svg>
   );
 }
@@ -117,18 +159,20 @@ function RevealHead({
 /**
  * Scrubbable distance × elevation profile.
  * Wagmi LineChart timestamp channel carries distance_m.
- * Mount reveal clips left→right so the path maps out along distance.
- * A solid dash keeps traveling the stroke (no glow).
+ * The reveal clip wraps only the stroke, dash, and bead — the crosshair sits
+ * outside it so it can be read before the wipe finishes.
  */
 export function ElevationSparkline({
   samples,
   height = 168,
 }: ElevationSparklineProps) {
   const lastIndex = useRef<number | null>(null);
-  const lockedWidth = useRef(0);
+  const seenSamples = useRef(samples);
   const [chartWidth, setChartWidth] = useState(0);
-  const [clipWidth, setClipWidth] = useState(0);
-  const [reveal, setReveal] = useState(0);
+  const widthSv = useSharedValue(0);
+  const reducedMotion = useReducedMotion();
+  const focused = useIsFocused();
+  const reveal = useSharedValue(reducedMotion ? 1 : 0);
 
   const data = useMemo(
     () =>
@@ -139,48 +183,41 @@ export function ElevationSparkline({
     [samples],
   );
 
-  useEffect(() => {
-    lastIndex.current = null;
-    lockedWidth.current = 0;
-    setChartWidth(0);
-    setClipWidth(0);
-    setReveal(0);
-  }, [samples]);
+  if (seenSamples.current !== samples) {
+    seenSamples.current = samples;
+    cancelAnimation(reveal);
+    reveal.value = reducedMotion ? 1 : 0;
+  }
 
   useEffect(() => {
     if (chartWidth <= 0 || data.length < 2) return;
 
-    setClipWidth(0);
-    setReveal(0);
-    let cancelled = false;
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-    const startAt = Date.now() + PATH_REVEAL_DELAY_MS;
+    if (reducedMotion) {
+      cancelAnimation(reveal);
+      reveal.value = 1;
+      return;
+    }
+    if (!focused) {
+      cancelAnimation(reveal);
+      return;
+    }
 
-    const tick = () => {
-      if (cancelled) return;
-      const elapsed = Date.now() - startAt;
-      if (elapsed < 0) return;
-      const t = Math.min(1, elapsed / PATH_REVEAL_MS);
-      setClipWidth(chartWidth * t);
-      setReveal(t);
-      if (t >= 1 && intervalId != null) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
+    const remaining = 1 - reveal.value;
+    if (remaining <= 0.001) return;
 
-    const delayId = setTimeout(() => {
-      if (cancelled) return;
-      tick();
-      intervalId = setInterval(tick, TICK_MS);
-    }, PATH_REVEAL_DELAY_MS);
+    const duration = Math.max(1, PATH_REVEAL_MS * remaining);
+    const timing = withTiming(1, { duration, easing: Easing.linear });
+    const fresh = reveal.value <= 0.001;
+    reveal.value = fresh
+      ? withDelay(PATH_REVEAL_DELAY_MS, timing)
+      : timing;
 
-    return () => {
-      cancelled = true;
-      clearTimeout(delayId);
-      if (intervalId != null) clearInterval(intervalId);
-    };
-  }, [samples, chartWidth, data.length]);
+    return () => cancelAnimation(reveal);
+  }, [chartWidth, data.length, focused, reducedMotion, reveal, samples]);
+
+  const clipStyle = useAnimatedStyle(() => ({
+    width: Math.max(0, widthSv.value * reveal.value),
+  }));
 
   if (data.length < 2) {
     return (
@@ -192,6 +229,7 @@ export function ElevationSparkline({
 
   const endKm = (samples[samples.length - 1].distance_m / 1000).toFixed(1);
   const mono = 'SpaceMono';
+  const showTrace = !reducedMotion;
 
   return (
     <View
@@ -213,7 +251,10 @@ export function ElevationSparkline({
           </Text>
           <View className="items-end">
             <LineChart.PriceText
-              format={({ value }) => formatElev(String(value))}
+              format={({ value }) => {
+                const n = Number(value);
+                return Number.isNaN(n) ? String(value) : formatElevationM(n);
+              }}
               style={{ color: '#A1A1AA', fontFamily: mono, fontSize: 12 }}
             />
             <LineChart.DatetimeText
@@ -227,17 +268,33 @@ export function ElevationSparkline({
           <View
             onLayout={(e) => {
               const next = Math.round(e.nativeEvent.layout.width);
-              // Lock width once so layout jitter doesn't restart / stall the wipe.
-              if (next > 0 && lockedWidth.current === 0) {
-                lockedWidth.current = next;
+              if (next > 0 && next !== chartWidth) {
+                widthSv.value = next;
                 setChartWidth(next);
               }
             }}
           >
             {chartWidth > 0 ? (
-              <View style={{ width: clipWidth, overflow: 'hidden' }}>
-                <View style={{ width: chartWidth }}>
-                  <LineChart width={chartWidth} height={height}>
+              <LineChart
+                width={chartWidth}
+                height={height}
+                style={{ width: chartWidth, height }}
+              >
+                <Animated.View
+                  testID="elevation-reveal-clip"
+                  style={[
+                    {
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      height,
+                      overflow: 'hidden',
+                      pointerEvents: 'none',
+                    },
+                    clipStyle,
+                  ]}
+                >
+                  <View style={{ width: chartWidth, height, pointerEvents: 'none' }}>
                     <LineChart.Path
                       color={LINE_COLOR}
                       width={1.75}
@@ -247,33 +304,33 @@ export function ElevationSparkline({
                         strokeLinejoin: 'round',
                       }}
                     />
-                    <FlowingTrace />
-                    <RevealHead progress={reveal} active={reveal < 1} />
-                    <LineChart.CursorCrosshair
-                      color="#E4E4E7"
-                      outerSize={14}
-                      size={6}
-                    >
-                      <LineChart.Tooltip
-                        cursorGutter={12}
-                        textStyle={{
-                          color: '#FAFAFA',
-                          fontFamily: mono,
-                          fontSize: 11,
-                          backgroundColor: '#18181B',
-                          borderColor: '#27272A',
-                          borderWidth: 1,
-                          overflow: 'hidden',
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          borderRadius: 8,
-                        }}
-                      />
-                    </LineChart.CursorCrosshair>
-                    {Platform.OS === 'web' ? <LineChart.HoverTrap /> : null}
-                  </LineChart>
-                </View>
-              </View>
+                    {showTrace ? <FlowingTrace /> : null}
+                    {showTrace ? <RevealHead reveal={reveal} /> : null}
+                  </View>
+                </Animated.View>
+                <LineChart.CursorCrosshair
+                  color="#E4E4E7"
+                  outerSize={14}
+                  size={6}
+                >
+                  <LineChart.Tooltip
+                    cursorGutter={12}
+                    textStyle={{
+                      color: '#FAFAFA',
+                      fontFamily: mono,
+                      fontSize: 11,
+                      backgroundColor: '#18181B',
+                      borderColor: '#27272A',
+                      borderWidth: 1,
+                      overflow: 'hidden',
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                    }}
+                  />
+                </LineChart.CursorCrosshair>
+                {Platform.OS === 'web' ? <LineChart.HoverTrap /> : null}
+              </LineChart>
             ) : (
               <View style={{ height }} />
             )}
