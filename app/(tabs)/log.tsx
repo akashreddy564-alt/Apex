@@ -3,14 +3,13 @@ import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import Constants from 'expo-constants';
 import * as Location from 'expo-location';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,31 +17,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddHikeSheet } from '@/components/log/AddHikeSheet';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
+import { RecordSession } from '@/components/log/RecordSession';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
-import { useHikePhotos } from '@/hooks/useHikePhotos';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
 import { backgroundRecordingAvailable } from '@/lib/recordingEnvironment';
 import { useTrailCache } from '@/stores/trailCache';
-import { displayM } from '@/theme/tokens';
+import { colors, displayM } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
   const params = useLocalSearchParams<{ recording?: string }>();
   const [explainer, setExplainer] = useState(false);
-  const photos = useHikePhotos({
-    addPhoto: tracker.addPhoto,
-    replacePhoto: tracker.replacePhoto,
-  });
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
@@ -51,13 +47,29 @@ export default function LogScreen() {
   const [recording, setRecording] = useState(false);
 
   useEffect(() => {
-    if (!tracker.isTracking || tracker.isPaused) return;
+    if (!tracker.isTracking) return;
     const id = setInterval(() => tracker.tick(), 1000);
     return () => clearInterval(id);
-  }, [tracker.isPaused, tracker.isTracking, tracker.tick]);
+  }, [tracker.isTracking, tracker.tick]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: !tracker.isTracking,
+      tabBarStyle: tracker.isTracking
+        ? { display: 'none' }
+        : {
+            backgroundColor: colors.bg,
+            borderTopColor: colors.raised,
+            borderTopWidth: 1,
+            height: 58,
+            paddingBottom: 6,
+            paddingTop: 6,
+          },
+    });
+  }, [navigation, tracker.isTracking]);
 
   const activeTrail = useMemo(
-    () => trails.find((t) => t.id === tracker.session?.trailId),
+    () => trails.find((t) => t.id === tracker.session?.trailId) ?? null,
     [trails, tracker.session?.trailId],
   );
 
@@ -118,6 +130,49 @@ export default function LogScreen() {
     setPastOpen(false);
     setModalOpen(true);
   };
+
+  if (tracker.isTracking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <RecordSession
+          trailName={activeTrail?.name ?? 'Trail'}
+          trailPath={activeTrail?.path ?? null}
+          elevation={activeTrail?.elevation_profile ?? null}
+          peakElevationM={activeTrail?.peak_elevation_m ?? null}
+          paused={tracker.isPaused}
+          movingSeconds={tracker.elapsedSeconds}
+          totalSeconds={tracker.totalSeconds}
+          pausedSeconds={Math.max(0, tracker.totalSeconds - tracker.elapsedSeconds)}
+          distanceM={tracker.distanceM}
+          gainM={tracker.elevationGainM}
+          lossM={tracker.elevationLossM}
+          elevationM={tracker.currentElevationM}
+          savedAt={tracker.savedAt}
+          points={tracker.session?.points ?? []}
+          notice={location.message}
+          onPause={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            tracker.dismissRecovery();
+            tracker.pause();
+          }}
+          onResume={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            tracker.dismissRecovery();
+            tracker.resume();
+          }}
+          onFinish={() => {
+            tracker.dismissRecovery();
+            finish();
+          }}
+        />
+        <PairwiseModal
+          visible={modalOpen}
+          comparison={comparison}
+          onClose={() => setModalOpen(false)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
@@ -194,160 +249,6 @@ export default function LogScreen() {
                 Start tracking
               </Text>
             </Pressable>
-          </View>
-        ) : null}
-
-        {tracker.isTracking ? (
-          <View className="mt-6">
-            <View
-              className="border border-zinc-800 bg-zinc-900 p-4"
-              style={{ borderRadius: 12 }}
-            >
-              <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-                {tracker.isPaused ? 'Paused' : 'Active'}
-              </Text>
-              <Text className="mt-1 text-base text-zinc-50">
-                {activeTrail?.name ?? 'Trail'}
-              </Text>
-              <Text className="mt-4 font-mono text-3xl tracking-tight text-accent">
-                {formatDuration(tracker.elapsedSeconds)}
-              </Text>
-              <Text className="mt-1 text-[13px] text-zinc-400">
-                Total {formatDuration(tracker.totalSeconds)}
-              </Text>
-              <Text className="mt-3 text-[13px] text-zinc-300">
-                {(tracker.distanceM / 1000).toFixed(2)} km · {tracker.paceLabel}
-              </Text>
-              <Text className="mt-1 text-[13px] text-zinc-300">
-                Gain {Math.round(tracker.elevationGainM)} m · Loss{' '}
-                {Math.round(tracker.elevationLossM)} m · Elevation{' '}
-                {tracker.currentElevationM == null
-                  ? '—'
-                  : `${Math.round(tracker.currentElevationM)} m`}
-              </Text>
-              <Text className="mt-1 text-[12px] text-zinc-500">
-                {tracker.savedAt
-                  ? `Saved ${Math.max(0, Math.round((Date.now() - tracker.savedAt) / 1000))} s ago`
-                  : 'Not saved yet'}
-              </Text>
-              {location.message ? (
-                <Text className="mt-2 font-mono text-[11px] leading-4 text-zinc-500">
-                  {location.message}
-                </Text>
-              ) : null}
-            </View>
-
-            <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-              Photos
-            </Text>
-            <View className="flex-row gap-2">
-              <Pressable
-                accessibilityLabel="Add photo from library"
-                disabled={photos.busy}
-                onPress={() => {
-                  void photos.pickFromLibrary();
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
-                style={{ borderRadius: 12, opacity: photos.busy ? 0.5 : 1 }}
-              >
-                <Text className="font-mono text-sm text-zinc-200">Library</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Take a hike photo"
-                disabled={photos.busy}
-                onPress={() => {
-                  void photos.takePhoto();
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
-                style={{ borderRadius: 12, opacity: photos.busy ? 0.5 : 1 }}
-              >
-                <Text className="font-mono text-sm text-zinc-200">Camera</Text>
-              </Pressable>
-            </View>
-            {photos.message ? (
-              <Text className="mt-2 font-mono text-[11px] text-zinc-500">
-                {photos.message}
-              </Text>
-            ) : null}
-            <PhotoStrip photos={tracker.session?.photos ?? []} />
-
-            <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-              Notes
-            </Text>
-            <TextInput
-              value={tracker.session?.notes ?? ''}
-              onChangeText={tracker.setNotes}
-              placeholder="Conditions, pace, crowd…"
-              placeholderTextColor="#52525B"
-              multiline
-              className="min-h-[96px] border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
-              style={{ borderRadius: 12, textAlignVertical: 'top' }}
-            />
-
-            {tracker.recovered ? (
-              <View className="mt-4 border border-zinc-800 p-3" style={{ borderRadius: 12 }}>
-                <Text className="text-[15px] text-zinc-100">
-                  This hike is still in progress.
-                </Text>
-                <View className="mt-3 flex-row gap-2">
-                  <Pressable
-                    onPress={() => {
-                      if (tracker.isPaused) tracker.resume();
-                      tracker.dismissRecovery();
-                    }}
-                    className="flex-1 items-center border border-zinc-800 py-3"
-                    style={{ borderRadius: 12 }}
-                  >
-                    <Text className="text-[15px] text-zinc-100">Resume</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      tracker.dismissRecovery();
-                      finish();
-                    }}
-                    className="flex-1 items-center border border-zinc-800 py-3"
-                    style={{ borderRadius: 12 }}
-                  >
-                    <Text className="text-[15px] text-zinc-100">Finish</Text>
-                  </Pressable>
-                </View>
-              </View>
-            ) : null}
-
-            <View className="mt-4 flex-row gap-2">
-              <Pressable
-                accessibilityLabel={tracker.isPaused ? 'Resume hike' : 'Pause hike'}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  if (tracker.isPaused) tracker.resume();
-                  else tracker.pause();
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="font-mono text-sm text-zinc-200">
-                  {tracker.isPaused ? 'Resume' : 'Pause'}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  tracker.discard();
-                  setRecording(false);
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="font-mono text-sm text-zinc-400">Discard</Text>
-              </Pressable>
-              <Pressable
-                onPress={finish}
-                className="flex-1 items-center border border-accent bg-accent/15 py-3.5 active:bg-accent/25"
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="font-mono text-sm text-accent">Stop</Text>
-              </Pressable>
-            </View>
           </View>
         ) : null}
 
