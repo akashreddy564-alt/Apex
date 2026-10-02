@@ -24,8 +24,9 @@
 ├── lib/
 │   ├── elo.ts                          # Elo update + expected score
 │   ├── format.ts                       # duration / elevation / distance formatters
-│   ├── geo.ts                          # uuid + GeoJSON / EWKT
+│   ├── geo.ts                          # uuid, EWKT, haversine
 │   ├── hikePhotos.ts                   # stripped JPEG file URI or hike-photos bucket ref
+│   ├── locationTask.ts                 # native background location task
 │   ├── photoEncode.ts                  # re-encode via ImageManipulator, reject EXIF
 │   ├── remoteSync.ts                   # optional Supabase pull / push
 │   └── supabase.ts                     # client (env + local mock fallback)
@@ -43,6 +44,7 @@
 │   ├── useHikePhotos.ts                # library / camera → log photo refs
 │   ├── useAuth.ts                      # magic-link session
 │   ├── useRemoteSync.ts                # hydrate caches when signed in
+│   ├── useLiveLocation.ts              # foreground watch or background task
 │   ├── useRankings.ts                  # ranked list + optimistic mutations
 │   └── useTrailComparison.ts           # binary-insertion pairwise + Elo
 │

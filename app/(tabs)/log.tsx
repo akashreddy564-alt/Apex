@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useHikePhotos } from '@/hooks/useHikePhotos';
+import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
@@ -23,6 +24,7 @@ export default function LogScreen() {
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
+  const location = useLiveLocation(tracker.isTracking, tracker.addPoint);
   const photos = useHikePhotos({
     addPhoto: tracker.addPhoto,
     replacePhoto: tracker.replacePhoto,
@@ -116,6 +118,17 @@ export default function LogScreen() {
               <Text className="mt-4 font-mono text-3xl tracking-tight text-accent">
                 {formatDuration(tracker.elapsedSeconds)}
               </Text>
+              <Text className="mt-3 font-mono text-[11px] text-zinc-400">
+                {(tracker.distanceM / 1000).toFixed(2)} km · ↑{' '}
+                {Math.round(tracker.elevationGainM)} m · {tracker.session?.points.length ?? 0}{' '}
+                pts
+                {location.background ? ' · background' : ''}
+              </Text>
+              {location.message ? (
+                <Text className="mt-2 font-mono text-[11px] leading-4 text-zinc-500">
+                  {location.message}
+                </Text>
+              ) : null}
             </View>
 
             <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">

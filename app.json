@@ -29,6 +29,15 @@
     "plugins": [
       "expo-router",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Apex records the path of your hike.",
+          "locationAlwaysAndWhenInUsePermission": "Apex keeps recording your hike when the screen is off.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Apex attaches photos to your hike log.",

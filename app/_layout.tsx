@@ -19,6 +19,7 @@ import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useRemoteSync } from '@/hooks/useRemoteSync';
+import '@/lib/locationTask';
 import { colors, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
