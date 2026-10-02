@@ -68,6 +68,7 @@ export default function LogScreen() {
 
   const finish = () => {
     const log = tracker.complete();
+    setRecording(false);
     if (!log) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     comparison.start(log.trail_id, log.id);
@@ -278,6 +279,7 @@ export default function LogScreen() {
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   tracker.discard();
+                  setRecording(false);
                 }}
                 className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
                 style={{ borderRadius: 12 }}
