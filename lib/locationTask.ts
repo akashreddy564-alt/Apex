@@ -27,7 +27,7 @@ export function publishLocationObjects(locations: Location.LocationObject[]): vo
 const taskOptions: Location.LocationTaskOptions = {
   accuracy: Location.Accuracy.BestForNavigation,
   activityType: Location.ActivityType.Fitness,
-  pausesUpdatesAutomatically: true,
+  pausesUpdatesAutomatically: false,
   timeInterval: 4000,
   distanceInterval: 5,
   deferredUpdatesInterval: 10000,
@@ -77,7 +77,7 @@ export async function startForegroundWatch(): Promise<void> {
 }
 
 /**
- * Dev builds record in the background (iOS Always, Android foreground service).
+ * Dev builds record with While Using plus the iOS location background mode.
  * Expo Go and web only get the foreground watch. Background APIs throw there.
  */
 export async function startRecordingTask(): Promise<void> {

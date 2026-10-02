@@ -1,12 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
-import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
-  Platform,
+  Modal,
   Pressable,
   ScrollView,
   Text,
@@ -24,11 +23,18 @@ import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
-import { backgroundRecordingAvailable } from '@/lib/recordingEnvironment';
 import { useTrailCache } from '@/stores/trailCache';
-import { colors, displayM } from '@/theme/tokens';
+import { colors, displayM, fonts, numericStyle } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
+
+function hikeClock(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
@@ -45,6 +51,9 @@ export default function LogScreen() {
   const [pastOpen, setPastOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
+  const trackingRef = useRef(false);
+  trackingRef.current = tracker.isTracking;
 
   useEffect(() => {
     if (!tracker.isTracking) return;
@@ -76,18 +85,13 @@ export default function LogScreen() {
   const acceptLocation = async () => {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
-    if (
-      permission.granted &&
-      backgroundRecordingAvailable(Platform.OS, Constants.executionEnvironment)
-    ) {
-      await Location.requestBackgroundPermissionsAsync();
-    }
     setExplainer(false);
     if (!permission.granted || !selectedTrailId) return;
     tracker.start(selectedTrailId);
   };
 
   const finish = () => {
+    setFinishOpen(false);
     const log = tracker.complete();
     setRecording(false);
     if (!log) return;
@@ -99,7 +103,7 @@ export default function LogScreen() {
   useEffect(() => {
     const run = (value: string | undefined) => {
       if (value === 'pause') tracker.pause();
-      if (value === 'finish') finish();
+      if (value === 'finish' && trackingRef.current) setFinishOpen(true);
     };
     const fromParams = Array.isArray(params.recording) ? params.recording[0] : params.recording;
     run(fromParams);
@@ -108,7 +112,7 @@ export default function LogScreen() {
       run(typeof query === 'string' ? query : undefined);
     });
     return () => sub.remove();
-  }, [params.recording, tracker.pause, tracker.complete]);
+  }, [params.recording, tracker.pause]);
 
   const savePast = (draft: {
     trailId: string;
@@ -162,9 +166,50 @@ export default function LogScreen() {
           }}
           onFinish={() => {
             tracker.dismissRecovery();
-            finish();
+            setFinishOpen(true);
           }}
         />
+        <Modal visible={finishOpen} transparent animationType="fade" onRequestClose={() => setFinishOpen(false)}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}>
+            <View
+              style={{
+                backgroundColor: colors.bg,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: 20,
+                paddingBottom: 28,
+                gap: 16,
+              }}
+            >
+              <Text style={{ color: colors.fg, fontFamily: fonts.display, fontWeight: 'normal', fontSize: 22 }}>
+                Finish this hike?
+              </Text>
+              <Text style={{ color: colors.fg, fontSize: 16, ...numericStyle() }}>
+                {(tracker.distanceM / 1000).toFixed(1)} km · {hikeClock(tracker.elapsedSeconds)}
+              </Text>
+              <Pressable
+                accessibilityLabel="Finish"
+                onPress={finish}
+                style={{ backgroundColor: colors.sage, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+              >
+                <Text style={{ color: colors.onSage, fontSize: 16, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
+                  Finish
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Keep recording"
+                onPress={() => setFinishOpen(false)}
+                style={{ backgroundColor: colors.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+              >
+                <Text style={{ color: colors.fg, fontSize: 16, fontFamily: fonts.uiMedium, fontWeight: 'normal' }}>
+                  Keep recording
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
         <PairwiseModal
           visible={modalOpen}
           comparison={comparison}

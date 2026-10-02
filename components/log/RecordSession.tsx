@@ -1,6 +1,6 @@
 import { Pause, Play, Square } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { AccessibilityInfo, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
@@ -129,6 +129,7 @@ function SignalBars() {
 
 function HoldToStop({ onFinish }: { onFinish: () => void }) {
   const [progress, setProgress] = useState(0);
+  const [screenReader, setScreenReader] = useState(false);
   const frame = useRef<number | null>(null);
   const started = useRef<number | null>(null);
   const done = useRef(false);
@@ -140,7 +141,18 @@ function HoldToStop({ onFinish }: { onFinish: () => void }) {
     if (!done.current) setProgress(0);
   };
 
-  useEffect(() => () => stop(), []);
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
+      if (mounted) setScreenReader(enabled);
+    });
+    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setScreenReader);
+    return () => {
+      mounted = false;
+      sub.remove();
+      stop();
+    };
+  }, []);
 
   const begin = () => {
     done.current = false;
@@ -163,10 +175,14 @@ function HoldToStop({ onFinish }: { onFinish: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Hold to stop"
-      accessibilityHint="Hold for about one second to finish the hike"
-      onPressIn={begin}
-      onPressOut={stop}
+      accessibilityLabel="Finish hike"
+      accessibilityActions={[{ name: 'activate', label: 'Finish hike' }]}
+      onAccessibilityAction={(event) => {
+        if (event.nativeEvent.actionName === 'activate') onFinish();
+      }}
+      onPress={screenReader ? onFinish : undefined}
+      onPressIn={screenReader ? undefined : begin}
+      onPressOut={screenReader ? undefined : stop}
       style={{
         flex: 1,
         height: 76,
@@ -180,22 +196,26 @@ function HoldToStop({ onFinish }: { onFinish: () => void }) {
         gap: 10,
       }}
     >
-      <Svg width={36} height={36}>
-        <Circle cx={18} cy={18} r={15} stroke={colors.border} strokeWidth={3} fill="none" />
-        <Circle
-          cx={18}
-          cy={18}
-          r={15}
-          stroke={colors.fg}
-          strokeWidth={3}
-          fill="none"
-          strokeDasharray={`${RING}`}
-          strokeDashoffset={RING * (1 - progress)}
-          strokeLinecap="round"
-          transform="rotate(-90 18 18)"
-        />
-        <Rect x={12} y={12} width={12} height={12} rx={2} fill={colors.fg} />
-      </Svg>
+      {screenReader ? (
+        <Square size={18} strokeWidth={1.75} color={colors.fg} />
+      ) : (
+        <Svg width={36} height={36}>
+          <Circle cx={18} cy={18} r={15} stroke={colors.border} strokeWidth={3} fill="none" />
+          <Circle
+            cx={18}
+            cy={18}
+            r={15}
+            stroke={colors.fg}
+            strokeWidth={3}
+            fill="none"
+            strokeDasharray={`${RING}`}
+            strokeDashoffset={RING * (1 - progress)}
+            strokeLinecap="round"
+            transform="rotate(-90 18 18)"
+          />
+          <Rect x={12} y={12} width={12} height={12} rx={2} fill={colors.fg} />
+        </Svg>
+      )}
       <Text
         style={{
           marginLeft: 8,

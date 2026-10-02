@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Circle, Polyline, Svg } from 'react-native-svg';
 
+import { projectPoints } from '@/lib/projectPath';
 import { colors, fonts } from '@/theme/tokens';
 import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
 
@@ -17,46 +18,6 @@ interface LiveTrackMapProps {
   elevation: ElevationSample[] | null;
   recorded: TrackPoint[];
   trailName: string;
-}
-
-interface XY {
-  x: number;
-  y: number;
-}
-
-function project(
-  points: TrackPoint[],
-  width: number,
-  height: number,
-  pad: number,
-): XY[] {
-  if (points.length === 0 || width <= 0 || height <= 0) return [];
-  let minLon = Infinity;
-  let maxLon = -Infinity;
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  for (const point of points) {
-    minLon = Math.min(minLon, point.longitude);
-    maxLon = Math.max(maxLon, point.longitude);
-    minLat = Math.min(minLat, point.latitude);
-    maxLat = Math.max(maxLat, point.latitude);
-  }
-  const spanLon = Math.max(maxLon - minLon, 0.00001);
-  const spanLat = Math.max(maxLat - minLat, 0.00001);
-  const midLat = (minLat + maxLat) / 2;
-  const cosLat = Math.cos((midLat * Math.PI) / 180);
-  const spanX = spanLon * Math.max(cosLat, 0.01);
-  const innerW = Math.max(1, width - pad * 2);
-  const innerH = Math.max(1, height - pad * 2);
-  const scale = Math.min(innerW / spanX, innerH / spanLat);
-  const usedW = spanX * scale;
-  const usedH = spanLat * scale;
-  const originX = pad + (innerW - usedW) / 2;
-  const originY = pad + (innerH - usedH) / 2;
-  return points.map((point) => ({
-    x: originX + (point.longitude - minLon) * cosLat * scale,
-    y: originY + (1 - (point.latitude - minLat) / spanLat) * usedH,
-  }));
 }
 
 function asPoints(line: GeoJSONLineString | null): TrackPoint[] {
@@ -78,7 +39,7 @@ function peakIndex(count: number, elevation: ElevationSample[] | null): number {
   return Math.min(count - 1, Math.round((best.distance_m / total) * (count - 1)));
 }
 
-function polyline(points: XY[]): string {
+function polyline(points: { x: number; y: number }[]): string {
   return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
 }
 
@@ -99,18 +60,12 @@ export function LiveTrackMap({
     (point) => Number.isFinite(point.longitude) && Number.isFinite(point.latitude),
   );
   const frame = trail.length >= 2 ? trail : recordedPoints;
-  const projectedTrail =
-    trail.length >= 2 ? project([...trail, ...recordedPoints], boxW, boxH, 28) : [];
-  const trailXY = projectedTrail.slice(0, trail.length);
-  const recordedXY =
-    recordedPoints.length >= 1
-      ? project(
-          trail.length >= 2 ? [...trail, ...recordedPoints] : recordedPoints,
-          boxW,
-          boxH,
-          28,
-        ).slice(trail.length >= 2 ? trail.length : 0)
-      : [];
+  const frameCoords: [number, number][] = (trail.length >= 2 ? [...trail, ...recordedPoints] : recordedPoints).map(
+    (point) => [point.longitude, point.latitude],
+  );
+  const projected = projectPoints(frameCoords, boxW, boxH, 28);
+  const trailXY = trail.length >= 2 ? projected.slice(0, trail.length) : [];
+  const recordedXY = recordedPoints.length >= 1 ? projected.slice(trail.length >= 2 ? trail.length : 0) : [];
   const peak =
     trailXY.length >= 2 ? trailXY[peakIndex(trailXY.length, elevation)] : null;
   const start = trailXY[0] ?? recordedXY[0];
