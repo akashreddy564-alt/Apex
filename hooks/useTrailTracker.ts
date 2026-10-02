@@ -18,6 +18,7 @@ export interface UseTrailTrackerResult {
   start: (trailId: string) => void;
   setNotes: (notes: string) => void;
   addPhoto: (uri: string) => void;
+  replacePhoto: (from: string, to: string) => void;
   tick: () => void;
   complete: () => HikeLog | null;
   discard: () => void;
@@ -52,6 +53,25 @@ export function useTrailTracker(): UseTrailTrackerResult {
     setSession((prev) =>
       prev ? { ...prev, photos: [...prev.photos, uri] } : prev,
     );
+  }, []);
+
+  const replacePhoto = useCallback((from: string, to: string) => {
+    setSession((prev) =>
+      prev
+        ? {
+            ...prev,
+            photos: prev.photos.map((uri) => (uri === from ? to : uri)),
+          }
+        : prev,
+    );
+    const logs = useTrailCache.getState().logs.map((log) =>
+      log.photos.includes(from)
+        ? { ...log, photos: log.photos.map((uri) => (uri === from ? to : uri)) }
+        : log,
+    );
+    if (logs.some((log, i) => log !== useTrailCache.getState().logs[i])) {
+      useTrailCache.setState({ logs });
+    }
   }, []);
 
   const discard = useCallback(() => {
@@ -89,6 +109,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       start,
       setNotes,
       addPhoto,
+      replacePhoto,
       tick,
       complete,
       discard,
@@ -99,6 +120,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       start,
       setNotes,
       addPhoto,
+      replacePhoto,
       tick,
       complete,
       discard,
