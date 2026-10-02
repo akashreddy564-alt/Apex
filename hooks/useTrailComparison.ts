@@ -40,6 +40,7 @@ export interface ComparisonSessionResult {
 
 export interface UseTrailComparisonResult {
   phase: 'idle' | 'bucket' | 'compare' | 'preview';
+  bucket: Bucket | null;
   round: ComparisonRound | null;
   preview: ComparisonSessionResult | null;
   progress: { step: number; estimate: number } | null;
@@ -310,6 +311,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
 
   return {
     phase,
+    bucket,
     round,
     preview,
     progress,

@@ -3,6 +3,13 @@ import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
 
 export type RouteOrigin = 'recording' | 'trail' | 'osm' | 'none';
 
+/** Sentence-case tag for a compare card. An OSM line always keeps the credit. */
+export function routeSourceLabel(origin: RouteOrigin): string {
+  if (origin === 'recording') return 'Your recording';
+  if (origin === 'trail' || origin === 'osm') return 'Trail route · © OpenStreetMap';
+  return 'Logged without a route';
+}
+
 export interface RouteShape {
   origin: RouteOrigin;
   coordinates: [number, number][];

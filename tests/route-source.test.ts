@@ -1,4 +1,4 @@
-import { openTopoDataLookup, osmRouteLookup, resolveRoute } from '@/lib/routeSource';
+import { openTopoDataLookup, osmRouteLookup, resolveRoute, routeSourceLabel } from '@/lib/routeSource';
 
 const recorded = {
   type: 'LineString' as const,
@@ -76,5 +76,12 @@ describe('resolveRoute', () => {
       [3, 4],
     ]);
     expect(shape.elevation).toBeNull();
+  });
+
+  it('labels a recording, an OpenStreetMap route, and a missing route', () => {
+    expect(routeSourceLabel('recording')).toBe('Your recording');
+    expect(routeSourceLabel('trail')).toBe('Trail route · © OpenStreetMap');
+    expect(routeSourceLabel('osm')).toBe('Trail route · © OpenStreetMap');
+    expect(routeSourceLabel('none')).toBe('Logged without a route');
   });
 });
