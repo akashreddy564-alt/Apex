@@ -1,4 +1,4 @@
-import { buildPastHikeLog, durationFromParts, hikeTimestamp } from '@/lib/pastHike';
+import { buildPastHikeLog, durationFromParts, formatHikeDay, hikeTimestamp, suggestHikeType } from '@/lib/pastHike';
 
 describe('buildPastHikeLog', () => {
   const now = new Date(2026, 9, 2, 15, 0, 0);
@@ -112,5 +112,13 @@ describe('buildPastHikeLog', () => {
       hike_type: 'Summit',
       photos: ['file://ridge.jpg'],
     });
+  });
+
+  it('suggests a day hike for a moderate climb and labels the day', () => {
+    expect(suggestHikeType(8.9, 520)).toBe('Day Hike');
+    expect(suggestHikeType(23, 400)).toBe('Backpacking');
+    expect(suggestHikeType(12, 1060)).toBe('Summit');
+    expect(suggestHikeType(3, 80)).toBe('Walk');
+    expect(formatHikeDay(new Date(2026, 8, 27))).toBe('Sun, Sep 27, 2026');
   });
 });

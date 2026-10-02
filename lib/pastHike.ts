@@ -28,6 +28,26 @@ export function isFutureDay(date: Date, now: Date = new Date()): boolean {
   return localDay(date).getTime() > localDay(now).getTime();
 }
 
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] as const;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+
+/** "Sun, Sep 27, 2026". Fixed English labels so the sheet does not depend on locale. */
+export function formatHikeDay(date: Date): string {
+  return `${WEEKDAYS[date.getDay()]}, ${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+/**
+ * A starting hike type from distance and gain. The hiker can override it.
+ * 8.9 km and 520 m is a day hike. A long day is backpacking. A big climb is a summit.
+ */
+export function suggestHikeType(distanceKm: number, gainM: number): string {
+  if (!Number.isFinite(distanceKm) || !Number.isFinite(gainM)) return 'Day Hike';
+  if (distanceKm >= 20) return 'Backpacking';
+  if (gainM >= 800) return 'Summit';
+  if (distanceKm < 5 && gainM < 200) return 'Walk';
+  return 'Day Hike';
+}
+
 export function durationFromParts(hours: number, minutes: number): number {
   const h = Number.isFinite(hours) ? Math.max(0, Math.floor(hours)) : 0;
   const m = Number.isFinite(minutes) ? Math.max(0, Math.floor(minutes)) : 0;
