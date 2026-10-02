@@ -28,13 +28,16 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withRecordingNotification.js",
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Apex records the path of your hike.",
-          "locationAlwaysAndWhenInUsePermission": "Apex keeps recording your hike when the screen is off.",
+          "locationWhenInUsePermission": "Apex records the path of a hike you start, including while the screen is locked. Allow While Using is enough.",
+          "locationAlwaysAndWhenInUsePermission": false,
+          "locationAlwaysPermission": false,
           "isIosBackgroundLocationEnabled": true,
-          "isAndroidBackgroundLocationEnabled": true
+          "isAndroidBackgroundLocationEnabled": false,
+          "isAndroidForegroundServiceEnabled": true
         }
       ],
       [

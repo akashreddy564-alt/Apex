@@ -32,7 +32,7 @@ const taskOptions: Location.LocationTaskOptions = {
   showsBackgroundLocationIndicator: true,
   foregroundService: {
     notificationTitle: 'Apex',
-    notificationBody: 'Recording hike',
+    notificationBody: 'Apex is recording your hike',
     notificationColor: '#8B9A6D',
   },
 };
@@ -74,8 +74,17 @@ export async function startForegroundWatch(): Promise<void> {
   );
 }
 
-export async function startBackgroundTask(): Promise<void> {
-  if (Platform.OS === 'web') return;
+/**
+ * Start updates while the app is in the foreground. iOS keeps them going with
+ * the screen locked via UIBackgroundModes `location` and the blue indicator.
+ * Android uses a location foreground service. This does not request Always
+ * or ACCESS_BACKGROUND_LOCATION.
+ */
+export async function startRecordingTask(): Promise<void> {
+  if (Platform.OS === 'web') {
+    await startForegroundWatch();
+    return;
+  }
   const running = await Location.hasStartedLocationUpdatesAsync(HIKE_LOCATION_TASK).catch(
     () => false,
   );
@@ -111,12 +120,9 @@ export async function reconcileTracking(active: boolean): Promise<void> {
   if (await trackingIsRunning()) return;
   const foreground = await Location.getForegroundPermissionsAsync();
   if (!foreground.granted) return;
-  if (Platform.OS !== 'web') {
-    const background = await Location.getBackgroundPermissionsAsync();
-    if (background.granted) {
-      await startBackgroundTask();
-      return;
-    }
+  try {
+    await startRecordingTask();
+  } catch {
+    await startForegroundWatch();
   }
-  await startForegroundWatch();
 }

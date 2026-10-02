@@ -1,4 +1,8 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import * as Linking from 'expo-linking';
+import * as Location from 'expo-location';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Pressable,
@@ -9,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useHikePhotos } from '@/hooks/useHikePhotos';
@@ -19,12 +24,16 @@ import { formatDuration } from '@/lib/format';
 import { useTrailCache } from '@/stores/trailCache';
 import { displayM } from '@/theme/tokens';
 
+const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
+
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
+  const params = useLocalSearchParams<{ recording?: string }>();
+  const [explainer, setExplainer] = useState(false);
   const photos = useHikePhotos({
     addPhoto: tracker.addPhoto,
     replacePhoto: tracker.replacePhoto,
@@ -44,6 +53,14 @@ export default function LogScreen() {
     [trails, tracker.session?.trailId],
   );
 
+  const acceptLocation = async () => {
+    await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
+    const permission = await Location.requestForegroundPermissionsAsync();
+    setExplainer(false);
+    if (!permission.granted || !selectedTrailId) return;
+    tracker.start(selectedTrailId);
+  };
+
   const finish = () => {
     const log = tracker.complete();
     if (!log) return;
@@ -51,6 +68,20 @@ export default function LogScreen() {
     comparison.start(log.trail_id, log.id);
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    const run = (value: string | undefined) => {
+      if (value === 'pause') tracker.pause();
+      if (value === 'finish') finish();
+    };
+    const fromParams = Array.isArray(params.recording) ? params.recording[0] : params.recording;
+    run(fromParams);
+    const sub = Linking.addEventListener('url', (event) => {
+      const query = Linking.parse(event.url).queryParams?.recording;
+      run(typeof query === 'string' ? query : undefined);
+    });
+    return () => sub.remove();
+  }, [params.recording, tracker.pause, tracker.complete]);
 
   return (
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
@@ -93,7 +124,10 @@ export default function LogScreen() {
               onPress={() => {
                 if (!selectedTrailId) return;
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                tracker.start(selectedTrailId);
+                void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
+                  if (seen === '1') tracker.start(selectedTrailId);
+                  else setExplainer(true);
+                });
               }}
               className="mt-4 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
               style={{ borderRadius: 12 }}
@@ -122,31 +156,11 @@ export default function LogScreen() {
                 {(tracker.distanceM / 1000).toFixed(2)} km · ↑{' '}
                 {Math.round(tracker.elevationGainM)} m · {tracker.session?.points.length ?? 0}{' '}
                 pts
-                {location.background ? ' · background' : ''}
               </Text>
               {location.message ? (
                 <Text className="mt-2 font-mono text-[11px] leading-4 text-zinc-500">
                   {location.message}
                 </Text>
-              ) : null}
-              {!location.background ? (
-                <View className="mt-3 border-t border-zinc-800 pt-3">
-                  <Text className="font-mono text-[11px] leading-4 text-zinc-400">
-                    Apex can keep recording your path while the screen is off.
-                    The track stays on this device until you sync. Background
-                    location is optional.
-                  </Text>
-                  <Pressable
-                    accessibilityLabel="Allow background location"
-                    onPress={location.enableBackground}
-                    className="mt-2 items-center border border-zinc-700 py-2 active:bg-zinc-800"
-                    style={{ borderRadius: 12 }}
-                  >
-                    <Text className="font-mono text-[11px] text-zinc-200">
-                      Continue in background
-                    </Text>
-                  </Pressable>
-                </View>
               ) : null}
             </View>
 
@@ -272,6 +286,16 @@ export default function LogScreen() {
         comparison={comparison}
         onClose={() => setModalOpen(false)}
       />
+      {explainer ? (
+        <View className="absolute inset-0">
+          <LocationExplainer
+            onContinue={() => {
+              void acceptLocation();
+            }}
+            onDismiss={() => setExplainer(false)}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
