@@ -23,9 +23,9 @@ function Cell({ label, spoken, children }: CellProps) {
       accessible
       accessibilityRole="text"
       accessibilityLabel={spoken}
-      className="min-w-[48%] flex-1 border border-zinc-800 bg-zinc-900 px-3 py-2.5"
+      className="min-w-[48%] flex-1 border border-border bg-surface px-3 py-2.5"
     >
-      <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+      <Text className="font-ui text-caption uppercase tracking-widest text-fg-muted">
         {label}
       </Text>
       <View className="mt-1">{children}</View>

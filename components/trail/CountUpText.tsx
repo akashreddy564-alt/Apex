@@ -18,6 +18,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { planCountUp, type CountState } from '@/lib/elevationMotion';
+import { numericStyle } from '@/theme/tokens';
 import {
   formatCompactDuration,
   formatDistanceKm,
@@ -43,7 +44,7 @@ const COUNT_MS = 8000;
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
 const VALUE_CLASS =
-  'm-0 h-5 w-full border-0 bg-transparent p-0 font-mono text-sm leading-5 text-zinc-100 outline-none tabular-nums';
+  'm-0 w-full border-0 bg-transparent p-0 text-body text-fg outline-none';
 
 /** NativeWind maps `className` onto `style` so the animated input keeps its props. */
 function CountUpFace({
@@ -195,8 +196,8 @@ export function CountUpText({
     return (
       <Text
         accessibilityLabel={label}
-        className="font-mono text-sm leading-5 text-zinc-100 tabular-nums"
-        style={style}
+        className="text-body text-fg"
+        style={[numericStyle(), style]}
       >
         —
       </Text>
@@ -210,7 +211,7 @@ export function CountUpText({
         accessibilityLabel={label}
         defaultValue={reducedMotion ? label : formatProgress(format, 0)}
         className={VALUE_CLASS}
-        style={style}
+        style={[numericStyle(), style]}
         animatedProps={animatedProps}
       />
       {Platform.OS === 'web' ? (

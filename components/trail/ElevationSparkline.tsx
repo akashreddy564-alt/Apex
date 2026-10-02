@@ -29,16 +29,24 @@ import {
   shapeEase,
 } from '@/lib/elevationMotion';
 import { formatDistanceKm, formatElevationM } from '@/lib/format';
+import { colors, numericStyle, typeScale } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
 /** Accent sage — crisp stroke only, no bloom. */
-const LINE_COLOR = '#8B9A6D';
+const LINE_COLOR = colors.sage;
 /** Flat sage under the stroke. Same geometry as the line, 12% opacity. */
-const FILL_COLOR = 'rgba(139,154,109,0.12)';
-/** zinc-400. The dash is a flat stroke, not a glow. */
-const DASH_COLOR = '#A1A1AA';
+const FILL_COLOR = rgba(colors.sage, 0.12);
+/** Muted foreground. The dash is a flat stroke, not a glow. */
+const DASH_COLOR = colors.fgMuted;
 /** Near-white tip. No shadow, no blur. */
-const BEAD_COLOR = '#F4F4F5';
+const BEAD_COLOR = colors.fg;
+
+function rgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 /** Slow left→right map-out along distance. */
 const PATH_REVEAL_MS = 10000;
@@ -269,20 +277,20 @@ export function ElevationSparkline({
 
   if (data.length < 2) {
     return (
-      <View className="items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-10">
-        <Text className="font-mono text-xs text-zinc-500">No elevation data</Text>
+      <View className="items-center justify-center rounded-xl border border-border bg-surface px-4 py-10">
+        <Text className="font-ui text-caption text-fg-faint">No elevation data</Text>
       </View>
     );
   }
 
   const endKm = (plotted[plotted.length - 1].distance_m / 1000).toFixed(1);
-  const mono = 'SpaceMono';
+  const digits = numericStyle();
   const showTrace = !reducedMotion;
 
   return (
     <View
       accessibilityLabel="Elevation profile"
-      className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
+      className="overflow-hidden rounded-xl border border-border bg-surface"
     >
       <LineChart.Provider
         data={data}
@@ -293,8 +301,8 @@ export function ElevationSparkline({
           }
         }}
       >
-        <View className="flex-row items-end justify-between border-b border-zinc-800 px-3 py-2">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+        <View className="flex-row items-end justify-between border-b border-border px-3 py-2">
+          <Text className="font-ui text-caption uppercase tracking-widest text-fg-muted">
             Elevation profile
           </Text>
           <View className="items-end">
@@ -303,11 +311,11 @@ export function ElevationSparkline({
                 const n = Number(value);
                 return Number.isNaN(n) ? String(value) : formatElevationM(n);
               }}
-              style={{ color: '#A1A1AA', fontFamily: mono, fontSize: 12 }}
+              style={{ ...digits, color: colors.fgMuted, fontSize: typeScale.caption }}
             />
             <LineChart.DatetimeText
               format={({ value }) => formatDistFromTimestamp(value)}
-              style={{ color: '#71717A', fontFamily: mono, fontSize: 10 }}
+              style={{ ...digits, color: colors.fgFaint, fontSize: typeScale.caption }}
             />
           </View>
         </View>
@@ -360,18 +368,18 @@ export function ElevationSparkline({
                   </View>
                 </Animated.View>
                 <LineChart.CursorCrosshair
-                  color="#E4E4E7"
+                  color={colors.highlight}
                   outerSize={14}
                   size={6}
                 >
                   <LineChart.Tooltip
                     cursorGutter={12}
                     textStyle={{
-                      color: '#FAFAFA',
-                      fontFamily: mono,
-                      fontSize: 11,
-                      backgroundColor: '#18181B',
-                      borderColor: '#27272A',
+                      ...digits,
+                      color: colors.fg,
+                      fontSize: typeScale.caption,
+                      backgroundColor: colors.surface,
+                      borderColor: colors.border,
                       borderWidth: 1,
                       overflow: 'hidden',
                       paddingHorizontal: 8,
@@ -389,8 +397,12 @@ export function ElevationSparkline({
         </View>
 
         <View className="flex-row justify-between px-3 pb-2">
-          <Text className="font-mono text-[10px] text-zinc-600">0 km</Text>
-          <Text className="font-mono text-[10px] text-zinc-600">{endKm} km</Text>
+          <Text className="text-caption text-fg-faint" style={digits}>
+            0 km
+          </Text>
+          <Text className="text-caption text-fg-faint" style={digits}>
+            {endKm} km
+          </Text>
         </View>
       </LineChart.Provider>
     </View>
