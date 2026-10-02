@@ -105,6 +105,27 @@ export const navTitle = {
   fontWeight: 'normal' as const,
 };
 
+/**
+ * In-screen titles. One color, the loaded face, `fontWeight: 'normal'`
+ * so web does not synthesize a bolder cut. 800 is only `displayXL`.
+ */
+export const displayXL = {
+  color: colors.fg,
+  fontFamily: fonts.displayExtraBold,
+  fontSize: 34,
+  lineHeight: 36,
+  fontWeight: 'normal' as const,
+} as const;
+
+/** 700 display for section titles and the trail name under the map. */
+export const displayM = {
+  color: colors.fg,
+  fontFamily: fonts.display,
+  fontSize: 28,
+  lineHeight: 31,
+  fontWeight: 'normal' as const,
+} as const;
+
 /** Text styles. Titles use `heading.color` only — never a second color inside the line. */
 export const type = {
   caption: {

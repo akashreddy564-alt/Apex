@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TrailCard } from '@/components/trail/TrailCard';
 import { useRankings } from '@/hooks/useRankings';
+import { displayM } from '@/theme/tokens';
 
 export default function RankingsScreen() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function RankingsScreen() {
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="border-b border-zinc-800 px-4 pb-4 pt-2">
-          <Text className="text-lg font-medium text-zinc-50">Personal ranking</Text>
+          <Text style={displayM}>Personal ranking</Text>
           <Text className="mt-1 font-mono text-[11px] text-zinc-500">
             Elo + ordinal · top 10 highlighted
           </Text>

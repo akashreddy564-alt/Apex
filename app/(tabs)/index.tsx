@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TrailCard } from '@/components/trail/TrailCard';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
+import { displayXL } from '@/theme/tokens';
 
 export default function TrailsScreen() {
   const router = useRouter();
@@ -16,9 +17,7 @@ export default function TrailsScreen() {
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="border-b border-zinc-800 px-4 pb-4 pt-2">
-          <Text className="text-2xl font-semibold tracking-tight text-zinc-50">
-            Apex
-          </Text>
+          <Text style={displayXL}>Apex</Text>
           <Text className="mt-1 max-w-[28rem] text-[13px] leading-5 text-zinc-400">
             Rank trails like a comparison engine. Log like telemetry. No feed
             noise.

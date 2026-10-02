@@ -14,6 +14,7 @@ import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
 import { useTrailCache } from '@/stores/trailCache';
+import { displayM } from '@/theme/tokens';
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
@@ -45,7 +46,7 @@ export default function LogScreen() {
   return (
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text className="text-lg font-medium text-zinc-50">Log a hike</Text>
+        <Text style={displayM}>Log a hike</Text>
         <Text className="mt-1 font-mono text-[11px] text-zinc-500">
           Duration · notes · then pairwise rank
         </Text>

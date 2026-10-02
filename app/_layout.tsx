@@ -73,7 +73,7 @@ export default function RootLayout() {
             <Stack.Screen
               name="trail/[id]"
               options={{
-                title: 'Trail',
+                title: '',
                 headerBackTitle: 'Back',
               }}
             />
