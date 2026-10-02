@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { MOCK_USER_ID } from '@/data/mockTrails';
 import { newId } from '@/lib/geo';
-import { pushComparison, pushRanking } from '@/lib/remoteSync';
+import { pushComparison, pushRankings } from '@/lib/remoteSync';
 import {
   answer,
   bandScore,
@@ -10,6 +10,7 @@ import {
   DEFAULT_HIKE_TYPE,
   expectedComparisons,
   positionForInsert,
+  rankingsToSync,
   sortByPosition,
   startSession,
   undo as undoSession,
@@ -265,13 +266,10 @@ export function useTrailComparison(): UseTrailComparisonResult {
       score: 0,
     };
     const comparisons = pendingRef.current;
+    const before = useRankingStore.getState().rankings;
     placeRanking(ranking, comparisons);
-    const stamped = useRankingStore
-      .getState()
-      .rankings.filter(
-        (row) => row.hike_type === ranking.hike_type && row.bucket === ranking.bucket,
-      );
-    for (const row of stamped) void pushRanking(row);
+    const after = useRankingStore.getState().rankings;
+    void pushRankings(rankingsToSync(before, after));
     for (const comparison of comparisons) void pushComparison(comparison);
   }, [bucket, placeRanking, trailId]);
 

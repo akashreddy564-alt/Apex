@@ -215,16 +215,22 @@ export async function pushLog(log: HikeLog): Promise<void> {
 }
 
 export async function pushRanking(ranking: TrailRanking): Promise<void> {
+  await pushRankings([ranking]);
+}
+
+/** One upsert for every row whose score changed, including the bucket a hike left. */
+export async function pushRankings(rankings: TrailRanking[]): Promise<void> {
+  if (rankings.length === 0) return;
   await loadOutbox();
-  if (await sendRanking(ranking)) dequeue('ranking', ranking.id);
-  else enqueue('ranking', ranking.id);
+  if (await sendRankings(rankings)) {
+    for (const ranking of rankings) dequeue('ranking', ranking.id);
+  } else {
+    for (const ranking of rankings) enqueue('ranking', ranking.id);
+  }
 }
 
 export async function pushAllRankings(): Promise<void> {
-  const rankings = useRankingStore.getState().rankings;
-  for (const ranking of rankings) {
-    await pushRanking(ranking);
-  }
+  await pushRankings(useRankingStore.getState().rankings);
 }
 
 export async function pushComparison(comparison: PairwiseComparison): Promise<void> {
@@ -254,10 +260,8 @@ async function sendLog(log: HikeLog): Promise<boolean> {
   return !error;
 }
 
-async function sendRanking(ranking: TrailRanking): Promise<boolean> {
-  if (!supabase || !isUuid(ranking.trail_id)) return true;
-  const uid = await userId();
-  if (!uid) return false;
+function rankingRow(ranking: TrailRanking, uid: string): Record<string, unknown> | null {
+  if (!isUuid(ranking.trail_id)) return null;
   const row: Record<string, unknown> = {
     user_id: uid,
     trail_id: ranking.trail_id,
@@ -269,9 +273,21 @@ async function sendRanking(ranking: TrailRanking): Promise<boolean> {
     updated_at: ranking.updated_at,
   };
   if (isUuid(ranking.id)) row.id = ranking.id;
+  return row;
+}
+
+async function sendRankings(rankings: TrailRanking[]): Promise<boolean> {
+  if (!supabase) return true;
+  const uid = await userId();
+  if (!uid) return false;
+  const rows = rankings.flatMap((ranking) => {
+    const row = rankingRow(ranking, uid);
+    return row ? [row] : [];
+  });
+  if (rows.length === 0) return true;
   const { error } = await supabase
     .from('trail_rankings')
-    .upsert(row, { onConflict: 'user_id,trail_id,hike_type' });
+    .upsert(rows, { onConflict: 'user_id,trail_id,hike_type' });
   return !error;
 }
 
@@ -380,7 +396,7 @@ async function sendOutboxEntry(entry: OutboxEntry): Promise<boolean> {
   }
   if (entry.kind === 'ranking') {
     const ranking = useRankingStore.getState().rankings.find((row) => row.id === entry.id);
-    return ranking ? sendRanking(ranking) : true;
+    return ranking ? sendRankings([ranking]) : true;
   }
   const comparison = useRankingStore
     .getState()

@@ -10,7 +10,7 @@ import Animated, {
 import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
 import { TelemetryRow } from '@/components/trail/TelemetryRow';
 import { TrailMap } from '@/components/trail/TrailMap';
-import { BUCKET_BANDS, describePlacement, placementScoreLabel } from '@/lib/ranking';
+import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { displayM, numericStyle } from '@/theme/tokens';
@@ -60,7 +60,6 @@ export default function TrailDetailScreen() {
           <Text className="mt-1 font-ui text-caption text-fg-2">{trail.region}</Text>
           {placement ? (
             <Text className="mt-3 text-caption text-fg-2" style={numericStyle()}>
-              #{placement.ordinal} in {BUCKET_BANDS[placement.ranking.bucket].label} ·{' '}
               {placementScoreLabel(
                 placement.ranking.bucket,
                 placement.count,

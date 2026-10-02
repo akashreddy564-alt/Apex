@@ -14,6 +14,7 @@ import {
   positionForInsert,
   startSession,
   undo,
+  rankingsToSync,
   withStoredScores,
   type Bucket,
   type PlacementAnswer,
@@ -218,6 +219,29 @@ test('an Overall list sorts hikes from small buckets by stored score', () => {
   assert.equal(day[0].score, bandScore('loved', 0, 1));
   assert.equal(summit[0].score, bandScore('loved', 0, 2));
   assert.equal(summit[1].score, bandScore('loved', 1, 2));
+});
+
+test('scores are grouped by user, hike type, and bucket', () => {
+  const rows = withStoredScores([
+    unscored('alta', 'hike', 'loved', 'a0'),
+    { ...unscored('alta', 'hike', 'loved', 'a0'), user_id: 'other', id: 'rank-other' },
+  ]);
+  assert.equal(rows.length, 2);
+  assert.equal(rows[0].score, bandScore('loved', 0, 1));
+  assert.equal(rows[1].score, bandScore('loved', 0, 1));
+});
+
+test('a bucket move syncs the old bucket as well as the new one', () => {
+  const before = withStoredScores([
+    unscored('alta', 'hike', 'loved', 'a0'),
+    unscored('baja', 'hike', 'loved', 'a1'),
+    unscored('meadow', 'hike', 'fine', 'a0'),
+  ]);
+  const moved = withStoredScores(
+    before.map((row) => (row.trail_id === 'baja' ? { ...row, bucket: 'fine' as const } : row)),
+  );
+  const changed = rankingsToSync(before, moved).map((row) => row.trail_id).sort();
+  assert.deepEqual(changed, ['alta', 'baja', 'meadow']);
 });
 
 test('expected comparisons follow the binary-search bound', () => {

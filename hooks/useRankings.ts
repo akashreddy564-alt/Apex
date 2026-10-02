@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
-import { pushRanking } from '@/lib/remoteSync';
+import { pushRankings } from '@/lib/remoteSync';
 import {
   BUCKET_BANDS,
   BUCKETS,
   DEFAULT_HIKE_TYPE,
   overallByScore,
+  rankingsToSync,
   sortByPosition,
   withStoredScores,
   type Bucket,
@@ -83,11 +84,10 @@ export function useRankings() {
 
   const optimisticUpsert = useMutation({
     mutationFn: async (ranking: TrailRanking) => {
+      const before = useRankingStore.getState().rankings;
       upsertRanking(ranking);
-      const stamped = useRankingStore
-        .getState()
-        .rankings.filter((row) => row.hike_type === ranking.hike_type);
-      for (const row of stamped) void pushRanking(row);
+      const after = useRankingStore.getState().rankings;
+      await pushRankings(rankingsToSync(before, after));
       return ranking;
     },
     onMutate: async (ranking) => {

@@ -232,7 +232,7 @@ export function withStoredScores<T extends Omit<StoredRanking, 'score'> & { scor
 ): (T & { score: number })[] {
   const groups = new Map<string, T[]>();
   for (const row of rows) {
-    const key = `${row.hike_type}\0${row.bucket}`;
+    const key = `${row.user_id}\0${row.hike_type}\0${row.bucket}`;
     const list = groups.get(key);
     if (list) list.push(row);
     else groups.set(key, [row]);
@@ -274,6 +274,22 @@ export function positionForInsert(sortedPositions: string[], index: number): str
   const before = index > 0 ? sortedPositions[index - 1] : null;
   const after = index < sortedPositions.length ? sortedPositions[index] : null;
   return generateKeyBetween(before, after);
+}
+
+/**
+ * Rows whose score, bucket, or position changed. A move between buckets
+ * includes the old bucket so those server scores are not left stale.
+ */
+export function rankingsToSync<T extends { user_id: string; hike_type: string; trail_id: string; score: number; bucket: string; position: string }>(
+  before: T[],
+  after: T[],
+): T[] {
+  const previous = new Map(before.map((row) => [rankingKey(row), row]));
+  return after.filter((row) => {
+    const old = previous.get(rankingKey(row));
+    if (!old) return true;
+    return old.score !== row.score || old.bucket !== row.bucket || old.position !== row.position;
+  });
 }
 
 export function sortByPosition<T extends { position: string }>(rows: T[]): T[] {
@@ -358,7 +374,10 @@ export function describePlacement(
   if (!ranking) return null;
   const group = sortByPosition(
     rankings.filter(
-      (row) => row.bucket === ranking.bucket && row.hike_type === hikeType,
+      (row) =>
+        row.user_id === ranking.user_id &&
+        row.bucket === ranking.bucket &&
+        row.hike_type === hikeType,
     ),
   );
   const index = group.findIndex((row) => row.trail_id === trailId);
