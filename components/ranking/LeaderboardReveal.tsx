@@ -102,7 +102,7 @@ export function LeaderboardReveal({
         {placementScoreLabel(bucket, count, score)}
       </Text>
       <Text className="mt-1 text-center text-[15px] text-zinc-200">
-        #{ordinalRank} in {label} · {placementScoreLabel(bucket, count, score)}
+        #{ordinalRank} in {label}
       </Text>
 
       <View className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 px-3">
