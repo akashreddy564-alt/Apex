@@ -1,30 +1,30 @@
 import { Tabs } from 'expo-router';
 import { Footprints, ListOrdered, Mountain } from 'lucide-react-native';
 
+import { colors, fonts } from '@/theme/tokens';
+
 export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: '#09090B' },
-        headerTintColor: '#F4F4F5',
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.fg,
         headerShadowVisible: false,
         tabBarStyle: {
-          backgroundColor: '#09090B',
-          borderTopColor: '#27272A',
+          backgroundColor: colors.bg,
+          borderTopColor: colors.raised,
           borderTopWidth: 1,
           height: 58,
           paddingBottom: 6,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: '#8B9A6D',
-        tabBarInactiveTintColor: '#71717A',
+        tabBarActiveTintColor: colors.sage,
+        tabBarInactiveTintColor: colors.fgFaint,
         tabBarLabelStyle: {
-          fontSize: 10,
-          fontFamily: 'monospace',
-          letterSpacing: 0.6,
-          textTransform: 'uppercase',
+          fontSize: 12,
+          fontFamily: fonts.uiMedium,
         },
-        sceneStyle: { backgroundColor: '#09090B' },
+        sceneStyle: { backgroundColor: colors.bg },
       }}
     >
       <Tabs.Screen

@@ -1,5 +1,14 @@
 import '../global.css';
 
+import {
+  BricolageGrotesque_700Bold,
+  BricolageGrotesque_800ExtraBold,
+} from '@expo-google-fonts/bricolage-grotesque';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+} from '@expo-google-fonts/inter';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -9,11 +18,18 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { colors, fonts } from '@/theme/tokens';
+
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    [fonts.display]: BricolageGrotesque_700Bold,
+    [fonts.displayExtraBold]: BricolageGrotesque_800ExtraBold,
+    [fonts.ui]: Inter_400Regular,
+    [fonts.uiMedium]: Inter_500Medium,
+    [fonts.uiSemibold]: Inter_600SemiBold,
   });
 
   const [queryClient] = useState(
@@ -29,12 +45,12 @@ export default function RootLayout() {
   );
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded || fontError) {
       SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [fontsLoaded]);
+  }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError) {
     return null;
   }
 
@@ -45,11 +61,11 @@ export default function RootLayout() {
           <StatusBar style="light" />
           <Stack
             screenOptions={{
-              headerStyle: { backgroundColor: '#09090B' },
-              headerTintColor: '#F4F4F5',
+              headerStyle: { backgroundColor: colors.bg },
+              headerTintColor: colors.fg,
               headerTitleStyle: { fontWeight: '500', fontSize: 16 },
               headerShadowVisible: false,
-              contentStyle: { backgroundColor: '#09090B' },
+              contentStyle: { backgroundColor: colors.bg },
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
