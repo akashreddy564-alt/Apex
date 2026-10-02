@@ -1,28 +1,69 @@
-const { withDangerousMod } = require('expo/config-plugins');
+const { AndroidConfig, withAndroidManifest, withDangerousMod } = require('expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
 const MARKER = 'apex-recording-actions';
 
 /**
- * expo-location's foreground-service notification has no action API.
- * On prebuild, add Pause and Finish actions that open apex://log.
- * This does not add ACCESS_BACKGROUND_LOCATION.
+ * Patches expo-location 57.0.20 only.
+ * File: node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
+ * Edits buildServiceNotification at the setContentIntent let-block, lines 89–90:
+ *   builder.setContentIntent(contentIntent)
+ *       }
+ * Inserts Pause and Finish actions there, before `val iconsResId`.
+ * Revisit this needle whenever expo-location is upgraded. The pin is exact.
  */
+const LOCATION_TASK_SERVICE = path.join(
+  'node_modules',
+  'expo-location',
+  'android',
+  'src',
+  'main',
+  'java',
+  'expo',
+  'modules',
+  'location',
+  'services',
+  'LocationTaskService.kt',
+);
+const NEEDLE = 'builder.setContentIntent(contentIntent)\n    }';
+const SERVICE_NAME = 'expo.modules.location.services.LocationTaskService';
+
+function patchFailure(file, reason) {
+  throw new Error(
+    `withRecordingNotification: ${reason}\nFile: ${file}\nMissing needle:\n${NEEDLE}`,
+  );
+}
+
 function withRecordingNotification(config) {
+  config = withAndroidManifest(config, (config) => {
+    AndroidConfig.Permissions.ensurePermissions(config.modResults, [
+      'android.permission.FOREGROUND_SERVICE',
+      'android.permission.FOREGROUND_SERVICE_LOCATION',
+      'android.permission.POST_NOTIFICATIONS',
+    ]);
+    const application = AndroidConfig.Manifest.getMainApplicationOrThrow(config.modResults);
+    const services = application.service ?? [];
+    let service = services.find((entry) => entry.$['android:name'] === SERVICE_NAME);
+    if (!service) {
+      service = { $: { 'android:name': SERVICE_NAME } };
+      services.push(service);
+      application.service = services;
+    }
+    service.$['android:exported'] = 'false';
+    service.$['android:foregroundServiceType'] = 'location';
+    return config;
+  });
+
   return withDangerousMod(config, [
     'android',
     (config) => {
-      const file = path.join(
-        config.modRequest.projectRoot,
-        'node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt',
-      );
-      if (!fs.existsSync(file)) return config;
+      const file = path.join(config.modRequest.projectRoot, LOCATION_TASK_SERVICE);
+      if (!fs.existsSync(file)) patchFailure(file, 'target file was not found');
       const source = fs.readFileSync(file, 'utf8');
       if (source.includes(MARKER)) return config;
-      const needle = 'builder.setContentIntent(contentIntent)\n    }';
-      if (!source.includes(needle)) return config;
-      const insert = `${needle}
+      if (!source.includes(NEEDLE)) patchFailure(file, 'needle was not found');
+      const insert = `${NEEDLE}
 
     // ${MARKER}
     val pause = Intent(Intent.ACTION_VIEW, android.net.Uri.parse("apex://log?recording=pause"))
@@ -32,7 +73,7 @@ function withRecordingNotification(config) {
     val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_IMMUTABLE else 0)
     builder.addAction(android.R.drawable.ic_media_pause, "Pause", PendingIntent.getActivity(this, 1, pause, flags))
     builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, "Finish", PendingIntent.getActivity(this, 2, finish, flags))`;
-      fs.writeFileSync(file, source.replace(needle, insert));
+      fs.writeFileSync(file, source.replace(NEEDLE, insert));
       return config;
     },
   ]);

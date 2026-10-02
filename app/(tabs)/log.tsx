@@ -6,6 +6,8 @@ import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
+  PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -23,6 +25,10 @@ import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
+import {
+  LOCK_SCREEN_NOTIFICATION_NOTE,
+  notificationPermissionRequired,
+} from '@/lib/notificationPermission';
 import { useTrailCache } from '@/stores/trailCache';
 import { colors, displayM, fonts, numericStyle } from '@/theme/tokens';
 
@@ -52,6 +58,7 @@ export default function LogScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
+  const [notificationNote, setNotificationNote] = useState<string | null>(null);
   const trackingRef = useRef(false);
   trackingRef.current = tracker.isTracking;
 
@@ -85,10 +92,35 @@ export default function LogScreen() {
   const acceptLocation = async () => {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
+    if (notificationPermissionRequired(Platform.OS, Platform.Version)) {
+      try {
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      } catch {
+        // A declined or missing notification prompt does not block the hike.
+      }
+    }
     setExplainer(false);
     if (!permission.granted || !selectedTrailId) return;
     tracker.start(selectedTrailId);
   };
+
+  useEffect(() => {
+    if (!tracker.isTracking || !notificationPermissionRequired(Platform.OS, Platform.Version)) {
+      setNotificationNote(null);
+      return;
+    }
+    let cancelled = false;
+    void PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)
+      .then((granted) => {
+        if (!cancelled) setNotificationNote(granted ? null : LOCK_SCREEN_NOTIFICATION_NOTE);
+      })
+      .catch(() => {
+        if (!cancelled) setNotificationNote(LOCK_SCREEN_NOTIFICATION_NOTE);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tracker.isTracking]);
 
   const finish = () => {
     setFinishOpen(false);
@@ -154,6 +186,7 @@ export default function LogScreen() {
           savedAt={tracker.savedAt}
           points={tracker.session?.points ?? []}
           notice={location.message}
+          notificationNote={notificationNote}
           onPause={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             tracker.dismissRecovery();

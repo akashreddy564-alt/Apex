@@ -82,3 +82,7 @@
 3. The user picks Loved, Fine, or Didn't like. `useTrailComparison` binary-searches that bucket's order, frozen at the start.
 4. Undo walks a history stack. Too close inserts beside the current hike and stops. Nothing is written yet.
 5. Place saves one ranking row (fractional `position`) and the session's `pairwise_comparisons`. The 0–10 score is derived from that position.
+
+## Location package pin
+
+`expo-location` is pinned to exactly `57.0.20` (no `^` or `~`). `plugins/withRecordingNotification.js` patches that version's `LocationTaskService.kt` (`buildServiceNotification`, the `setContentIntent` block at lines 89–90) to add Pause and Finish. Prebuild throws if that file or needle is missing. Revisit the pin and the plugin needle on any `expo-location` upgrade.

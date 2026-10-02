@@ -34,6 +34,7 @@ interface RecordSessionProps {
   savedAt: number | null;
   points: TrackPoint[];
   notice: string | null;
+  notificationNote: string | null;
   onPause: () => void;
   onResume: () => void;
   onFinish: () => void;
@@ -249,6 +250,7 @@ export function RecordSession({
   savedAt,
   points,
   notice,
+  notificationNote,
   onPause,
   onResume,
   onFinish,
@@ -404,6 +406,11 @@ export function RecordSession({
         {notice ? (
           <Text style={{ marginTop: 10, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
             {notice}
+          </Text>
+        ) : null}
+        {notificationNote ? (
+          <Text style={{ marginTop: 10, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+            {notificationNote}
           </Text>
         ) : null}
       </View>
