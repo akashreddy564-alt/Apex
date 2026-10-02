@@ -25,7 +25,7 @@ export function publishLocationObjects(locations: Location.LocationObject[]): vo
 }
 
 const taskOptions: Location.LocationTaskOptions = {
-  accuracy: Location.Accuracy.BestForNavigation,
+  accuracy: Location.Accuracy.High,
   activityType: Location.ActivityType.Fitness,
   pausesUpdatesAutomatically: false,
   timeInterval: 4000,
@@ -66,7 +66,7 @@ export async function startForegroundWatch(): Promise<void> {
   if (watch) return;
   watch = await Location.watchPositionAsync(
     {
-      accuracy: Location.Accuracy.BestForNavigation,
+      accuracy: Location.Accuracy.High,
       timeInterval: 4000,
       distanceInterval: 5,
     },

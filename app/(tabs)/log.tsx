@@ -60,6 +60,7 @@ export default function LogScreen() {
   const [finishOpen, setFinishOpen] = useState(false);
   const [notificationNote, setNotificationNote] = useState<string | null>(null);
   const trackingRef = useRef(false);
+  const pendingRecording = useRef<'pause' | 'finish' | null>(null);
   trackingRef.current = tracker.isTracking;
 
   useEffect(() => {
@@ -132,19 +133,35 @@ export default function LogScreen() {
     setModalOpen(true);
   };
 
+  const applyRecording = (value: string | undefined, loaded: boolean) => {
+    if (value !== 'pause' && value !== 'finish') return;
+    if (!loaded) {
+      pendingRecording.current = value;
+      return;
+    }
+    pendingRecording.current = null;
+    if (value === 'pause') tracker.pause();
+    if (value === 'finish') setFinishOpen(true);
+  };
+
   useEffect(() => {
-    const run = (value: string | undefined) => {
-      if (value === 'pause') tracker.pause();
-      if (value === 'finish' && trackingRef.current) setFinishOpen(true);
-    };
     const fromParams = Array.isArray(params.recording) ? params.recording[0] : params.recording;
-    run(fromParams);
+    applyRecording(fromParams, tracker.isTracking);
     const sub = Linking.addEventListener('url', (event) => {
       const query = Linking.parse(event.url).queryParams?.recording;
-      run(typeof query === 'string' ? query : undefined);
+      applyRecording(typeof query === 'string' ? query : undefined, trackingRef.current);
     });
     return () => sub.remove();
-  }, [params.recording, tracker.pause]);
+  }, [params.recording, tracker.isTracking, tracker.pause]);
+
+  useEffect(() => {
+    if (!tracker.recovered || !tracker.isTracking) return;
+    const action = pendingRecording.current;
+    if (!action) return;
+    pendingRecording.current = null;
+    if (action === 'pause') tracker.pause();
+    if (action === 'finish') setFinishOpen(true);
+  }, [tracker.isTracking, tracker.pause, tracker.recovered]);
 
   const savePast = (draft: {
     trailId: string;
@@ -187,6 +204,7 @@ export default function LogScreen() {
           points={tracker.session?.points ?? []}
           notice={location.message}
           notificationNote={notificationNote}
+          finishSheetOpen={finishOpen}
           onPause={() => {
             void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             tracker.dismissRecovery();
@@ -223,6 +241,7 @@ export default function LogScreen() {
                 {(tracker.distanceM / 1000).toFixed(1)} km · {hikeClock(tracker.elapsedSeconds)}
               </Text>
               <Pressable
+                accessibilityRole="button"
                 accessibilityLabel="Finish"
                 onPress={finish}
                 style={{ backgroundColor: colors.sage, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
@@ -232,6 +251,7 @@ export default function LogScreen() {
                 </Text>
               </Pressable>
               <Pressable
+                accessibilityRole="button"
                 accessibilityLabel="Keep recording"
                 onPress={() => setFinishOpen(false)}
                 style={{ backgroundColor: colors.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}

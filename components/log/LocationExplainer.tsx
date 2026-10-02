@@ -41,8 +41,7 @@ interface LocationExplainerProps {
 
 /**
  * Shown once, before any system location prompt.
- * Continue is what asks for While Using. A later Always prompt, if iOS shows
- * one for locked-screen recording, only happens after this screen.
+ * Continue asks for location while using Apex.
  * Not now returns to the log sheet.
  */
 export function LocationExplainer({ onContinue, onDismiss }: LocationExplainerProps) {

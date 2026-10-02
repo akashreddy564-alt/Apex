@@ -35,6 +35,7 @@ interface RecordSessionProps {
   points: TrackPoint[];
   notice: string | null;
   notificationNote: string | null;
+  finishSheetOpen: boolean;
   onPause: () => void;
   onResume: () => void;
   onFinish: () => void;
@@ -128,40 +129,81 @@ function SignalBars() {
   );
 }
 
-function HoldToStop({ onFinish }: { onFinish: () => void }) {
+const DRAIN_MS = 200;
+
+function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: boolean }) {
   const [progress, setProgress] = useState(0);
   const [screenReader, setScreenReader] = useState(false);
   const frame = useRef<number | null>(null);
   const started = useRef<number | null>(null);
   const done = useRef(false);
+  const progressRef = useRef(0);
+  const reduceMotion = useRef(false);
+  const sheetWasOpen = useRef(false);
 
-  const stop = () => {
+  const setRing = (value: number) => {
+    progressRef.current = value;
+    setProgress(value);
+  };
+
+  const drain = () => {
     if (frame.current != null) cancelAnimationFrame(frame.current);
     frame.current = null;
     started.current = null;
-    if (!done.current) setProgress(0);
+    done.current = false;
+    if (reduceMotion.current || progressRef.current <= 0) {
+      setRing(0);
+      return;
+    }
+    const from = progressRef.current;
+    const start = Date.now();
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / DRAIN_MS);
+      setRing(from * (1 - t));
+      if (t < 1) frame.current = requestAnimationFrame(tick);
+      else frame.current = null;
+    };
+    frame.current = requestAnimationFrame(tick);
   };
+
+  const stop = () => {
+    if (done.current) return;
+    drain();
+  };
+
+  useEffect(() => {
+    if (sheetWasOpen.current && !sheetOpen) drain();
+    sheetWasOpen.current = sheetOpen;
+  }, [sheetOpen]);
 
   useEffect(() => {
     let mounted = true;
     void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
       if (mounted) setScreenReader(enabled);
     });
-    const sub = AccessibilityInfo.addEventListener('screenReaderChanged', setScreenReader);
+    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      reduceMotion.current = enabled;
+    });
+    const reader = AccessibilityInfo.addEventListener('screenReaderChanged', setScreenReader);
+    const motion = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => {
+      reduceMotion.current = enabled;
+    });
     return () => {
       mounted = false;
-      sub.remove();
-      stop();
+      reader.remove();
+      motion.remove();
+      if (frame.current != null) cancelAnimationFrame(frame.current);
     };
   }, []);
 
   const begin = () => {
+    if (frame.current != null) cancelAnimationFrame(frame.current);
     done.current = false;
     started.current = Date.now();
     const tick = () => {
       const elapsed = Date.now() - (started.current ?? Date.now());
       const next = Math.min(1, elapsed / HOLD_MS);
-      setProgress(next);
+      setRing(next);
       if (next >= 1) {
         done.current = true;
         frame.current = null;
@@ -176,7 +218,7 @@ function HoldToStop({ onFinish }: { onFinish: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Finish hike"
+      accessibilityLabel={screenReader ? 'Tap to finish' : 'Hold to stop'}
       accessibilityActions={[{ name: 'activate', label: 'Finish hike' }]}
       onAccessibilityAction={(event) => {
         if (event.nativeEvent.actionName === 'activate') onFinish();
@@ -227,7 +269,7 @@ function HoldToStop({ onFinish }: { onFinish: () => void }) {
           fontWeight: 'normal',
         }}
       >
-        Hold{'\n'}to stop
+        {screenReader ? 'Tap to finish' : 'Hold\nto stop'}
       </Text>
     </Pressable>
   );
@@ -251,6 +293,7 @@ export function RecordSession({
   points,
   notice,
   notificationNote,
+  finishSheetOpen,
   onPause,
   onResume,
   onFinish,
@@ -504,7 +547,7 @@ export function RecordSession({
                 Pause
               </Text>
             </Pressable>
-            <HoldToStop onFinish={onFinish} />
+            <HoldToStop onFinish={onFinish} sheetOpen={finishSheetOpen} />
           </>
         )}
       </View>
