@@ -1,4 +1,5 @@
 import * as Linking from 'expo-linking';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
@@ -7,6 +8,7 @@ import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
 
 export default function AccountScreen() {
+  const router = useRouter();
   const { configured, email, session } = useAuth();
   const [address, setAddress] = useState('');
   const [status, setStatus] = useState<string | null>(null);
@@ -111,6 +113,16 @@ export default function AccountScreen() {
 
       {status ? (
         <Text className="mt-4 font-mono text-[11px] leading-5 text-zinc-400">{status}</Text>
+      ) : null}
+
+      {session ? (
+        <Pressable
+          accessibilityLabel="Delete account"
+          onPress={() => router.push('/delete-account')}
+          className="mt-8 py-3"
+        >
+          <Text className="text-[15px] text-zinc-300">Delete account</Text>
+        </Pressable>
       ) : null}
     </View>
   );

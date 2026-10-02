@@ -79,7 +79,11 @@ export default function RootLayout() {
                 headerBackTitle: 'Back',
               }}
             />
-            <Stack.Screen name="account" options={{ title: 'Account' }} />
+            <Stack.Screen name="account" options={{ title: 'Settings' }} />
+            <Stack.Screen
+              name="delete-account"
+              options={{ title: 'Delete account', headerBackTitle: 'Settings' }}
+            />
           </Stack>
         </BottomSheetModalProvider>
       </QueryClientProvider>

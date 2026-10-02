@@ -8,12 +8,12 @@ function AccountButton() {
   const router = useRouter();
   return (
     <Pressable
-      accessibilityLabel="Account"
+      accessibilityLabel="Settings"
       onPress={() => router.push('/account')}
       className="mr-3 px-2 py-1 active:opacity-70"
     >
       <Text className="font-mono text-[11px] uppercase tracking-widest text-zinc-400">
-        Account
+        Settings
       </Text>
     </Pressable>
   );
