@@ -54,7 +54,8 @@
 │   │   ├── CountUpText.tsx             # UI-thread count-up for telemetry
 │   │   ├── TelemetryRow.tsx            # dense mono telemetry grid
 │   │   ├── TrailCard.tsx               # list row (no card chrome bloat)
-│   │   └── PhotoStrip.tsx              # hike photo thumbnails
+│   │   ├── PhotoStrip.tsx              # hike photo thumbnails
+│   │   └── TrailMap.tsx                # canonical + recorded polyline
 │   └── ranking/
 │       ├── PairwiseModal.tsx           # swipeable “which was better?”
 │       └── LeaderboardReveal.tsx       # animated top-10 slot-in
