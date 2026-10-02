@@ -103,8 +103,8 @@ function HikePanel({
         transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
     >
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <View style={{ flex: 1, paddingRight: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+        <View style={{ flex: 1, alignSelf: 'flex-start', paddingRight: 4 }}>
           <Text
             style={{
               color: colors.fg,
