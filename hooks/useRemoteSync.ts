@@ -15,9 +15,15 @@ export function useRemoteSync() {
     if (!isSupabaseConfigured || !supabase) return;
 
     let cancelled = false;
+    let queued = false;
     const run = () => {
-      void pullRemote().then((next) => {
-        if (!cancelled) setResult(next);
+      if (queued) return;
+      queued = true;
+      queueMicrotask(() => {
+        queued = false;
+        void pullRemote().then((next) => {
+          if (!cancelled) setResult(next);
+        });
       });
     };
 

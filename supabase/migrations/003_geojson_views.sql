@@ -36,3 +36,10 @@ select
 from public.hike_logs;
 
 grant select on public.hike_logs_api to authenticated;
+
+-- Supabase stopped granting on new public tables (Oct 30, 2026).
+-- security_invoker views still need these privileges on the base tables.
+grant select on public.trails to authenticated;
+grant select, insert, update, delete on public.hike_logs to authenticated;
+grant select, insert, update, delete on public.trail_rankings to authenticated;
+grant select, insert, update, delete on public.pairwise_comparisons to authenticated;

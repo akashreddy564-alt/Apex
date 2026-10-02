@@ -30,19 +30,25 @@ export default function AccountScreen() {
     if (!next) return;
     setBusy(true);
     setStatus(null);
-    const { error } = await client.auth.signInWithOtp({
-      email: next,
-      options: { emailRedirectTo: Linking.createURL('/account') },
-    });
-    setBusy(false);
-    setStatus(error ? error.message : 'Check your email for the sign-in link.');
+    try {
+      const { error } = await client.auth.signInWithOtp({
+        email: next,
+        options: { emailRedirectTo: Linking.createURL('/account') },
+      });
+      setStatus(error ? error.message : 'Check your email for the sign-in link.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const sync = async () => {
     setBusy(true);
-    const result = await pullRemote();
-    setBusy(false);
-    setStatus(result.ok ? result.message : result.message);
+    try {
+      const result = await pullRemote();
+      setStatus(result.message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

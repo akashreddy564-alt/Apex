@@ -73,6 +73,8 @@ export function useTrailTracker(): UseTrailTrackerResult {
     );
     if (logs.some((log, i) => log !== useTrailCache.getState().logs[i])) {
       useTrailCache.setState({ logs });
+      const updated = logs.find((log) => log.photos.includes(to));
+      if (updated) void pushLog(updated);
     }
   }, []);
 

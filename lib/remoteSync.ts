@@ -1,9 +1,25 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
 import { supabase } from '@/lib/supabase';
 import { useComparisonStore } from '@/stores/comparisonStore';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type { HikeLog, PairwiseComparison, Trail, TrailRanking } from '@/types/trail';
+
+const OUTBOX_KEY = 'apex-sync-outbox';
+
+type OutboxKind = 'log' | 'ranking' | 'comparison';
+
+interface OutboxEntry {
+  kind: OutboxKind;
+  id: string;
+  attempts: number;
+}
+
+let outbox: OutboxEntry[] = [];
+let outboxLoaded = false;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
 export interface SyncResult {
   ok: boolean;
@@ -66,26 +82,71 @@ export async function pullRemote(): Promise<SyncResult> {
   const error = trailsRes.error || logsRes.error || ranksRes.error || pairsRes.error;
   if (error) return { ok: false, message: error.message };
 
-  const trails = (trailsRes.data ?? [])
+  const remoteTrails = (trailsRes.data ?? [])
     .map((row) => mapTrail(row as Record<string, unknown>))
     .filter((trail): trail is Trail => trail !== null);
-  useTrailCache.setState({
-    trails,
-    logs: (logsRes.data ?? []).map((row) => mapLog(row as Record<string, unknown>)),
-  });
-
-  const rankings = (ranksRes.data ?? []).map((row) =>
+  const remoteLogs = (logsRes.data ?? []).map((row) => mapLog(row as Record<string, unknown>));
+  const remoteRanks = (ranksRes.data ?? []).map((row) =>
     mapRanking(row as Record<string, unknown>),
   );
-  useRankingStore.getState().setRankings(rankings);
+  const remotePairs = (pairsRes.data ?? []).map((row) =>
+    mapPair(row as Record<string, unknown>),
+  );
+
+  await loadOutbox();
+  const dirty = new Set(outbox.map((entry) => `${entry.kind}:${entry.id}`));
+  const local = useTrailCache.getState();
+  const trails =
+    remoteTrails.length === 0 ? local.trails : mergeById(local.trails, remoteTrails, new Set());
+  useTrailCache.setState({
+    trails,
+    logs: mergeById(local.logs, remoteLogs, dirtyIds(dirty, 'log')),
+  });
+  useRankingStore
+    .getState()
+    .setRankings(
+      mergeById(useRankingStore.getState().rankings, remoteRanks, dirtyIds(dirty, 'ranking')),
+    );
   useComparisonStore
     .getState()
-    .setAll((pairsRes.data ?? []).map((row) => mapPair(row as Record<string, unknown>)));
+    .setAll(
+      mergeById(useComparisonStore.getState().comparisons, remotePairs, dirtyIds(dirty, 'comparison')),
+    );
+
+  void flushOutbox();
 
   return {
     ok: true,
     message: trails.length === 0 ? 'No remote trails yet' : `${trails.length} trails`,
   };
+}
+
+/** Remote rows fill in; local rows that are missing remotely or still unsent stay. */
+function mergeById<T extends { id: string }>(
+  local: T[],
+  remote: T[],
+  dirty: Set<string>,
+): T[] {
+  const localById = new Map(local.map((row) => [row.id, row]));
+  const seen = new Set<string>();
+  const merged: T[] = [];
+  for (const row of remote) {
+    seen.add(row.id);
+    const kept = dirty.has(row.id) ? localById.get(row.id) : undefined;
+    merged.push(kept ?? row);
+  }
+  for (const row of local) {
+    if (!seen.has(row.id)) merged.push(row);
+  }
+  return merged;
+}
+
+function dirtyIds(dirty: Set<string>, kind: OutboxKind): Set<string> {
+  const ids = new Set<string>();
+  for (const key of dirty) {
+    if (key.startsWith(`${kind}:`)) ids.add(key.slice(kind.length + 1));
+  }
+  return ids;
 }
 
 function mapLog(row: Record<string, unknown>): HikeLog {
@@ -126,25 +187,55 @@ function mapPair(row: Record<string, unknown>): PairwiseComparison {
 }
 
 export async function pushLog(log: HikeLog): Promise<void> {
-  if (!supabase || !isUuid(log.id) || !isUuid(log.trail_id)) return;
+  await loadOutbox();
+  if (await sendLog(log)) dequeue('log', log.id);
+  else enqueue('log', log.id);
+}
+
+export async function pushRanking(ranking: TrailRanking): Promise<void> {
+  await loadOutbox();
+  if (await sendRanking(ranking)) dequeue('ranking', ranking.id);
+  else enqueue('ranking', ranking.id);
+}
+
+export async function pushAllRankings(): Promise<void> {
+  const rankings = useRankingStore.getState().rankings;
+  for (const ranking of rankings) {
+    await pushRanking(ranking);
+  }
+}
+
+export async function pushComparison(comparison: PairwiseComparison): Promise<void> {
+  await loadOutbox();
+  if (comparison.context_log_id) {
+    const log = useTrailCache.getState().logs.find((row) => row.id === comparison.context_log_id);
+    if (log) await pushLog(log);
+  }
+  if (await sendComparison(comparison)) dequeue('comparison', comparison.id);
+  else enqueue('comparison', comparison.id);
+}
+
+async function sendLog(log: HikeLog): Promise<boolean> {
+  if (!supabase || !isUuid(log.id) || !isUuid(log.trail_id)) return true;
   const uid = await userId();
-  if (!uid) return;
-  await supabase.from('hike_logs').upsert({
+  if (!uid) return false;
+  const { error } = await supabase.from('hike_logs').upsert({
     id: log.id,
     user_id: uid,
     trail_id: log.trail_id,
     duration_seconds: log.duration_seconds,
-    photos: log.photos,
+    photos: log.photos.filter((photo) => photo.startsWith('sb:')),
     notes: log.notes,
     recorded_path: log.recorded_path ? lineStringToEwkt(log.recorded_path) : null,
     created_at: log.created_at,
   });
+  return !error;
 }
 
-export async function pushRanking(ranking: TrailRanking): Promise<void> {
-  if (!supabase || !isUuid(ranking.trail_id)) return;
+async function sendRanking(ranking: TrailRanking): Promise<boolean> {
+  if (!supabase || !isUuid(ranking.trail_id)) return true;
   const uid = await userId();
-  if (!uid) return;
+  if (!uid) return false;
   const row: Record<string, unknown> = {
     user_id: uid,
     trail_id: ranking.trail_id,
@@ -155,24 +246,22 @@ export async function pushRanking(ranking: TrailRanking): Promise<void> {
     updated_at: ranking.updated_at,
   };
   if (isUuid(ranking.id)) row.id = ranking.id;
-  await supabase.from('trail_rankings').upsert(row, { onConflict: 'user_id,trail_id' });
+  const { error } = await supabase
+    .from('trail_rankings')
+    .upsert(row, { onConflict: 'user_id,trail_id' });
+  return !error;
 }
 
-export async function pushAllRankings(): Promise<void> {
-  const rankings = useRankingStore.getState().rankings;
-  await Promise.all(rankings.map((ranking) => pushRanking(ranking)));
-}
-
-export async function pushComparison(comparison: PairwiseComparison): Promise<void> {
+async function sendComparison(comparison: PairwiseComparison): Promise<boolean> {
   if (
     !supabase ||
     !isUuid(comparison.winner_trail_id) ||
     !isUuid(comparison.loser_trail_id)
   ) {
-    return;
+    return true;
   }
   const uid = await userId();
-  if (!uid) return;
+  if (!uid) return false;
   const row: Record<string, unknown> = {
     user_id: uid,
     winner_trail_id: comparison.winner_trail_id,
@@ -184,5 +273,82 @@ export async function pushComparison(comparison: PairwiseComparison): Promise<vo
     created_at: comparison.created_at,
   };
   if (isUuid(comparison.id)) row.id = comparison.id;
-  await supabase.from('pairwise_comparisons').upsert(row);
+  const { error } = await supabase.from('pairwise_comparisons').upsert(row);
+  return !error;
+}
+
+async function loadOutbox(): Promise<void> {
+  if (outboxLoaded) return;
+  outboxLoaded = true;
+  try {
+    const raw = await AsyncStorage.getItem(OUTBOX_KEY);
+    const parsed = raw ? (JSON.parse(raw) as OutboxEntry[]) : [];
+    outbox = Array.isArray(parsed) ? parsed : [];
+  } catch {
+    outbox = [];
+  }
+}
+
+async function saveOutbox(): Promise<void> {
+  await AsyncStorage.setItem(OUTBOX_KEY, JSON.stringify(outbox));
+}
+
+function enqueue(kind: OutboxKind, id: string): void {
+  if (outbox.some((entry) => entry.kind === kind && entry.id === id)) {
+    scheduleRetry();
+    return;
+  }
+  outbox.push({ kind, id, attempts: 0 });
+  void saveOutbox();
+  scheduleRetry();
+}
+
+function dequeue(kind: OutboxKind, id: string): void {
+  const next = outbox.filter((entry) => entry.kind !== kind || entry.id !== id);
+  if (next.length === outbox.length) return;
+  outbox = next;
+  void saveOutbox();
+}
+
+function scheduleRetry(): void {
+  if (retryTimer || outbox.length === 0) return;
+  const wait = Math.min(30_000, 1000 * 2 ** Math.min(outbox[0]?.attempts ?? 0, 5));
+  retryTimer = setTimeout(() => {
+    retryTimer = null;
+    void flushOutbox();
+  }, wait);
+}
+
+export async function flushOutbox(): Promise<void> {
+  await loadOutbox();
+  for (const entry of [...outbox]) {
+    const ok = await sendOutboxEntry(entry);
+    if (ok) {
+      dequeue(entry.kind, entry.id);
+    } else {
+      entry.attempts += 1;
+      await saveOutbox();
+    }
+  }
+  scheduleRetry();
+}
+
+async function sendOutboxEntry(entry: OutboxEntry): Promise<boolean> {
+  if (entry.kind === 'log') {
+    const log = useTrailCache.getState().logs.find((row) => row.id === entry.id);
+    return log ? sendLog(log) : true;
+  }
+  if (entry.kind === 'ranking') {
+    const ranking = useRankingStore.getState().rankings.find((row) => row.id === entry.id);
+    return ranking ? sendRanking(ranking) : true;
+  }
+  const comparison = useComparisonStore
+    .getState()
+    .comparisons.find((row) => row.id === entry.id);
+  if (!comparison) return true;
+  if (comparison.context_log_id) {
+    const log = useTrailCache.getState().logs.find((row) => row.id === comparison.context_log_id);
+    if (log && !(await sendLog(log))) return false;
+  }
+  return sendComparison(comparison);
 }
