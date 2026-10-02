@@ -14,11 +14,19 @@ export function projectLine(
 ): ProjectedPath {
   const spanLon = Math.max(bounds.maxLon - bounds.minLon, 0.00001);
   const spanLat = Math.max(bounds.maxLat - bounds.minLat, 0.00001);
+  const midLat = (bounds.minLat + bounds.maxLat) / 2;
+  const cosLat = Math.cos((midLat * Math.PI) / 180);
+  const spanX = spanLon * Math.max(cosLat, 0.01);
   const innerW = Math.max(1, width - PAD * 2);
   const innerH = Math.max(1, height - PAD * 2);
+  const scale = Math.min(innerW / spanX, innerH / spanLat);
+  const usedW = spanX * scale;
+  const usedH = spanLat * scale;
+  const originX = PAD + (innerW - usedW) / 2;
+  const originY = PAD + (innerH - usedH) / 2;
   const cmds = line.coordinates.map(([lon, lat], index) => {
-    const x = PAD + ((lon - bounds.minLon) / spanLon) * innerW;
-    const y = PAD + (1 - (lat - bounds.minLat) / spanLat) * innerH;
+    const x = originX + ((lon - bounds.minLon) * cosLat * scale);
+    const y = originY + (1 - (lat - bounds.minLat) / spanLat) * usedH;
     return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
   });
   return { d: cmds.join(' ') };

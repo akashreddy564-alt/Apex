@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
+import Animated, { useAnimatedProps } from 'react-native-reanimated';
 import { Path, Svg } from 'react-native-svg';
 
 import { useMovingDash } from '@/components/trail/useMovingDash';
@@ -8,8 +9,9 @@ import type { GeoJSONLineString } from '@/types/trail';
 
 const SAGE = '#8B9A6D';
 const ZINC = '#71717A';
-const TRACE = '#F4F4F5';
+const TRACE = '#A1A1AA';
 const HEIGHT = 180;
+const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 interface TrailMapProps {
   canonical: GeoJSONLineString;
@@ -19,6 +21,7 @@ interface TrailMapProps {
 export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
   const [width, setWidth] = useState(0);
   const dash = useMovingDash();
+  const dashProps = useAnimatedProps(() => ({ strokeDashoffset: dash.value }));
   const model = buildTrailMap(canonical, recorded, width, HEIGHT);
 
   return (
@@ -60,25 +63,25 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
               />
             ) : null}
             {model.moving === 'recorded' && model.recorded ? (
-              <Path
+              <AnimatedPath
                 d={model.recorded.d}
                 stroke={TRACE}
                 strokeWidth={1.75}
                 fill="none"
                 strokeLinecap="round"
                 strokeDasharray="22 148"
-                strokeDashoffset={dash}
+                animatedProps={dashProps}
               />
             ) : null}
             {model.moving === 'canonical' && model.canonical ? (
-              <Path
+              <AnimatedPath
                 d={model.canonical.d}
                 stroke={TRACE}
                 strokeWidth={1.75}
                 fill="none"
                 strokeLinecap="round"
                 strokeDasharray="22 148"
-                strokeDashoffset={dash}
+                animatedProps={dashProps}
               />
             ) : null}
           </Svg>

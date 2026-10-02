@@ -1,5 +1,5 @@
 import { Canvas, DashPathEffect, Path, Skia } from '@shopify/react-native-skia';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
 import { useMovingDash } from '@/components/trail/useMovingDash';
@@ -8,7 +8,7 @@ import type { GeoJSONLineString } from '@/types/trail';
 
 const SAGE = '#8B9A6D';
 const ZINC = '#71717A';
-const TRACE = '#F4F4F5';
+const TRACE = '#A1A1AA';
 const HEIGHT = 180;
 
 interface TrailMapProps {
@@ -24,8 +24,14 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
   const [width, setWidth] = useState(0);
   const dash = useMovingDash();
   const model = buildTrailMap(canonical, recorded, width, HEIGHT);
-  const canonicalPath = model?.canonical ? skPath(model.canonical.d) : null;
-  const recordedPath = model?.recorded ? skPath(model.recorded.d) : null;
+  const canonicalPath = useMemo(
+    () => (model?.canonical ? skPath(model.canonical.d) : null),
+    [model?.canonical?.d],
+  );
+  const recordedPath = useMemo(
+    () => (model?.recorded ? skPath(model.recorded.d) : null),
+    [model?.recorded?.d],
+  );
   const movingPath =
     model?.moving === 'recorded' ? recordedPath : canonicalPath;
 

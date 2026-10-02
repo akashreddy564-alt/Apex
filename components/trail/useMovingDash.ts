@@ -1,19 +1,36 @@
-import { useEffect, useState } from 'react';
+import { useIsFocused } from 'expo-router';
+import { useEffect } from 'react';
+import {
+  cancelAnimation,
+  Easing,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 
 const PERIOD_MS = 3200;
 const CYCLE = 170;
 
-/** Solid dash phase for a stroke that should keep traveling. No blur. */
-export function useMovingDash(): number {
-  const [offset, setOffset] = useState(0);
+/** Dash phase on the UI thread. Stops for Reduce Motion and while blurred. */
+export function useMovingDash(): SharedValue<number> {
+  const offset = useSharedValue(0);
+  const reduced = useReducedMotion();
+  const focused = useIsFocused();
 
   useEffect(() => {
-    const id = setInterval(() => {
-      const t = (Date.now() % PERIOD_MS) / PERIOD_MS;
-      setOffset(-t * CYCLE);
-    }, 32);
-    return () => clearInterval(id);
-  }, []);
+    if (reduced || !focused) {
+      cancelAnimation(offset);
+      return;
+    }
+    offset.value = withRepeat(
+      withTiming(-CYCLE, { duration: PERIOD_MS, easing: Easing.linear }),
+      -1,
+      false,
+    );
+    return () => cancelAnimation(offset);
+  }, [focused, offset, reduced]);
 
   return offset;
 }
