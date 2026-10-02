@@ -24,7 +24,7 @@ export default function LogScreen() {
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
-  const location = useLiveLocation(tracker.isTracking, tracker.addPoint);
+  const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
   const photos = useHikePhotos({
     addPhoto: tracker.addPhoto,
     replacePhoto: tracker.replacePhoto,
@@ -34,10 +34,10 @@ export default function LogScreen() {
   const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
 
   useEffect(() => {
-    if (!tracker.isTracking) return;
+    if (!tracker.isTracking || tracker.isPaused) return;
     const id = setInterval(() => tracker.tick(), 1000);
     return () => clearInterval(id);
-  }, [tracker.isTracking, tracker.tick]);
+  }, [tracker.isPaused, tracker.isTracking, tracker.tick]);
 
   const activeTrail = useMemo(
     () => trails.find((t) => t.id === tracker.session?.trailId),
@@ -110,7 +110,7 @@ export default function LogScreen() {
               style={{ borderRadius: 12 }}
             >
               <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-                Active
+                {tracker.isPaused ? 'Paused' : 'Active'}
               </Text>
               <Text className="mt-1 text-base text-zinc-50">
                 {activeTrail?.name ?? 'Trail'}
@@ -128,6 +128,25 @@ export default function LogScreen() {
                 <Text className="mt-2 font-mono text-[11px] leading-4 text-zinc-500">
                   {location.message}
                 </Text>
+              ) : null}
+              {!location.background ? (
+                <View className="mt-3 border-t border-zinc-800 pt-3">
+                  <Text className="font-mono text-[11px] leading-4 text-zinc-400">
+                    Apex can keep recording your path while the screen is off.
+                    The track stays on this device until you sync. Background
+                    location is optional.
+                  </Text>
+                  <Pressable
+                    accessibilityLabel="Allow background location"
+                    onPress={location.enableBackground}
+                    className="mt-2 items-center border border-zinc-700 py-2 active:bg-zinc-800"
+                    style={{ borderRadius: 12 }}
+                  >
+                    <Text className="font-mono text-[11px] text-zinc-200">
+                      Continue in background
+                    </Text>
+                  </Pressable>
+                </View>
               ) : null}
             </View>
 
@@ -179,6 +198,20 @@ export default function LogScreen() {
             />
 
             <View className="mt-4 flex-row gap-2">
+              <Pressable
+                accessibilityLabel={tracker.isPaused ? 'Resume hike' : 'Pause hike'}
+                onPress={() => {
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (tracker.isPaused) tracker.resume();
+                  else tracker.pause();
+                }}
+                className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
+                style={{ borderRadius: 12 }}
+              >
+                <Text className="font-mono text-sm text-zinc-200">
+                  {tracker.isPaused ? 'Resume' : 'Pause'}
+                </Text>
+              </Pressable>
               <Pressable
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

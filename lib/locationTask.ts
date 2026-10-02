@@ -2,41 +2,40 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 
+import { appendFixes, type LocationFix } from '@/lib/activeHike';
+
 export const HIKE_LOCATION_TASK = 'apex-hike-location';
 
-export interface LocationFix {
-  longitude: number;
-  latitude: number;
-  altitude: number | null;
-  timestamp: number;
-}
-
-type Listener = (fixes: LocationFix[]) => void;
-
-const listeners = new Set<Listener>();
-
-export function subscribeLocationFixes(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
+export function toFix(location: Location.LocationObject): LocationFix {
+  return {
+    longitude: location.coords.longitude,
+    latitude: location.coords.latitude,
+    altitude: location.coords.altitude,
+    accuracy: location.coords.accuracy,
+    timestamp: location.timestamp,
   };
 }
 
-function publish(fixes: LocationFix[]) {
+export function publishLocationObjects(locations: Location.LocationObject[]): void {
+  const fixes = locations.map(toFix);
   if (fixes.length === 0) return;
-  listeners.forEach((listener) => listener(fixes));
+  void appendFixes(fixes);
 }
 
-export function publishLocationObjects(locations: Location.LocationObject[]) {
-  publish(
-    locations.map((location) => ({
-      longitude: location.coords.longitude,
-      latitude: location.coords.latitude,
-      altitude: location.coords.altitude,
-      timestamp: location.timestamp,
-    })),
-  );
-}
+const taskOptions: Location.LocationTaskOptions = {
+  accuracy: Location.Accuracy.BestForNavigation,
+  activityType: Location.ActivityType.Fitness,
+  pausesUpdatesAutomatically: true,
+  timeInterval: 4000,
+  distanceInterval: 5,
+  deferredUpdatesInterval: 10000,
+  showsBackgroundLocationIndicator: true,
+  foregroundService: {
+    notificationTitle: 'Apex',
+    notificationBody: 'Recording hike',
+    notificationColor: '#8B9A6D',
+  },
+};
 
 // Background tasks are native-only. Web uses watchPositionAsync instead.
 if (Platform.OS !== 'web') {
@@ -47,4 +46,77 @@ if (Platform.OS !== 'web') {
       return Promise.resolve();
     },
   );
+}
+
+let watch: Location.LocationSubscription | null = null;
+
+export async function trackingIsRunning(): Promise<boolean> {
+  if (watch) return true;
+  if (Platform.OS === 'web') return false;
+  try {
+    return await Location.hasStartedLocationUpdatesAsync(HIKE_LOCATION_TASK);
+  } catch {
+    return false;
+  }
+}
+
+export async function startForegroundWatch(): Promise<void> {
+  if (watch) return;
+  watch = await Location.watchPositionAsync(
+    {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 4000,
+      distanceInterval: 5,
+    },
+    (location) => {
+      publishLocationObjects([location]);
+    },
+  );
+}
+
+export async function startBackgroundTask(): Promise<void> {
+  if (Platform.OS === 'web') return;
+  const running = await Location.hasStartedLocationUpdatesAsync(HIKE_LOCATION_TASK).catch(
+    () => false,
+  );
+  if (!running) {
+    await Location.startLocationUpdatesAsync(HIKE_LOCATION_TASK, taskOptions);
+  }
+  watch?.remove();
+  watch = null;
+}
+
+export async function stopTracking(): Promise<void> {
+  watch?.remove();
+  watch = null;
+  if (Platform.OS === 'web') return;
+  const running = await Location.hasStartedLocationUpdatesAsync(HIKE_LOCATION_TASK).catch(
+    () => false,
+  );
+  if (running) {
+    await Location.stopLocationUpdatesAsync(HIKE_LOCATION_TASK).catch(() => undefined);
+  }
+}
+
+/**
+ * Launch check. A leftover task with no hike is stopped. An in-progress hike
+ * resumes only when permission was already granted — this does not prompt.
+ */
+export async function reconcileTracking(active: boolean): Promise<void> {
+  if (!active) {
+    const running = await trackingIsRunning();
+    if (running) await stopTracking();
+    return;
+  }
+  if (await trackingIsRunning()) return;
+  const foreground = await Location.getForegroundPermissionsAsync();
+  if (!foreground.granted) return;
+  if (Platform.OS !== 'web') {
+    const background = await Location.getBackgroundPermissionsAsync();
+    if (background.granted) {
+      await startBackgroundTask();
+      return;
+    }
+  }
+  await startForegroundWatch();
 }

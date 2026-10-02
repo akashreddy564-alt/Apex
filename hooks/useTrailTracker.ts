@@ -1,35 +1,38 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { MOCK_USER_ID } from '@/data/mockTrails';
-import { haversineMeters, newId } from '@/lib/geo';
+import {
+  clearHike,
+  currentHike,
+  elapsedSeconds,
+  hydrateHike,
+  pauseHike,
+  resumeHike,
+  startHike,
+  subscribeHike,
+  updateHike,
+  type PersistedHike,
+} from '@/lib/activeHike';
+import { newId } from '@/lib/geo';
+import { stopTracking } from '@/lib/locationTask';
 import { pushLog } from '@/lib/remoteSync';
 import { useTrailCache } from '@/stores/trailCache';
-import type { HikeLog } from '@/types/trail';
+import type { GeoJSONLineString, HikeLog } from '@/types/trail';
 
-export interface TrackPoint {
-  longitude: number;
-  latitude: number;
-  altitude: number | null;
-  timestamp: number;
-}
-
-export interface ActiveSession {
-  trailId: string;
-  startedAt: number;
-  notes: string;
-  photos: string[];
-  points: TrackPoint[];
-}
+export type TrackPoint = PersistedHike['points'][number];
+export type ActiveSession = PersistedHike;
 
 export interface UseTrailTrackerResult {
   session: ActiveSession | null;
   elapsedSeconds: number;
   isTracking: boolean;
+  isPaused: boolean;
   start: (trailId: string) => void;
+  pause: () => void;
+  resume: () => void;
   setNotes: (notes: string) => void;
   addPhoto: (uri: string) => void;
   replacePhoto: (from: string, to: string) => void;
-  addPoint: (point: TrackPoint) => void;
   distanceM: number;
   elevationGainM: number;
   tick: () => void;
@@ -38,76 +41,53 @@ export interface UseTrailTrackerResult {
 }
 
 /**
- * Local hike session tracker. Persists completion into the offline trail cache.
+ * Local hike session. Points, pause, and running totals persist so a killed
+ * app can resume the same hike.
  */
 export function useTrailTracker(): UseTrailTrackerResult {
   const upsertLog = useTrailCache((s) => s.upsertLog);
-  const [session, setSession] = useState<ActiveSession | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const startedAtRef = useRef<number | null>(null);
+  const [session, setSession] = useState<PersistedHike | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
-  const start = useCallback((trailId: string) => {
-    const startedAt = Date.now();
-    startedAtRef.current = startedAt;
-    setElapsedSeconds(0);
-    setSession({ trailId, startedAt, notes: '', photos: [], points: [] });
-  }, []);
-
-  const tick = useCallback(() => {
-    if (!startedAtRef.current) return;
-    setElapsedSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000));
-  }, []);
-
-  const setNotes = useCallback((notes: string) => {
-    setSession((prev) => (prev ? { ...prev, notes } : prev));
-  }, []);
-
-  const addPhoto = useCallback((uri: string) => {
-    setSession((prev) =>
-      prev ? { ...prev, photos: [...prev.photos, uri] } : prev,
-    );
-  }, []);
-
-  const addPoint = useCallback((point: TrackPoint) => {
-    setSession((prev) => {
-      if (!prev) return prev;
-      const last = prev.points[prev.points.length - 1];
-      if (last && last.timestamp === point.timestamp) return prev;
-      return { ...prev, points: [...prev.points, point] };
+  useEffect(() => {
+    let alive = true;
+    void hydrateHike().then((hike) => {
+      if (alive) setSession(hike);
+    });
+    return subscribeHike((hike) => {
+      if (alive) setSession(hike);
     });
   }, []);
 
-  const distanceM = useMemo(() => {
-    const points = session?.points ?? [];
-    let total = 0;
-    for (let i = 1; i < points.length; i++) {
-      total += haversineMeters(points[i - 1], points[i]);
-    }
-    return total;
-  }, [session?.points]);
+  const tick = useCallback(() => {
+    setNow(Date.now());
+  }, []);
 
-  const elevationGainM = useMemo(() => {
-    const points = session?.points ?? [];
-    let gain = 0;
-    for (let i = 1; i < points.length; i++) {
-      const prev = points[i - 1].altitude;
-      const next = points[i].altitude;
-      if (prev == null || next == null) continue;
-      const delta = next - prev;
-      if (delta > 0.5) gain += delta;
-    }
-    return gain;
-  }, [session?.points]);
+  const start = useCallback((trailId: string) => {
+    void startHike(trailId);
+  }, []);
+
+  const pause = useCallback(() => {
+    void pauseHike().then(() => stopTracking());
+  }, []);
+
+  const resume = useCallback(() => {
+    void resumeHike();
+  }, []);
+
+  const setNotes = useCallback((notes: string) => {
+    void updateHike((hike) => ({ ...hike, notes }));
+  }, []);
+
+  const addPhoto = useCallback((uri: string) => {
+    void updateHike((hike) => ({ ...hike, photos: [...hike.photos, uri] }));
+  }, []);
 
   const replacePhoto = useCallback((from: string, to: string) => {
-    setSession((prev) =>
-      prev
-        ? {
-            ...prev,
-            photos: prev.photos.map((uri) => (uri === from ? to : uri)),
-          }
-        : prev,
-    );
+    void updateHike((hike) => ({
+      ...hike,
+      photos: hike.photos.map((uri) => (uri === from ? to : uri)),
+    }));
     const logs = useTrailCache.getState().logs.map((log) =>
       log.photos.includes(from)
         ? { ...log, photos: log.photos.map((uri) => (uri === from ? to : uri)) }
@@ -121,67 +101,70 @@ export function useTrailTracker(): UseTrailTrackerResult {
   }, []);
 
   const discard = useCallback(() => {
-    startedAtRef.current = null;
-    setSession(null);
-    setElapsedSeconds(0);
+    void clearHike();
+    void stopTracking();
   }, []);
 
   const complete = useCallback((): HikeLog | null => {
-    if (!session || !startedAtRef.current) return null;
-    const duration = Math.max(
-      1,
-      Math.floor((Date.now() - startedAtRef.current) / 1000),
-    );
+    const hike = currentHike();
+    if (!hike) return null;
+    const duration = Math.max(1, elapsedSeconds(hike));
     const log: HikeLog = {
       id: newId(),
       user_id: MOCK_USER_ID,
-      trail_id: session.trailId,
+      trail_id: hike.trailId,
       duration_seconds: duration,
-      photos: session.photos,
-      notes: session.notes.trim() || null,
+      photos: hike.photos,
+      notes: hike.notes.trim() || null,
       recorded_path:
-        session.points.length >= 2
+        hike.points.length >= 2
           ? {
               type: 'LineString',
-              coordinates: session.points.map(
-                (point) => [point.longitude, point.latitude] as [number, number],
-              ),
+              coordinates: hike.points.map((point) =>
+                point.altitude == null
+                  ? [point.longitude, point.latitude]
+                  : [point.longitude, point.latitude, point.altitude],
+              ) as GeoJSONLineString['coordinates'],
             }
           : null,
       created_at: new Date().toISOString(),
     };
     upsertLog(log);
     void pushLog(log);
-    discard();
+    void clearHike();
+    void stopTracking();
     return log;
-  }, [discard, session, upsertLog]);
+  }, [upsertLog]);
+
+  const elapsed = session ? elapsedSeconds(session, now) : 0;
 
   return useMemo(
     () => ({
       session,
-      elapsedSeconds,
+      elapsedSeconds: elapsed,
       isTracking: session !== null,
+      isPaused: session?.pausedAt != null,
       start,
+      pause,
+      resume,
       setNotes,
       addPhoto,
       replacePhoto,
-      addPoint,
-      distanceM,
-      elevationGainM,
+      distanceM: session?.distanceM ?? 0,
+      elevationGainM: session?.elevationGainM ?? 0,
       tick,
       complete,
       discard,
     }),
     [
       session,
-      elapsedSeconds,
+      elapsed,
       start,
+      pause,
+      resume,
       setNotes,
       addPhoto,
       replacePhoto,
-      addPoint,
-      distanceM,
-      elevationGainM,
       tick,
       complete,
       discard,

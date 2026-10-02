@@ -1,101 +1,61 @@
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
+import { currentHike } from '@/lib/activeHike';
 import {
-  HIKE_LOCATION_TASK,
-  subscribeLocationFixes,
-  publishLocationObjects,
+  reconcileTracking,
+  startBackgroundTask,
+  startForegroundWatch,
+  stopTracking,
 } from '@/lib/locationTask';
-import type { TrackPoint } from '@/hooks/useTrailTracker';
 
 interface UseLiveLocationResult {
   message: string | null;
   background: boolean;
+  enableBackground: () => void;
 }
 
 /**
- * Records a hike path. Native builds with background permission use a
- * location task so updates continue with the screen off. Web and any
- * failed background start fall back to a foreground watch.
+ * Keeps the native watch alive for the persisted hike. Unmounting the Log
+ * screen does not stop it. Background permission is requested only after the
+ * hiker accepts the explainer.
  */
-export function useLiveLocation(
-  active: boolean,
-  addPoint: (point: TrackPoint) => void,
-): UseLiveLocationResult {
+export function useLiveLocation(active: boolean, paused: boolean): UseLiveLocationResult {
   const [message, setMessage] = useState<string | null>(null);
   const [background, setBackground] = useState(false);
 
   useEffect(() => {
-    if (!active) {
-      setMessage(null);
-      setBackground(false);
-      return;
-    }
-
     let cancelled = false;
-    let subscription: Location.LocationSubscription | null = null;
-    let usedTask = false;
 
-    const unsubscribe = subscribeLocationFixes((fixes) => {
-      fixes.forEach(addPoint);
-    });
+    const sync = async () => {
+      if (!active || paused) {
+        await stopTracking();
+        if (!cancelled) setBackground(false);
+        return;
+      }
 
-    const start = async () => {
       try {
         const foreground = await Location.requestForegroundPermissionsAsync();
-        if (cancelled) return;
+        if (cancelled || !currentHike() || currentHike()?.pausedAt) return;
         if (!foreground.granted) {
           setMessage('Location is off. The timer still runs.');
           return;
         }
-
         if (Platform.OS !== 'web') {
-          const backgroundPermission = await Location.requestBackgroundPermissionsAsync();
-          if (!cancelled && backgroundPermission.granted) {
-            try {
-              await Location.startLocationUpdatesAsync(HIKE_LOCATION_TASK, {
-                accuracy: Location.Accuracy.High,
-                timeInterval: 4000,
-                distanceInterval: 5,
-                showsBackgroundLocationIndicator: true,
-                foregroundService: {
-                  notificationTitle: 'Apex',
-                  notificationBody: 'Recording hike',
-                  notificationColor: '#8B9A6D',
-                },
-              });
-              if (cancelled) {
-                await Location.stopLocationUpdatesAsync(HIKE_LOCATION_TASK).catch(
-                  () => undefined,
-                );
-                return;
-              }
-              usedTask = true;
+          const already = await Location.getBackgroundPermissionsAsync();
+          if (already.granted) {
+            await startBackgroundTask();
+            if (!cancelled) {
               setBackground(true);
-            } catch {
-              setBackground(false);
+              setMessage(null);
             }
+            return;
           }
         }
-
-        if (cancelled || usedTask) return;
-
-        subscription = await Location.watchPositionAsync(
-          {
-            accuracy: Location.Accuracy.High,
-            timeInterval: 2000,
-            distanceInterval: 5,
-          },
-          (location) => {
-            publishLocationObjects([location]);
-          },
-        );
-        if (cancelled) {
-          subscription.remove();
-          subscription = null;
-          return;
-        }
+        await startForegroundWatch();
+        if (cancelled) return;
+        setBackground(false);
         if (Platform.OS === 'web') {
           setMessage('Browser location. Background tracking needs the native app.');
         }
@@ -104,17 +64,31 @@ export function useLiveLocation(
       }
     };
 
-    void start();
-
+    void sync();
     return () => {
       cancelled = true;
-      unsubscribe();
-      subscription?.remove();
-      if (usedTask) {
-        void Location.stopLocationUpdatesAsync(HIKE_LOCATION_TASK).catch(() => undefined);
-      }
     };
-  }, [active, addPoint]);
+  }, [active, paused]);
 
-  return { message, background };
+  const enableBackground = useCallback(() => {
+    if (Platform.OS === 'web' || !active || paused) return;
+    void (async () => {
+      const permission = await Location.requestBackgroundPermissionsAsync();
+      if (!permission.granted) {
+        setMessage('Background location stays off. The path records while Apex is open.');
+        setBackground(false);
+        return;
+      }
+      try {
+        await startBackgroundTask();
+        setBackground(true);
+        setMessage(null);
+      } catch {
+        setMessage('Background location did not start. Recording continues in the foreground.');
+        setBackground(false);
+      }
+    })();
+  }, [active, paused]);
+
+  return { message, background, enableBackground };
 }
