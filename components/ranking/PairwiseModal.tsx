@@ -42,8 +42,20 @@ function rangeLabel(samples: ElevationSample[] | null): string {
   return `${low}–${high} m`;
 }
 
-function latestLog(logs: HikeLog[], trailId: string): HikeLog | null {
-  return [...logs].reverse().find((log) => log.trail_id === trailId) ?? null;
+function latestLog(logs: HikeLog[], trailId: string, recordedOnly = false): HikeLog | null {
+  let best: HikeLog | null = null;
+  let bestTime = Number.NEGATIVE_INFINITY;
+  for (const log of logs) {
+    if (log.trail_id !== trailId) continue;
+    if (recordedOnly && !log.recorded_path) continue;
+    const time = Date.parse(log.created_at);
+    const stamp = Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
+    if (!best || stamp >= bestTime) {
+      best = log;
+      bestTime = stamp;
+    }
+  }
+  return best;
 }
 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
@@ -69,9 +81,7 @@ function HikePanel({
 }) {
   const logs = useTrailCache((state) => state.logs);
   const log = latestLog(logs, trail.id);
-  const recorded =
-    [...logs].reverse().find((item) => item.trail_id === trail.id && item.recorded_path)?.recorded_path ??
-    null;
+  const recorded = latestLog(logs, trail.id, true)?.recorded_path ?? null;
   const shape = resolveRoute({
     recorded,
     trailPath: trail.path,

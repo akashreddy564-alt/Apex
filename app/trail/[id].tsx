@@ -21,10 +21,18 @@ export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trail = useTrailCache((s) => s.getTrail(String(id)));
   const recorded = useTrailCache((s) => {
-    const matches = s.logs.filter(
-      (entry) => entry.trail_id === String(id) && entry.recorded_path,
-    );
-    return matches[matches.length - 1]?.recorded_path ?? null;
+    let best: (typeof s.logs)[number] | null = null;
+    let bestTime = Number.NEGATIVE_INFINITY;
+    for (const entry of s.logs) {
+      if (entry.trail_id !== String(id) || !entry.recorded_path) continue;
+      const time = Date.parse(entry.created_at);
+      const stamp = Number.isNaN(time) ? Number.NEGATIVE_INFINITY : time;
+      if (!best || stamp >= bestTime) {
+        best = entry;
+        bestTime = stamp;
+      }
+    }
+    return best?.recorded_path ?? null;
   });
   const rankings = useRankingStore((s) => s.rankings);
   const placement = describePlacement(rankings, String(id));

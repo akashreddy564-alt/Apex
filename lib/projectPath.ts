@@ -4,31 +4,65 @@ export interface ProjectedPath {
   d: string;
 }
 
+export interface MapPoint {
+  x: number;
+  y: number;
+}
+
+export interface MapBounds {
+  minLon: number;
+  maxLon: number;
+  minLat: number;
+  maxLat: number;
+}
+
 const PAD = 16;
+
+/** One lat/lon projection for the trail map, compare cards, and the live track. */
+export function projectPoints(
+  coordinates: [number, number][],
+  width: number,
+  height: number,
+  pad: number,
+  bounds?: MapBounds,
+): MapPoint[] {
+  if (coordinates.length === 0 || width <= 0 || height <= 0) return [];
+  const box =
+    bounds ??
+    lineBounds([
+      {
+        type: 'LineString',
+        coordinates,
+      },
+    ]);
+  const spanLon = Math.max(box.maxLon - box.minLon, 0.00001);
+  const spanLat = Math.max(box.maxLat - box.minLat, 0.00001);
+  const midLat = (box.minLat + box.maxLat) / 2;
+  const cosLat = Math.cos((midLat * Math.PI) / 180);
+  const spanX = spanLon * Math.max(cosLat, 0.01);
+  const innerW = Math.max(1, width - pad * 2);
+  const innerH = Math.max(1, height - pad * 2);
+  const scale = Math.min(innerW / spanX, innerH / spanLat);
+  const usedW = spanX * scale;
+  const usedH = spanLat * scale;
+  const originX = pad + (innerW - usedW) / 2;
+  const originY = pad + (innerH - usedH) / 2;
+  return coordinates.map(([lon, lat]) => ({
+    x: originX + (lon - box.minLon) * cosLat * scale,
+    y: originY + (1 - (lat - box.minLat) / spanLat) * usedH,
+  }));
+}
 
 export function projectLine(
   line: GeoJSONLineString,
   width: number,
   height: number,
-  bounds: { minLon: number; maxLon: number; minLat: number; maxLat: number },
+  bounds: MapBounds,
 ): ProjectedPath {
-  const spanLon = Math.max(bounds.maxLon - bounds.minLon, 0.00001);
-  const spanLat = Math.max(bounds.maxLat - bounds.minLat, 0.00001);
-  const midLat = (bounds.minLat + bounds.maxLat) / 2;
-  const cosLat = Math.cos((midLat * Math.PI) / 180);
-  const spanX = spanLon * Math.max(cosLat, 0.01);
-  const innerW = Math.max(1, width - PAD * 2);
-  const innerH = Math.max(1, height - PAD * 2);
-  const scale = Math.min(innerW / spanX, innerH / spanLat);
-  const usedW = spanX * scale;
-  const usedH = spanLat * scale;
-  const originX = PAD + (innerW - usedW) / 2;
-  const originY = PAD + (innerH - usedH) / 2;
-  const cmds = line.coordinates.map(([lon, lat], index) => {
-    const x = originX + ((lon - bounds.minLon) * cosLat * scale);
-    const y = originY + (1 - (lat - bounds.minLat) / spanLat) * usedH;
-    return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`;
-  });
+  const points = projectPoints(line.coordinates, width, height, PAD, bounds);
+  const cmds = points.map(
+    (point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
+  );
   return { d: cmds.join(' ') };
 }
 

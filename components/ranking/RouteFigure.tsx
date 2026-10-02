@@ -1,43 +1,10 @@
 import { Text, View } from 'react-native';
 import { Circle, Line, Path, Polyline, Svg } from 'react-native-svg';
 
+import { projectPoints } from '@/lib/projectPath';
 import type { RouteShape } from '@/lib/routeSource';
 import { colors, fonts } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
-
-interface XY {
-  x: number;
-  y: number;
-}
-
-function project(coordinates: [number, number][], width: number, height: number, pad: number): XY[] {
-  if (coordinates.length === 0 || width <= 0 || height <= 0) return [];
-  let minLon = Infinity;
-  let maxLon = -Infinity;
-  let minLat = Infinity;
-  let maxLat = -Infinity;
-  for (const [lon, lat] of coordinates) {
-    minLon = Math.min(minLon, lon);
-    maxLon = Math.max(maxLon, lon);
-    minLat = Math.min(minLat, lat);
-    maxLat = Math.max(maxLat, lat);
-  }
-  const spanLon = Math.max(maxLon - minLon, 0.00001);
-  const spanLat = Math.max(maxLat - minLat, 0.00001);
-  const cosLat = Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
-  const spanX = spanLon * Math.max(cosLat, 0.01);
-  const innerW = Math.max(1, width - pad * 2);
-  const innerH = Math.max(1, height - pad * 2);
-  const scale = Math.min(innerW / spanX, innerH / spanLat);
-  const usedW = spanX * scale;
-  const usedH = spanLat * scale;
-  const originX = pad + (innerW - usedW) / 2;
-  const originY = pad + (innerH - usedH) / 2;
-  return coordinates.map(([lon, lat]) => ({
-    x: originX + (lon - minLon) * cosLat * scale,
-    y: originY + (1 - (lat - minLat) / spanLat) * usedH,
-  }));
-}
 
 function peakIndex(count: number, elevation: ElevationSample[] | null): number {
   if (count < 1) return 0;
@@ -51,7 +18,7 @@ function peakIndex(count: number, elevation: ElevationSample[] | null): number {
   return Math.min(count - 1, Math.round((best.distance_m / total) * (count - 1)));
 }
 
-function pointsAttr(points: XY[]): string {
+function pointsAttr(points: { x: number; y: number }[]): string {
   return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
 }
 
@@ -91,7 +58,7 @@ export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: nu
     );
   }
 
-  const projected = project(shape.coordinates, size, size, 10);
+  const projected = projectPoints(shape.coordinates, size, size, 10);
   const start = projected[0];
   const peak = projected[peakIndex(projected.length, shape.elevation)];
   const line = pointsAttr(projected);
