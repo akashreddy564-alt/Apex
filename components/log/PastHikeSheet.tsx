@@ -52,16 +52,18 @@ function MiniProfile({ samples }: { samples: ElevationSample[] }) {
   const elevations = samples.map((sample) => sample.elevation_m);
   const low = Math.min(...elevations);
   const span = Math.max(Math.max(...elevations) - low, 1);
-  const d = samples
+  const line = samples
     .map((sample, index) => {
       const x = (sample.distance_m / maxDistance) * (width - 4) + 2;
       const y = height - 4 - ((sample.elevation_m - low) / span) * (height - 8);
       return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
     })
     .join(' ');
+  const area = `${line} L${width - 2} ${height} L2 ${height} Z`;
   return (
     <Svg width={width} height={height}>
-      <Path d={d} stroke={colors.sage} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
+      <Path d={area} fill={colors.sage} fillOpacity={0.12} />
+      <Path d={line} stroke={colors.sage} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
     </Svg>
   );
 }
