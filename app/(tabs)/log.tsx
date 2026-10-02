@@ -120,6 +120,7 @@ export default function LogScreen() {
 
         {!tracker.isTracking && !recording ? (
           <Pressable
+            accessibilityRole="button"
             accessibilityLabel="Add a hike"
             onPress={() => setAddOpen(true)}
             className="mt-6 items-center border border-zinc-800 py-4 active:bg-zinc-900"
@@ -132,6 +133,7 @@ export default function LogScreen() {
         {!tracker.isTracking && recording ? (
           <View className="mt-6 gap-2">
             <Pressable
+              accessibilityRole="button"
               accessibilityLabel="Change hike"
               onPress={() => {
                 setRecording(false);
