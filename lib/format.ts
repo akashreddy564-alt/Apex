@@ -15,13 +15,33 @@ function groupInteger(value: number): string {
 
 export function formatDistanceKm(km: number): string {
   'worklet';
-  const decimals = km >= 10 ? 1 : 2;
-  return `${km.toFixed(decimals)} km`;
+  return `${km.toFixed(1)} km`;
 }
 
 export function formatElevationM(m: number): string {
   'worklet';
   return `${groupInteger(m)} m`;
+}
+
+/**
+ * Wagmi price text. Runs on the UI runtime, so this is a worklet and
+ * closes over nothing but the elevation string.
+ */
+export function formatChartElevation({ value }: { value: string }): string {
+  'worklet';
+  const meters = Number(value);
+  if (Number.isNaN(meters)) return '—';
+  return formatElevationM(meters);
+}
+
+/**
+ * Wagmi date text. The chart stores distance along the trail in this channel.
+ */
+export function formatChartDistance({ value }: { value: number | string }): string {
+  'worklet';
+  const meters = typeof value === 'string' ? Number(value) : value;
+  if (Number.isNaN(meters)) return '—';
+  return formatDistanceKm(meters / 1000);
 }
 
 export function formatDuration(totalSeconds: number): string {

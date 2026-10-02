@@ -28,7 +28,7 @@ import {
   SHAPE_EASE_MS,
   shapeEase,
 } from '@/lib/elevationMotion';
-import { formatDistanceKm, formatElevationM } from '@/lib/format';
+import { formatChartDistance, formatChartElevation, formatDistanceKm } from '@/lib/format';
 import { colors, numericStyle, typeScale } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
@@ -70,12 +70,6 @@ interface ElevationSparklineProps {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-
-function formatDistFromTimestamp(timestamp: string | number): string {
-  const meters = typeof timestamp === 'string' ? Number(timestamp) : timestamp;
-  if (Number.isNaN(meters)) return '—';
-  return formatDistanceKm(meters / 1000);
-}
 
 /**
  * Short zinc segment that crawls the sage stroke while the profile is
@@ -283,7 +277,6 @@ export function ElevationSparkline({
     );
   }
 
-  const endKm = (plotted[plotted.length - 1].distance_m / 1000).toFixed(1);
   const digits = numericStyle();
   const showTrace = !reducedMotion;
 
@@ -307,14 +300,11 @@ export function ElevationSparkline({
           </Text>
           <View className="items-end">
             <LineChart.PriceText
-              format={({ value }) => {
-                const n = Number(value);
-                return Number.isNaN(n) ? String(value) : formatElevationM(n);
-              }}
+              format={formatChartElevation}
               style={{ ...digits, color: colors.fgMuted, fontSize: typeScale.caption }}
             />
             <LineChart.DatetimeText
-              format={({ value }) => formatDistFromTimestamp(value)}
+              format={formatChartDistance}
               style={{ ...digits, color: colors.fgFaint, fontSize: typeScale.caption }}
             />
           </View>
@@ -398,10 +388,10 @@ export function ElevationSparkline({
 
         <View className="flex-row justify-between px-3 pb-2">
           <Text className="text-caption text-fg-faint" style={digits}>
-            0 km
+            {formatDistanceKm(0)}
           </Text>
           <Text className="text-caption text-fg-faint" style={digits}>
-            {endKm} km
+            {formatDistanceKm(plotted[plotted.length - 1].distance_m / 1000)}
           </Text>
         </View>
       </LineChart.Provider>
