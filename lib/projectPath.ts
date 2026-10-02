@@ -62,7 +62,13 @@ export function projectLine(
   height: number,
   bounds: MapBounds,
 ): ProjectedPath {
-  const points = projectPoints(line.coordinates, width, height, PAD, bounds);
+  const points = projectPoints(
+    line.coordinates.map((coord): [number, number] => [coord[0], coord[1]]),
+    width,
+    height,
+    PAD,
+    bounds,
+  );
   const cmds = points.map(
     (point, index) => `${index === 0 ? 'M' : 'L'}${point.x.toFixed(2)} ${point.y.toFixed(2)}`,
   );
