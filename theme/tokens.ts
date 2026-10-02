@@ -45,19 +45,42 @@ export const elevationGradientMid = 0.6;
  * SDK 57 loads each weight as its own family, so use the weight-specific
  * name (or the matching Tailwind class) instead of `fontWeight`.
  *
- * `font-mono` stays SpaceMono. These names are additive.
+ * `font-mono` stays SpaceMono and `font-sans` stays the existing system
+ * stack. Inter is `font-ui` so those keys are not replaced.
  */
 export const fonts = {
   display: 'BricolageGrotesque_700Bold',
   displayExtraBold: 'BricolageGrotesque_800ExtraBold',
-  sans: 'Inter_400Regular',
-  sansMedium: 'Inter_500Medium',
-  sansSemibold: 'Inter_600SemiBold',
-  numeric: 'JetBrainsMono_400Regular',
-  numericMedium: 'JetBrainsMono_500Medium',
+  ui: 'Inter_400Regular',
+  uiMedium: 'Inter_500Medium',
+  uiSemibold: 'Inter_600SemiBold',
 } as const;
 
 export type FontToken = keyof typeof fonts;
+
+/** Smallest size allowed on the type scale, in pt. */
+export const minTypeSize = 11;
+
+/**
+ * Point sizes for new UI. Every step is at least `minTypeSize`.
+ * Caption 12, body 15 / 16, titles in Bricolage.
+ */
+export const typeScale = {
+  caption: 12,
+  body: 15,
+  bodyLarge: 16,
+  title: 22,
+  titleLarge: 28,
+  display: 34,
+} as const;
+
+for (const size of Object.values(typeScale)) {
+  if (size < minTypeSize) {
+    throw new Error(`typeScale includes ${size}pt, below the ${minTypeSize}pt minimum`);
+  }
+}
+
+const tabularNums = ['tabular-nums'] as ['tabular-nums'];
 
 /**
  * Heading / title style. One color, one family.
@@ -67,6 +90,56 @@ export const heading = {
   color: colors.text,
   fontFamily: fonts.display,
 } as const;
+
+/** Text styles. Titles use `heading.color` only — never a second color inside the line. */
+export const type = {
+  caption: {
+    fontFamily: fonts.ui,
+    fontSize: typeScale.caption,
+    lineHeight: 16,
+  },
+  body: {
+    fontFamily: fonts.ui,
+    fontSize: typeScale.body,
+    lineHeight: 22,
+  },
+  bodyLarge: {
+    fontFamily: fonts.uiMedium,
+    fontSize: typeScale.bodyLarge,
+    lineHeight: 24,
+  },
+  title: {
+    ...heading,
+    fontSize: typeScale.title,
+    lineHeight: 28,
+  },
+  titleLarge: {
+    ...heading,
+    fontSize: typeScale.titleLarge,
+    lineHeight: 34,
+  },
+  display: {
+    color: heading.color,
+    fontFamily: fonts.displayExtraBold,
+    fontSize: typeScale.display,
+    lineHeight: 40,
+  },
+} as const;
+
+/**
+ * Numbers use Inter with tabular figures so digits don't shift width.
+ * Pass `medium` or `semibold` for the other loaded Inter weights.
+ */
+export function numericStyle(weight: 'regular' | 'medium' | 'semibold' = 'regular') {
+  const fontFamily =
+    weight === 'semibold' ? fonts.uiSemibold : weight === 'medium' ? fonts.uiMedium : fonts.ui;
+  return {
+    fontFamily,
+    fontVariant: tabularNums,
+  };
+}
+
+export const numericText = numericStyle();
 
 /** Additive NativeWind colors. Does not include the existing `accent` scale. */
 export const tailwindColors = {
@@ -92,13 +165,21 @@ export const tailwindColors = {
   danger: colors.danger,
 } as const;
 
-/** Additive NativeWind families. Does not include `mono` (SpaceMono). */
+/** Additive NativeWind families. Does not include `mono` or `sans`. */
 export const tailwindFontFamily = {
   display: [fonts.display, 'sans-serif'],
   'display-extrabold': [fonts.displayExtraBold, 'sans-serif'],
-  sans: [fonts.sans, 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  'sans-medium': [fonts.sansMedium, 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  'sans-semibold': [fonts.sansSemibold, 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  numeric: [fonts.numeric, 'ui-monospace', 'monospace'],
-  'numeric-medium': [fonts.numericMedium, 'ui-monospace', 'monospace'],
+  ui: [fonts.ui, 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  'ui-medium': [fonts.uiMedium, 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  'ui-semibold': [fonts.uiSemibold, 'ui-sans-serif', 'system-ui', 'sans-serif'],
+} as const;
+
+/** Additive sizes, in px. Does not replace Tailwind's xs/sm/base/lg scale. */
+export const tailwindFontSize = {
+  caption: [`${typeScale.caption}px`, { lineHeight: `${type.caption.lineHeight}px` }],
+  body: [`${typeScale.body}px`, { lineHeight: `${type.body.lineHeight}px` }],
+  'body-large': [`${typeScale.bodyLarge}px`, { lineHeight: `${type.bodyLarge.lineHeight}px` }],
+  title: [`${typeScale.title}px`, { lineHeight: `${type.title.lineHeight}px` }],
+  'title-large': [`${typeScale.titleLarge}px`, { lineHeight: `${type.titleLarge.lineHeight}px` }],
+  display: [`${typeScale.display}px`, { lineHeight: `${type.display.lineHeight}px` }],
 } as const;

@@ -9,10 +9,6 @@ import {
   Inter_500Medium,
   Inter_600SemiBold,
 } from '@expo-google-fonts/inter';
-import {
-  JetBrainsMono_400Regular,
-  JetBrainsMono_500Medium,
-} from '@expo-google-fonts/jetbrains-mono';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -31,11 +27,9 @@ export default function RootLayout() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     [fonts.display]: BricolageGrotesque_700Bold,
     [fonts.displayExtraBold]: BricolageGrotesque_800ExtraBold,
-    [fonts.sans]: Inter_400Regular,
-    [fonts.sansMedium]: Inter_500Medium,
-    [fonts.sansSemibold]: Inter_600SemiBold,
-    [fonts.numeric]: JetBrainsMono_400Regular,
-    [fonts.numericMedium]: JetBrainsMono_500Medium,
+    [fonts.ui]: Inter_400Regular,
+    [fonts.uiMedium]: Inter_500Medium,
+    [fonts.uiSemibold]: Inter_600SemiBold,
   });
 
   const [queryClient] = useState(

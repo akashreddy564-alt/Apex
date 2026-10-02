@@ -1,4 +1,4 @@
-const { tailwindColors, tailwindFontFamily } = require('jiti')(__filename)(
+const { tailwindColors, tailwindFontFamily, tailwindFontSize } = require('jiti')(__filename)(
   './theme/tokens.ts',
 );
 
@@ -19,6 +19,9 @@ module.exports = {
       fontFamily: {
         mono: ['SpaceMono', 'ui-monospace', 'monospace'],
         ...tailwindFontFamily,
+      },
+      fontSize: {
+        ...tailwindFontSize,
       },
     },
   },
