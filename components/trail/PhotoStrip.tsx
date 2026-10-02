@@ -12,15 +12,22 @@ function Thumb({ stored }: { stored: string }) {
 
   useEffect(() => {
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     if (!stored.startsWith('sb:')) {
       setUri(stored);
       return;
     }
-    void resolvePhotoUri(stored).then((next) => {
-      if (!cancelled) setUri(next);
-    });
+    const load = () => {
+      void resolvePhotoUri(stored).then((next) => {
+        if (cancelled) return;
+        setUri(next);
+        timer = setTimeout(load, 50 * 60 * 1000);
+      });
+    };
+    load();
     return () => {
       cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [stored]);
 
@@ -44,7 +51,7 @@ export function PhotoStrip({ photos }: PhotoStripProps) {
   return (
     <View className="mt-3 flex-row flex-wrap gap-2">
       {photos.map((photo, index) => (
-        <Thumb key={`${index}-${photo.length}`} stored={photo} />
+        <Thumb key={`${index}:${photo}`} stored={photo} />
       ))}
     </View>
   );

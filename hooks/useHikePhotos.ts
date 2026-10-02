@@ -22,15 +22,11 @@ export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
     async (result: ImagePicker.ImagePickerResult) => {
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
-      const mime = asset.mimeType || 'image/jpeg';
-      const immediate = asset.base64
-        ? `data:${mime};base64,${asset.base64}`
-        : asset.uri;
-      addPhoto(immediate);
+      addPhoto(asset.uri);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       try {
         const stored = await persistHikePhoto(asset);
-        if (stored !== immediate) replacePhoto(immediate, stored);
+        if (stored !== asset.uri) replacePhoto(asset.uri, stored);
       } catch {
         setMessage('Photo kept on this device. Upload did not finish.');
       }
@@ -52,7 +48,7 @@ export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
         quality: 0.6,
         base64: true,
       });
-      await attach(result);
+      void attach(result);
     } catch {
       setMessage('Could not open the photo library.');
     } finally {
@@ -74,7 +70,7 @@ export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
         quality: 0.6,
         base64: true,
       });
-      await attach(result);
+      void attach(result);
     } catch {
       setMessage('Camera is unavailable here.');
     } finally {
