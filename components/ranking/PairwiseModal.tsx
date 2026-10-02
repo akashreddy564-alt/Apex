@@ -4,9 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Modal } from 'react-native';
 
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
+import { RouteSketch } from '@/components/ranking/RouteSketch';
 import type { UseTrailComparisonResult } from '@/hooks/useTrailComparison';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import { BUCKET_BANDS, BUCKETS } from '@/lib/ranking';
+import { resolveRoute } from '@/lib/routeSource';
+import { useTrailCache } from '@/stores/trailCache';
 import type { Trail } from '@/types/trail';
 
 interface PairwiseModalProps {
@@ -24,6 +27,17 @@ function HikePanel({
   role: string;
   onPress: () => void;
 }) {
+  const logs = useTrailCache((state) => state.logs);
+  const recorded =
+    [...logs].reverse().find((log) => log.trail_id === trail.id && log.recorded_path)
+      ?.recorded_path ?? null;
+  const shape = resolveRoute({
+    recorded,
+    trailPath: trail.path,
+    trailElevation: trail.elevation_profile,
+    osm: null,
+  });
+
   return (
     <Pressable
       onPress={onPress}
@@ -41,6 +55,7 @@ function HikePanel({
       >
         {formatOptionalDistance(trail.distance_km)} · ↑ {formatOptionalElevation(trail.elevation_gain_m)}
       </Text>
+      <RouteSketch shape={shape} />
     </Pressable>
   );
 }
