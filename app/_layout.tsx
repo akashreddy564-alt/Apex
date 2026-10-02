@@ -18,7 +18,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { colors, fonts } from '@/theme/tokens';
+import { colors, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -63,7 +63,8 @@ export default function RootLayout() {
             screenOptions={{
               headerStyle: { backgroundColor: colors.bg },
               headerTintColor: colors.fg,
-              headerTitleStyle: { fontWeight: '500', fontSize: 16 },
+              headerTitleStyle: navTitle,
+              headerBackTitleStyle: { fontFamily: fonts.ui },
               headerShadowVisible: false,
               contentStyle: { backgroundColor: colors.bg },
             }}
