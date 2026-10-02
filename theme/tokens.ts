@@ -3,7 +3,7 @@
  * Single source of truth for NativeWind (`tailwind.config.js`) and for JS
  * (Skia, SVG, Reanimated). Hex values live only in `colors`.
  *
- * Headings and titles are always one solid color: `colors.text` (#FAFAFA).
+ * Headings and titles are always one solid color: `colors.fg` (#FAFAFA).
  * Never highlight individual words in a heading. `colors.sage300` is not a
  * headline accent.
  */
@@ -14,10 +14,10 @@ export const colors = {
   raised: '#27272A',
   border: '#3F3F46',
   borderStrong: '#52525B',
-  text: '#FAFAFA',
-  text2: '#D4D4D8',
-  textMuted: '#A1A1AA',
-  textFaint: '#71717A',
+  fg: '#FAFAFA',
+  fg2: '#D4D4D8',
+  fgMuted: '#A1A1AA',
+  fgFaint: '#71717A',
   sage: '#8B9A6D',
   sage500: '#A3B183',
   sage700: '#77865A',
@@ -87,7 +87,7 @@ const tabularNums = ['tabular-nums'] as ['tabular-nums'];
  * Do not override `color` per word.
  */
 export const heading = {
-  color: colors.text,
+  color: colors.fg,
   fontFamily: fonts.display,
 } as const;
 
@@ -148,10 +148,10 @@ export const tailwindColors = {
   raised: colors.raised,
   border: colors.border,
   'border-strong': colors.borderStrong,
-  text: colors.text,
-  'text-2': colors.text2,
-  'text-muted': colors.textMuted,
-  'text-faint': colors.textFaint,
+  fg: colors.fg,
+  'fg-2': colors.fg2,
+  'fg-muted': colors.fgMuted,
+  'fg-faint': colors.fgFaint,
   sage: {
     DEFAULT: colors.sage,
     500: colors.sage500,
