@@ -32,9 +32,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Apex records the path of a hike you start, including while the screen is locked. Allow While Using is enough.",
-          "locationAlwaysAndWhenInUsePermission": false,
-          "locationAlwaysPermission": false,
+          "locationWhenInUsePermission": "Apex records the path of a hike you start, including while the screen is locked.",
+          "locationAlwaysAndWhenInUsePermission": "Apex keeps recording the hike you started when the screen locks or you switch apps. Location is not used at any other time.",
+          "locationAlwaysPermission": "Apex keeps recording the hike you started when the screen locks or you switch apps. Location is not used at any other time.",
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": true

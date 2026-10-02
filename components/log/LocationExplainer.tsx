@@ -35,7 +35,12 @@ interface LocationExplainerProps {
   onDismiss: () => void;
 }
 
-/** Shown once, before the While Using prompt. Not now returns to the log sheet. */
+/**
+ * Shown once, before any system location prompt.
+ * Continue is what asks for While Using. A later Always prompt, if iOS shows
+ * one for locked-screen recording, only happens after this screen.
+ * Not now returns to the log sheet.
+ */
 export function LocationExplainer({ onContinue, onDismiss }: LocationExplainerProps) {
   const insets = useSafeAreaInsets();
   const android = Platform.OS === 'android';
