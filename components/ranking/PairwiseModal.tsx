@@ -216,9 +216,6 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
               <Text className="mt-6 text-center font-mono text-[11px] text-zinc-600">
                 Swipe right = new trail · Swipe left = existing
               </Text>
-              <Text className="mt-2 text-center font-mono text-[10px] text-zinc-700">
-                window [{round.low}…{round.high}]
-              </Text>
             </View>
           ) : (
             <View className="flex-1 items-center justify-center">

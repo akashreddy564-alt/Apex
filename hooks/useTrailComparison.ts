@@ -1,6 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { applyElo, DEFAULT_ELO } from '@/lib/elo';
+import { MOCK_USER_ID } from '@/data/mockTrails';
+import { nextBounds, placeByChoices, type FrozenOpponent } from '@/lib/binaryInsert';
+import { orderRevealEntries } from '@/lib/reveal';
+import { DEFAULT_ELO } from '@/lib/elo';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type {
@@ -27,17 +30,23 @@ export interface UseTrailComparisonResult {
   reset: () => void;
 }
 
+interface SessionOpponent extends FrozenOpponent {
+  trail: Trail;
+}
+
 /**
- * Binary-insertion ranking via pairwise comparisons, with Elo updates.
- * Opponent list is snapshotted at session start so mid-search Elo churn
- * does not invalidate binary-search indices.
+ * Binary-insertion ranking. The opponent list and its rank scores are frozen
+ * at session start. Choices only move the search. Elo and the ordinal slot
+ * are written once, when the search finishes, so the landing index matches
+ * the trails the user compared.
  */
 export function useTrailComparison(): UseTrailComparisonResult {
   const trails = useTrailCache((s) => s.trails);
-  const ensureRanking = useRankingStore((s) => s.ensureRanking);
-  const upsertRanking = useRankingStore((s) => s.upsertRanking);
+  const setRankings = useRankingStore((s) => s.setRankings);
 
-  const opponentsRef = useRef<Trail[]>([]);
+  const opponentsRef = useRef<SessionOpponent[]>([]);
+  const choicesRef = useRef<ComparisonChoice[]>([]);
+  const challengerEloRef = useRef(DEFAULT_ELO);
   const [challengerId, setChallengerId] = useState<string | null>(null);
   const [low, setLow] = useState(0);
   const [high, setHigh] = useState(-1);
@@ -51,73 +60,104 @@ export function useTrailComparison(): UseTrailComparisonResult {
   );
 
   const finalize = useCallback(
-    (trailId: string, insertAt: number) => {
-      const ranking = ensureRanking(trailId);
-      const neighbors = useRankingStore
-        .getState()
-        .rankings.filter((r) => r.trail_id !== trailId)
-        .sort((a, b) => b.rank_score - a.rank_score);
+    (trailId: string, choices: readonly ComparisonChoice[]) => {
+      const snapshot = opponentsRef.current;
+      const placed = placeByChoices(
+        snapshot.map((opponent) => ({
+          id: opponent.id,
+          elo: opponent.elo,
+          rankScore: opponent.rankScore,
+        })),
+        challengerEloRef.current,
+        choices,
+      );
 
-      let nextScore = ranking.rank_score;
-      if (neighbors.length === 0) {
-        nextScore = DEFAULT_ELO;
-      } else if (insertAt <= 0) {
-        nextScore = neighbors[0].rank_score + 16;
-      } else if (insertAt >= neighbors.length) {
-        nextScore = neighbors[neighbors.length - 1].rank_score - 16;
-      } else {
-        const above = neighbors[insertAt - 1].rank_score;
-        const below = neighbors[insertAt].rank_score;
-        nextScore = (above + below) / 2;
+      const now = new Date().toISOString();
+      const state = useRankingStore.getState();
+      const existing = state.getRanking(trailId);
+      const played = new Map<string, number>();
+      for (const game of placed.games) {
+        played.set(game.opponentId, (played.get(game.opponentId) ?? 0) + 1);
       }
 
-      const updated: TrailRanking = {
-        ...ranking,
-        rank_score: nextScore,
-        updated_at: new Date().toISOString(),
-      };
-      upsertRanking(updated);
+      const next: TrailRanking[] = state.rankings
+        .filter((ranking) => ranking.trail_id !== trailId)
+        .map((ranking) => {
+          const gamesPlayed = played.get(ranking.trail_id) ?? 0;
+          const nextElo = placed.opponentElo[ranking.trail_id];
+          if (gamesPlayed === 0 || nextElo == null) return ranking;
+          return {
+            ...ranking,
+            elo_rating: nextElo,
+            comparison_count: ranking.comparison_count + gamesPlayed,
+            updated_at: now,
+          };
+        });
+
+      next.push({
+        id: existing?.id ?? `rank-${trailId}`,
+        user_id: existing?.user_id ?? MOCK_USER_ID,
+        trail_id: trailId,
+        elo_rating: placed.elo,
+        rank_score: placed.rankScore,
+        ordinal_rank: null,
+        comparison_count: (existing?.comparison_count ?? 0) + placed.games.length,
+        updated_at: now,
+      });
+      setRankings(next);
 
       const allTrails = useTrailCache.getState().trails;
-      const leaderboard: LeaderboardEntry[] = useRankingStore
-        .getState()
-        .rankings.filter((r) => allTrails.some((t) => t.id === r.trail_id))
-        .sort((a, b) => b.rank_score - a.rank_score)
-        .slice(0, 10)
-        .map((r) => ({
-          trail: allTrails.find((t) => t.id === r.trail_id)!,
-          ranking: r,
-          isNew: r.trail_id === trailId,
-        }));
-
-      const ordinal =
-        leaderboard.find((e) => e.trail.id === trailId)?.ranking.ordinal_rank ??
-        insertAt + 1;
+      const stored = useRankingStore.getState().getRanking(trailId);
+      const ordered = orderRevealEntries(
+        useRankingStore
+          .getState()
+          .rankings.filter((ranking) => allTrails.some((trail) => trail.id === ranking.trail_id))
+          .map((ranking) => ({
+            trail: allTrails.find((trail) => trail.id === ranking.trail_id)!,
+            ranking,
+            isNew: ranking.trail_id === trailId,
+          })),
+      );
+      const top = ordered.slice(0, 10);
+      const leaderboard: LeaderboardEntry[] = top.some((entry) => entry.trail.id === trailId)
+        ? top
+        : [...top.slice(0, 9), ...ordered.filter((entry) => entry.trail.id === trailId)];
 
       setIsComplete(true);
       setResult({
         insertedTrailId: trailId,
         leaderboard,
-        ordinalRank: ordinal,
+        ordinalRank: stored?.ordinal_rank ?? placed.insertAt + 1,
       });
     },
-    [ensureRanking, upsertRanking],
+    [setRankings],
   );
 
   const start = useCallback(
     (challengerTrailId: string) => {
-      ensureRanking(challengerTrailId);
+      const state = useRankingStore.getState();
+      const existing = state.getRanking(challengerTrailId);
+      challengerEloRef.current = existing?.elo_rating ?? DEFAULT_ELO;
 
-      const ranked = useRankingStore
-        .getState()
-        .rankings.filter((r) => r.trail_id !== challengerTrailId)
+      const ranked = state.rankings
+        .filter((ranking) => ranking.trail_id !== challengerTrailId)
         .sort((a, b) => b.rank_score - a.rank_score);
 
-      const snapshot = ranked
-        .map((r) => useTrailCache.getState().trails.find((t) => t.id === r.trail_id))
-        .filter((t): t is Trail => Boolean(t));
+      const snapshot = ranked.flatMap((ranking) => {
+        const trail = useTrailCache.getState().trails.find((item) => item.id === ranking.trail_id);
+        if (!trail) return [];
+        return [
+          {
+            trail,
+            id: ranking.trail_id,
+            elo: ranking.elo_rating,
+            rankScore: ranking.rank_score,
+          },
+        ];
+      });
 
       opponentsRef.current = snapshot;
+      choicesRef.current = [];
       setChallengerId(challengerTrailId);
       setIsComplete(false);
       setResult(null);
@@ -126,10 +166,10 @@ export function useTrailComparison(): UseTrailComparisonResult {
       setTick((n) => n + 1);
 
       if (snapshot.length === 0) {
-        finalize(challengerTrailId, 0);
+        finalize(challengerTrailId, []);
       }
     },
-    [ensureRanking, finalize],
+    [finalize],
   );
 
   const round: ComparisonRound | null = useMemo(() => {
@@ -138,62 +178,29 @@ export function useTrailComparison(): UseTrailComparisonResult {
     const mid = Math.floor((low + high) / 2);
     const opponent = opponentsRef.current[mid];
     if (!opponent) return null;
-    return { challenger, opponent, low, high };
+    return { challenger, opponent: opponent.trail, low, high };
   }, [challenger, high, isComplete, low, tick]);
 
   const choose = useCallback(
     (choice: ComparisonChoice) => {
-      if (!challenger || !round) return;
+      if (!challenger || !round || high < low) return;
 
-      const mid = Math.floor((low + high) / 2);
-      const opponent = opponentsRef.current[mid];
-      if (!opponent) return;
+      const step = nextBounds(low, high, choice);
+      const choices = [...choicesRef.current, choice];
+      choicesRef.current = choices;
+      setLow(step.low);
+      setHigh(step.high);
 
-      const challengerRank = ensureRanking(challenger.id);
-      const opponentRank = ensureRanking(opponent.id);
-      const challengerWins = choice === 'challenger';
-
-      const { winnerElo, loserElo } = applyElo(
-        challengerWins ? challengerRank.elo_rating : opponentRank.elo_rating,
-        challengerWins ? opponentRank.elo_rating : challengerRank.elo_rating,
-      );
-
-      const now = new Date().toISOString();
-      upsertRanking({
-        ...challengerRank,
-        elo_rating: challengerWins ? winnerElo : loserElo,
-        rank_score: challengerWins ? winnerElo : loserElo,
-        comparison_count: challengerRank.comparison_count + 1,
-        updated_at: now,
-      });
-      upsertRanking({
-        ...opponentRank,
-        elo_rating: challengerWins ? loserElo : winnerElo,
-        rank_score: challengerWins ? loserElo : winnerElo,
-        comparison_count: opponentRank.comparison_count + 1,
-        updated_at: now,
-      });
-
-      let nextLow = low;
-      let nextHigh = high;
-      if (challengerWins) {
-        nextHigh = mid - 1;
-      } else {
-        nextLow = mid + 1;
-      }
-
-      setLow(nextLow);
-      setHigh(nextHigh);
-
-      if (nextLow > nextHigh) {
-        finalize(challenger.id, nextLow);
+      if (step.done) {
+        finalize(challenger.id, choices);
       }
     },
-    [challenger, ensureRanking, finalize, high, low, round, upsertRanking],
+    [challenger, finalize, high, low, round],
   );
 
   const reset = useCallback(() => {
     opponentsRef.current = [];
+    choicesRef.current = [];
     setChallengerId(null);
     setLow(0);
     setHigh(-1);

@@ -9,6 +9,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { displayedElo, orderRevealEntries } from '@/lib/reveal';
 import type { LeaderboardEntry } from '@/types/trail';
 
 const SPRING = { damping: 18, stiffness: 260, mass: 0.7 };
@@ -51,7 +52,7 @@ function Row({
           entry.isNew ? 'text-accent' : 'text-zinc-500'
         }`}
       >
-        {(entry.ranking.ordinal_rank ?? index + 1).toString().padStart(2, '0')}
+        {(index + 1).toString().padStart(2, '0')}
       </Text>
       <View className="flex-1">
         <Text
@@ -62,7 +63,7 @@ function Row({
           {entry.trail.name}
         </Text>
         <Text className="font-mono text-[10px] text-zinc-500">
-          Elo {Math.round(entry.ranking.elo_rating)}
+          Elo {Math.round(displayedElo(entry.ranking))}
         </Text>
       </View>
       {entry.isNew ? (
@@ -93,7 +94,7 @@ export function LeaderboardReveal({
       </Text>
 
       <View className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 px-3">
-        {entries.map((entry, index) => (
+        {orderRevealEntries(entries).map((entry, index) => (
           <Row key={entry.trail.id} entry={entry} index={index} />
         ))}
       </View>
