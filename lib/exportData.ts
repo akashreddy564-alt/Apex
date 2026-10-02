@@ -35,16 +35,18 @@ export function hikesToCsv(
   rankings: TrailRanking[],
   trailName: (id: string) => string,
 ): string {
-  const scoreByTrail = new Map(rankings.map((row) => [row.trail_id, row.rank_score]));
-  const lines = ['date,trail,duration_seconds,notes,score,photos'];
+  const byTrail = new Map(rankings.map((row) => [row.trail_id, row]));
+  const lines = ['date,trail,duration_seconds,notes,bucket,position,photos'];
   for (const log of logs) {
+    const ranking = byTrail.get(log.trail_id);
     lines.push(
       [
         log.created_at,
         trailName(log.trail_id),
         String(log.duration_seconds),
         log.notes ?? '',
-        scoreByTrail.has(log.trail_id) ? String(scoreByTrail.get(log.trail_id)) : '',
+        ranking?.bucket ?? '',
+        ranking?.position ?? '',
         String(log.photos.length),
       ]
         .map(csvCell)

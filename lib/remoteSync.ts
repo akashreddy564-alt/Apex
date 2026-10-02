@@ -2,7 +2,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
 import { supabase } from '@/lib/supabase';
-import { useComparisonStore } from '@/stores/comparisonStore';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type { HikeLog, PairwiseComparison, Trail, TrailRanking } from '@/types/trail';
@@ -86,12 +85,12 @@ export async function pullRemote(): Promise<SyncResult> {
     .map((row) => mapTrail(row as Record<string, unknown>))
     .filter((trail): trail is Trail => trail !== null);
   const remoteLogs = (logsRes.data ?? []).map((row) => mapLog(row as Record<string, unknown>));
-  const remoteRanks = (ranksRes.data ?? []).map((row) =>
-    mapRanking(row as Record<string, unknown>),
-  );
-  const remotePairs = (pairsRes.data ?? []).map((row) =>
-    mapPair(row as Record<string, unknown>),
-  );
+  const remoteRanks = (ranksRes.data ?? [])
+    .map((row) => mapRanking(row as Record<string, unknown>))
+    .filter((row): row is TrailRanking => row !== null);
+  const remotePairs = (pairsRes.data ?? [])
+    .map((row) => mapPair(row as Record<string, unknown>))
+    .filter((row): row is PairwiseComparison => row !== null);
 
   await loadOutbox();
   const dirty = new Set(outbox.map((entry) => `${entry.kind}:${entry.id}`));
@@ -102,16 +101,18 @@ export async function pullRemote(): Promise<SyncResult> {
     trails,
     logs: mergeById(local.logs, remoteLogs, dirtyIds(dirty, 'log')),
   });
-  useRankingStore
-    .getState()
-    .setRankings(
-      mergeById(useRankingStore.getState().rankings, remoteRanks, dirtyIds(dirty, 'ranking')),
-    );
-  useComparisonStore
-    .getState()
-    .setAll(
-      mergeById(useComparisonStore.getState().comparisons, remotePairs, dirtyIds(dirty, 'comparison')),
-    );
+  useRankingStore.setState({
+    rankings: mergeById(
+      useRankingStore.getState().rankings,
+      remoteRanks,
+      dirtyIds(dirty, 'ranking'),
+    ),
+    comparisons: mergeById(
+      useRankingStore.getState().comparisons,
+      remotePairs,
+      dirtyIds(dirty, 'comparison'),
+    ),
+  });
 
   void flushOutbox();
 
@@ -162,25 +163,42 @@ function mapLog(row: Record<string, unknown>): HikeLog {
   };
 }
 
-function mapRanking(row: Record<string, unknown>): TrailRanking {
+function mapRanking(row: Record<string, unknown>): TrailRanking | null {
+  const bucket = row.bucket;
+  if (bucket !== 'loved' && bucket !== 'fine' && bucket !== 'disliked') return null;
+  if (typeof row.position !== 'string' || typeof row.trail_id !== 'string') return null;
   return {
     id: String(row.id),
     user_id: String(row.user_id),
-    trail_id: String(row.trail_id),
-    elo_rating: num(row.elo_rating, 1000),
-    rank_score: num(row.rank_score, 1000),
-    ordinal_rank: row.ordinal_rank == null ? null : num(row.ordinal_rank),
+    trail_id: row.trail_id,
+    hike_type: typeof row.hike_type === 'string' ? row.hike_type : 'hike',
+    bucket,
+    position: row.position,
     comparison_count: num(row.comparison_count),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
   };
 }
 
-function mapPair(row: Record<string, unknown>): PairwiseComparison {
+function mapPair(row: Record<string, unknown>): PairwiseComparison | null {
+  const result = row.result;
+  if (result !== 'new' && result !== 'opponent' && result !== 'too_close' && result !== 'skip') {
+    return null;
+  }
+  if (
+    typeof row.session_id !== 'string' ||
+    typeof row.challenger_trail_id !== 'string' ||
+    typeof row.opponent_trail_id !== 'string'
+  ) {
+    return null;
+  }
   return {
     id: String(row.id),
     user_id: String(row.user_id),
-    winner_trail_id: String(row.winner_trail_id),
-    loser_trail_id: String(row.loser_trail_id),
+    session_id: row.session_id,
+    hike_type: typeof row.hike_type === 'string' ? row.hike_type : 'hike',
+    challenger_trail_id: row.challenger_trail_id,
+    opponent_trail_id: row.opponent_trail_id,
+    result,
     context_log_id: row.context_log_id == null ? null : String(row.context_log_id),
     created_at: String(row.created_at ?? new Date().toISOString()),
   };
@@ -239,33 +257,50 @@ async function sendRanking(ranking: TrailRanking): Promise<boolean> {
   const row: Record<string, unknown> = {
     user_id: uid,
     trail_id: ranking.trail_id,
-    elo_rating: ranking.elo_rating,
-    rank_score: ranking.rank_score,
-    ordinal_rank: ranking.ordinal_rank,
+    hike_type: ranking.hike_type,
+    bucket: ranking.bucket,
+    position: ranking.position,
     comparison_count: ranking.comparison_count,
     updated_at: ranking.updated_at,
   };
   if (isUuid(ranking.id)) row.id = ranking.id;
   const { error } = await supabase
     .from('trail_rankings')
-    .upsert(row, { onConflict: 'user_id,trail_id' });
+    .upsert(row, { onConflict: 'user_id,trail_id,hike_type' });
   return !error;
 }
 
 async function sendComparison(comparison: PairwiseComparison): Promise<boolean> {
   if (
     !supabase ||
-    !isUuid(comparison.winner_trail_id) ||
-    !isUuid(comparison.loser_trail_id)
+    !isUuid(comparison.session_id) ||
+    !isUuid(comparison.challenger_trail_id) ||
+    !isUuid(comparison.opponent_trail_id)
   ) {
     return true;
   }
   const uid = await userId();
   if (!uid) return false;
+  const challengerWins = comparison.result === 'new' || comparison.result === 'too_close';
   const row: Record<string, unknown> = {
     user_id: uid,
-    winner_trail_id: comparison.winner_trail_id,
-    loser_trail_id: comparison.loser_trail_id,
+    session_id: comparison.session_id,
+    hike_type: comparison.hike_type,
+    challenger_trail_id: comparison.challenger_trail_id,
+    opponent_trail_id: comparison.opponent_trail_id,
+    result: comparison.result,
+    winner_trail_id:
+      comparison.result === 'skip'
+        ? null
+        : challengerWins
+          ? comparison.challenger_trail_id
+          : comparison.opponent_trail_id,
+    loser_trail_id:
+      comparison.result === 'skip'
+        ? null
+        : challengerWins
+          ? comparison.opponent_trail_id
+          : comparison.challenger_trail_id,
     context_log_id:
       comparison.context_log_id && isUuid(comparison.context_log_id)
         ? comparison.context_log_id
@@ -342,7 +377,7 @@ async function sendOutboxEntry(entry: OutboxEntry): Promise<boolean> {
     const ranking = useRankingStore.getState().rankings.find((row) => row.id === entry.id);
     return ranking ? sendRanking(ranking) : true;
   }
-  const comparison = useComparisonStore
+  const comparison = useRankingStore
     .getState()
     .comparisons.find((row) => row.id === entry.id);
   if (!comparison) return true;

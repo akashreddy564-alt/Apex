@@ -9,6 +9,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { BUCKET_BANDS, formatRankScore, type Bucket } from '@/lib/ranking';
 import type { LeaderboardEntry } from '@/types/trail';
 
 const SPRING = { damping: 18, stiffness: 260, mass: 0.7 };
@@ -16,23 +17,20 @@ const SPRING = { damping: 18, stiffness: 260, mass: 0.7 };
 interface LeaderboardRevealProps {
   entries: LeaderboardEntry[];
   ordinalRank: number;
-  onConfirm: () => void;
+  score: number;
+  bucket: Bucket;
+  onUndo: () => void;
+  onPlace: () => void;
 }
 
-function Row({
-  entry,
-  index,
-}: {
-  entry: LeaderboardEntry;
-  index: number;
-}) {
-  const scale = useSharedValue(entry.isNew ? 0.92 : 1);
+function Row({ entry, index }: { entry: LeaderboardEntry; index: number }) {
+  const scale = useSharedValue(entry.isNew ? 0.96 : 1);
 
   useEffect(() => {
     if (entry.isNew) {
-      scale.value = withDelay(120 + index * 40, withSpring(1, SPRING));
+      scale.value = withDelay(80, withSpring(1, SPRING));
     }
-  }, [entry.isNew, index, scale]);
+  }, [entry.isNew, scale]);
 
   const style = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -40,36 +38,32 @@ function Row({
 
   return (
     <Animated.View
-      entering={FadeInDown.delay(index * 45).springify().damping(20)}
+      entering={FadeInDown.delay(index * 40).springify().damping(20)}
       style={style}
       className={`flex-row items-center gap-3 border-b border-zinc-800 px-1 py-3 ${
         entry.isNew ? 'bg-accent-faint' : ''
       }`}
     >
       <Text
-        className={`w-7 font-mono text-xs ${
-          entry.isNew ? 'text-accent' : 'text-zinc-500'
-        }`}
+        className={`w-8 text-[15px] ${entry.isNew ? 'text-accent' : 'text-zinc-500'}`}
+        style={{ fontVariant: ['tabular-nums'] }}
       >
-        {(entry.ranking.ordinal_rank ?? index + 1).toString().padStart(2, '0')}
+        {entry.ordinal}
       </Text>
-      <View className="flex-1">
-        <Text
-          className={`text-[14px] ${
-            entry.isNew ? 'font-semibold text-zinc-50' : 'text-zinc-200'
-          }`}
-        >
-          {entry.trail.name}
-        </Text>
-        <Text className="font-mono text-[10px] text-zinc-500">
-          Elo {Math.round(entry.ranking.elo_rating)}
-        </Text>
-      </View>
-      {entry.isNew ? (
-        <Text className="font-mono text-[10px] uppercase tracking-widest text-accent">
-          New
-        </Text>
-      ) : null}
+      <Text
+        className={`flex-1 text-[15px] ${
+          entry.isNew ? 'font-medium text-zinc-50' : 'text-zinc-200'
+        }`}
+        numberOfLines={1}
+      >
+        {entry.trail.name}
+      </Text>
+      <Text
+        className="text-[15px] text-zinc-100"
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {formatRankScore(entry.score)}
+      </Text>
     </Animated.View>
   );
 }
@@ -77,19 +71,27 @@ function Row({
 export function LeaderboardReveal({
   entries,
   ordinalRank,
-  onConfirm,
+  score,
+  bucket,
+  onUndo,
+  onPlace,
 }: LeaderboardRevealProps) {
   useEffect(() => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, []);
 
+  const label = BUCKET_BANDS[bucket].label;
+
   return (
     <View className="flex-1">
-      <Text className="text-center text-[15px] text-zinc-200">
-        Locked at #{ordinalRank}
+      <Text
+        className="text-center text-[34px] text-zinc-50"
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {formatRankScore(score)}
       </Text>
-      <Text className="mt-1 text-center font-mono text-[11px] text-zinc-500">
-        Personal top {Math.min(10, entries.length)}
+      <Text className="mt-1 text-center text-[15px] text-zinc-200">
+        #{ordinalRank} in {label}
       </Text>
 
       <View className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 px-3">
@@ -98,16 +100,25 @@ export function LeaderboardReveal({
         ))}
       </View>
 
-      <Pressable
-        onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          onConfirm();
-        }}
-        className="mt-8 items-center border border-accent bg-accent/15 py-3 active:bg-accent/25"
-        style={{ borderRadius: 12 }}
-      >
-        <Text className="font-mono text-sm text-accent">Confirm ranking</Text>
-      </Pressable>
+      <View className="mt-8 flex-row gap-2">
+        <Pressable
+          onPress={onUndo}
+          className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
+          style={{ borderRadius: 12 }}
+        >
+          <Text className="text-[15px] text-zinc-300">Undo</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => {
+            void Haptics.selectionAsync();
+            onPlace();
+          }}
+          className="flex-1 items-center border border-accent bg-accent/15 py-3 active:bg-accent/25"
+          style={{ borderRadius: 12 }}
+        >
+          <Text className="text-[15px] text-accent">Place</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }

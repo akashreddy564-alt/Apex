@@ -1,6 +1,11 @@
 /**
  * Apex domain types — mirrors supabase/migrations/001_initial_schema.sql
+ * and 004_bucket_ranking.sql.
  */
+
+import type { Bucket } from '@/lib/ranking';
+
+export type { Bucket };
 
 export interface GeoJSONPosition {
   /** [longitude, latitude] or [longitude, latitude, altitude] */
@@ -51,9 +56,11 @@ export interface TrailRanking {
   id: string;
   user_id: string;
   trail_id: string;
-  elo_rating: number;
-  rank_score: number;
-  ordinal_rank: number | null;
+  /** Part of the ranking key. Opponents are chosen inside one type. */
+  hike_type: string;
+  bucket: Bucket;
+  /** Fractional index. Lower sorts first inside the bucket. */
+  position: string;
   comparison_count: number;
   updated_at: string;
 }
@@ -61,8 +68,11 @@ export interface TrailRanking {
 export interface PairwiseComparison {
   id: string;
   user_id: string;
-  winner_trail_id: string;
-  loser_trail_id: string;
+  session_id: string;
+  hike_type: string;
+  challenger_trail_id: string;
+  opponent_trail_id: string;
+  result: 'new' | 'opponent' | 'too_close' | 'skip';
   context_log_id: string | null;
   created_at: string;
 }
@@ -79,7 +89,7 @@ export interface TrailTelemetry {
   avg_moving_time_seconds: number | null;
 }
 
-export type ComparisonChoice = 'challenger' | 'opponent';
+export type ComparisonChoice = 'challenger' | 'opponent' | 'too_close' | 'skip';
 
 export interface ComparisonRound {
   challenger: Trail;
@@ -92,5 +102,9 @@ export interface ComparisonRound {
 export interface LeaderboardEntry {
   trail: Trail;
   ranking: TrailRanking;
+  /** Derived 0–10 score, one decimal when formatted. */
+  score: number;
+  /** 1-based rank inside the bucket. */
+  ordinal: number;
   isNew?: boolean;
 }

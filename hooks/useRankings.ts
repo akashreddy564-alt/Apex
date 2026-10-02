@@ -2,11 +2,25 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
 import { pushRanking } from '@/lib/remoteSync';
+import {
+  bandScore,
+  BUCKET_BANDS,
+  BUCKETS,
+  DEFAULT_HIKE_TYPE,
+  sortByPosition,
+  type Bucket,
+} from '@/lib/ranking';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type { LeaderboardEntry, TrailRanking } from '@/types/trail';
 
 const RANKINGS_KEY = ['rankings'] as const;
+
+export interface BucketSection {
+  bucket: Bucket;
+  label: string;
+  entries: LeaderboardEntry[];
+}
 
 export function useRankings() {
   const queryClient = useQueryClient();
@@ -21,18 +35,33 @@ export function useRankings() {
     initialData: rankings,
   });
 
-  const leaderboard: LeaderboardEntry[] = useMemo(() => {
-    return [...rankings]
-      .sort((a, b) => b.rank_score - a.rank_score)
-      .map((ranking) => {
-        const trail = trails.find((t) => t.id === ranking.trail_id);
-        if (!trail) return null;
-        return { trail, ranking };
-      })
-      .filter((e): e is LeaderboardEntry => e !== null);
+  const sections: BucketSection[] = useMemo(() => {
+    return BUCKETS.map((bucket) => {
+      const group = sortByPosition(
+        rankings.filter(
+          (row) => row.bucket === bucket && row.hike_type === DEFAULT_HIKE_TYPE,
+        ),
+      );
+      const entries = group
+        .map((ranking, index) => {
+          const trail = trails.find((item) => item.id === ranking.trail_id);
+          if (!trail) return null;
+          return {
+            trail,
+            ranking,
+            score: bandScore(bucket, index, group.length),
+            ordinal: index + 1,
+          };
+        })
+        .filter((entry): entry is LeaderboardEntry => entry !== null);
+      return { bucket, label: BUCKET_BANDS[bucket].label, entries };
+    }).filter((section) => section.entries.length > 0);
   }, [rankings, trails]);
 
-  const top10 = useMemo(() => leaderboard.slice(0, 10), [leaderboard]);
+  const leaderboard = useMemo(
+    () => sections.flatMap((section) => section.entries),
+    [sections],
+  );
 
   const optimisticUpsert = useMutation({
     mutationFn: async (ranking: TrailRanking) => {
@@ -44,8 +73,11 @@ export function useRankings() {
       await queryClient.cancelQueries({ queryKey: RANKINGS_KEY });
       const previous = queryClient.getQueryData<TrailRanking[]>(RANKINGS_KEY);
       queryClient.setQueryData<TrailRanking[]>(RANKINGS_KEY, (old = []) => {
-        const without = old.filter((r) => r.trail_id !== ranking.trail_id);
-        return [...without, ranking].sort((a, b) => b.rank_score - a.rank_score);
+        const without = old.filter(
+          (row) =>
+            !(row.trail_id === ranking.trail_id && row.hike_type === ranking.hike_type),
+        );
+        return [...without, ranking];
       });
       return { previous };
     },
@@ -62,8 +94,8 @@ export function useRankings() {
 
   return {
     rankings: query.data ?? rankings,
+    sections,
     leaderboard,
-    top10,
     isLoading: query.isLoading,
     optimisticUpsert,
   };
