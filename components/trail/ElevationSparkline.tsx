@@ -1,11 +1,6 @@
 import * as Haptics from 'expo-haptics';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  useAnimatedProps,
-  useFrameCallback,
-  useSharedValue,
-} from 'react-native-reanimated';
 import { getYForX } from 'react-native-redash';
 import { Circle, Path, Svg } from 'react-native-svg';
 import {
@@ -30,8 +25,6 @@ const TRACE_PERIOD_MS = 3200;
 const TRACE_DASH = 22;
 const TRACE_GAP = 148;
 
-const AnimatedPath = Animated.createAnimatedComponent(Path);
-
 interface ElevationSparklineProps {
   samples: ElevationSample[];
   height?: number;
@@ -51,21 +44,21 @@ function formatDistFromTimestamp(timestamp: string | number): string {
 
 /**
  * Short zinc segment that crawls the sage stroke. Solid dash, no blur.
- * UI-thread clock so the line keeps moving after the reveal finishes.
+ * Wall-clock interval so the segment keeps moving while the reveal
+ * re-renders the chart (a UI-thread dash was getting reset each tick).
  */
 function FlowingTrace() {
   const { path, width, height } = useContext(LineChartDimensionsContext);
-  const offset = useSharedValue(0);
+  const [offset, setOffset] = useState(0);
 
-  useFrameCallback((frame) => {
+  useEffect(() => {
     const cycle = TRACE_DASH + TRACE_GAP;
-    const t = (frame.timeSinceFirstFrame % TRACE_PERIOD_MS) / TRACE_PERIOD_MS;
-    offset.value = -t * cycle;
-  });
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: offset.value,
-  }));
+    const id = setInterval(() => {
+      const t = (Date.now() % TRACE_PERIOD_MS) / TRACE_PERIOD_MS;
+      setOffset(-t * cycle);
+    }, TICK_MS);
+    return () => clearInterval(id);
+  }, []);
 
   if (!path || width <= 0 || height <= 0) return null;
 
@@ -73,18 +66,17 @@ function FlowingTrace() {
     <Svg
       width={width}
       height={height}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
     >
-      <AnimatedPath
+      <Path
         d={path}
-        animatedProps={animatedProps}
         stroke={TRACE_COLOR}
         strokeWidth={1.75}
         fill="none"
         strokeLinecap="round"
         strokeLinejoin="round"
         strokeDasharray={`${TRACE_DASH} ${TRACE_GAP}`}
+        strokeDashoffset={offset}
       />
     </Svg>
   );
@@ -115,8 +107,7 @@ function RevealHead({
     <Svg
       width={width}
       height={height}
-      style={StyleSheet.absoluteFill}
-      pointerEvents="none"
+      style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
     >
       <Circle cx={x} cy={y} r={3.25} fill={TRACE_COLOR} />
     </Svg>
@@ -254,7 +245,6 @@ export function ElevationSparkline({
                       pathProps={{
                         strokeLinecap: 'round',
                         strokeLinejoin: 'round',
-                        isTransitionEnabled: false,
                       }}
                     />
                     <FlowingTrace />
