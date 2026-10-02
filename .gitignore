@@ -43,3 +43,6 @@ yarn-error.*
 
 # local test screenshots
 *.webp
+
+# Jest
+coverage/
