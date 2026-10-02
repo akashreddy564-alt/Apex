@@ -46,7 +46,9 @@
     "start": "expo start --port 43127",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web --port 43127"
+    "web": "expo start --web --port 43127",
+    "test": "node --experimental-strip-types --import ./scripts/register-ts-tests.mjs --test lib/*.test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "private": true,
   "description": "Utilitarian hiking log and pairwise trail ranking for outdoorsy tech people",

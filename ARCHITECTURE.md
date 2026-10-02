@@ -63,6 +63,6 @@
 
 1. User finishes a hike on `log` → `useTrailTracker.complete()` writes `hike_logs` (optimistic).
 2. `PairwiseModal` opens with the new trail as challenger.
-3. `useTrailComparison` binary-searches the sorted ranking list via pairwise choices.
-4. Each choice updates Elo (`lib/elo.ts`) optimistically in Zustand + React Query.
-5. When `low > high`, insertion index is final → `LeaderboardReveal` + haptic.
+3. `useTrailComparison` binary-searches the opponent list frozen at session start.
+4. Choices only move the search bounds. Elo (`lib/elo.ts`) and the ordinal slot are written once, when `low > high`. The slot is the midpoint of the frozen neighbors, so it matches the trails the user compared.
+5. `LeaderboardReveal` shows that ordinal, then a haptic.
