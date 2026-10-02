@@ -11,7 +11,6 @@ import Animated, {
   useReducedMotion,
   useSharedValue,
   withDelay,
-  withRepeat,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
@@ -27,8 +26,10 @@ import type { ElevationSample } from '@/types/trail';
 
 /** Accent sage — crisp stroke only, no bloom. */
 const LINE_COLOR = '#8B9A6D';
-/** Solid bead and dash. No shadow, no blur. */
-const TRACE_COLOR = '#F4F4F5';
+/** zinc-400. The dash is a flat stroke, not a glow. */
+const DASH_COLOR = '#A1A1AA';
+/** Near-white tip. No shadow, no blur. */
+const BEAD_COLOR = '#F4F4F5';
 
 /** Slow left→right map-out along distance. */
 const PATH_REVEAL_MS = 10000;
@@ -58,37 +59,22 @@ function formatDistFromTimestamp(timestamp: string | number): string {
 }
 
 /**
- * Short zinc segment that crawls the sage stroke. Solid dash, no blur.
- * Hidden while the scrub cursor is active so it never draws past the crosshair.
- * The repeat lives on the UI thread and stops when the screen blurs.
+ * Short zinc segment that crawls the sage stroke while the profile is
+ * mapping out. It is tied to the reveal clock, so it stops when the wipe
+ * finishes. Solid dash, no blur. Hidden while the scrub cursor is active.
  */
-function FlowingTrace() {
+function FlowingTrace({ reveal }: { reveal: SharedValue<number> }) {
   const { path, width, height } = useContext(LineChartDimensionsContext);
   const { isActive } = useLineChart();
-  const focused = useIsFocused();
-  const dash = useSharedValue(0);
 
-  useEffect(() => {
-    if (!focused) {
-      cancelAnimation(dash);
-      return;
-    }
-    const from = dash.value;
-    dash.value = withRepeat(
-      withTiming(from - TRACE_CYCLE, {
-        duration: TRACE_PERIOD_MS,
-        easing: Easing.linear,
-      }),
-      -1,
-      false,
-    );
-    return () => cancelAnimation(dash);
-  }, [dash, focused]);
-
-  const animatedProps = useAnimatedProps(() => ({
-    strokeDashoffset: dash.value,
-    strokeOpacity: isActive.value ? 0 : 1,
-  }));
+  const animatedProps = useAnimatedProps(() => {
+    const moving = reveal.value > 0 && reveal.value < 1 && !isActive.value;
+    const cycles = PATH_REVEAL_MS / TRACE_PERIOD_MS;
+    return {
+      strokeDashoffset: -reveal.value * cycles * TRACE_CYCLE,
+      strokeOpacity: moving ? 1 : 0,
+    };
+  });
 
   if (!path || width <= 0 || height <= 0) return null;
 
@@ -100,7 +86,7 @@ function FlowingTrace() {
     >
       <AnimatedPath
         d={path}
-        stroke={TRACE_COLOR}
+        stroke={DASH_COLOR}
         strokeWidth={1.75}
         fill="none"
         strokeLinecap="round"
@@ -113,9 +99,9 @@ function FlowingTrace() {
 }
 
 /**
- * Leading bead while the profile is still mapping out. Its center sits one
- * radius inside the clip so the circle is not cut in half. Hidden once the
- * wipe finishes, or while scrubbing, so the crosshair stays the only cursor.
+ * Leading bead. Its center sits one radius inside the clip so the circle is
+ * not cut in half. It travels with the reveal and stays at the end of the
+ * line. Hidden while scrubbing, so the crosshair stays the only cursor.
  */
 function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
   const { parsedPath, pathWidth, width, height } = useContext(
@@ -130,7 +116,6 @@ function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
     const visible =
       !isActive.value &&
       reveal.value > 0 &&
-      reveal.value < 1 &&
       edge >= BEAD_R * 2 + BEAD_INSET;
     return {
       cx: Math.max(0, cx),
@@ -150,7 +135,7 @@ function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
       <AnimatedCircle
         animatedProps={animatedProps}
         r={BEAD_R}
-        fill={TRACE_COLOR}
+        fill={BEAD_COLOR}
       />
     </Svg>
   );
@@ -304,8 +289,8 @@ export function ElevationSparkline({
                         strokeLinejoin: 'round',
                       }}
                     />
-                    {showTrace ? <FlowingTrace /> : null}
-                    {showTrace ? <RevealHead reveal={reveal} /> : null}
+                    {showTrace ? <FlowingTrace reveal={reveal} /> : null}
+                    <RevealHead reveal={reveal} />
                   </View>
                 </Animated.View>
                 <LineChart.CursorCrosshair
