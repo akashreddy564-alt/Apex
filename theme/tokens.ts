@@ -103,7 +103,7 @@ export const navTitle = {
   fontFamily: fonts.display,
   fontSize: 17,
   fontWeight: 'normal' as const,
-};
+} as const;
 
 /**
  * In-screen titles. One color, the loaded face, `fontWeight: 'normal'`
