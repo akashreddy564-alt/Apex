@@ -14,7 +14,9 @@
 │
 ├── supabase/
 │   └── migrations/
-│       └── 001_initial_schema.sql      # trails, hike_logs, trail_rankings, pairwise
+│       ├── 001_initial_schema.sql      # trails, hike_logs, trail_rankings, pairwise
+│       ├── 002_hike_photos_storage.sql # private hike-photos bucket
+│       └── 003_geojson_views.sql       # trails_api / hike_logs_api
 │
 ├── types/
 │   └── trail.ts                        # Trail, HikeLog, TrailRanking, ComparisonRound…
@@ -22,8 +24,10 @@
 ├── lib/
 │   ├── elo.ts                          # Elo update + expected score
 │   ├── format.ts                       # duration / elevation / distance formatters
+│   ├── geo.ts                          # uuid + GeoJSON / EWKT
 │   ├── hikePhotos.ts                   # stripped JPEG file URI or hike-photos bucket ref
 │   ├── photoEncode.ts                  # re-encode via ImageManipulator, reject EXIF
+│   ├── remoteSync.ts                   # optional Supabase pull / push
 │   └── supabase.ts                     # client (env + local mock fallback)
 │
 ├── data/
@@ -31,11 +35,14 @@
 │
 ├── stores/
 │   ├── trailCache.ts                   # Zustand offline trail + log cache
-│   └── rankingStore.ts                 # personal Elo / ordinal rankings
+│   ├── rankingStore.ts                 # personal Elo / ordinal rankings
+│   └── comparisonStore.ts              # pairwise comparison history
 │
 ├── hooks/
 │   ├── useTrailTracker.ts              # active hike session (duration, notes, photos)
 │   ├── useHikePhotos.ts                # library / camera → log photo refs
+│   ├── useAuth.ts                      # magic-link session
+│   ├── useRemoteSync.ts                # hydrate caches when signed in
 │   ├── useRankings.ts                  # ranked list + optimistic mutations
 │   └── useTrailComparison.ts           # binary-insertion pairwise + Elo
 │

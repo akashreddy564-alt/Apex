@@ -18,6 +18,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { useRemoteSync } from '@/hooks/useRemoteSync';
 import { colors, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -31,6 +32,7 @@ export default function RootLayout() {
     [fonts.uiMedium]: Inter_500Medium,
     [fonts.uiSemibold]: Inter_600SemiBold,
   });
+  useRemoteSync();
 
   const [queryClient] = useState(
     () =>
@@ -77,6 +79,7 @@ export default function RootLayout() {
                 headerBackTitle: 'Back',
               }}
             />
+            <Stack.Screen name="account" options={{ title: 'Account' }} />
           </Stack>
         </BottomSheetModalProvider>
       </QueryClientProvider>

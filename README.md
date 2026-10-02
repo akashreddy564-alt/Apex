@@ -18,7 +18,7 @@ Early prototype. Mock trail data runs locally without a backend.
 | Supabase / PostGIS schema | Ready (not wired) |
 | Live GPS tracking | Planned |
 | Photos on logs | Done |
-| Auth + sync | Planned |
+| Auth + sync | Done when env is set; local otherwise |
 
 ## Stack
 
@@ -51,7 +51,9 @@ EXPO_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Without env vars, seeded trails and local rankings are used. Photos stay on the device as data URIs. SQL lives in `supabase/migrations/` (`001` schema, `002` private `hike-photos` bucket).
+Without env vars, seeded trails and local rankings are used. Photos stay on the device as data URIs.
+
+With env vars, Account sends a magic link. After sign-in the app reads `trails_api` / `hike_logs_api` and writes logs, rankings, and comparisons for that user. Run `supabase/migrations/` then `supabase/seed.sql` in the SQL editor (the anon key cannot insert trails). SQL files: `001` schema, `002` private `hike-photos` bucket, `003` GeoJSON views.
 
 ## Layout
 

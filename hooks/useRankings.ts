@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 
+import { pushRanking } from '@/lib/remoteSync';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type { LeaderboardEntry, TrailRanking } from '@/types/trail';
@@ -36,6 +37,7 @@ export function useRankings() {
   const optimisticUpsert = useMutation({
     mutationFn: async (ranking: TrailRanking) => {
       upsertRanking(ranking);
+      void pushRanking(ranking);
       return ranking;
     },
     onMutate: async (ranking) => {
