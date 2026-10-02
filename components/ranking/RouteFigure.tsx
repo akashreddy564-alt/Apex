@@ -120,9 +120,13 @@ export function ElevationStrip({
   }
 
   const maxDistance = Math.max(samples[samples.length - 1]?.distance_m ?? 0, 1);
-  const elevations = samples.map((sample) => sample.elevation_m);
-  const low = Math.min(...elevations);
-  const span = Math.max(Math.max(...elevations) - low, 1);
+  let low = samples[0].elevation_m;
+  let high = low;
+  for (const sample of samples) {
+    if (sample.elevation_m < low) low = sample.elevation_m;
+    if (sample.elevation_m > high) high = sample.elevation_m;
+  }
+  const span = Math.max(high - low, 1);
   const coords = samples.map((sample) => {
     const x = (sample.distance_m / maxDistance) * width;
     const y = 4 + (1 - (sample.elevation_m - low) / span) * (height - 10);

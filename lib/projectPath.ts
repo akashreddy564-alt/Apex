@@ -18,9 +18,12 @@ export interface MapBounds {
 
 const PAD = 16;
 
+/** [longitude, latitude] or [longitude, latitude, altitude]. */
+export type MapCoordinate = [number, number] | [number, number, number];
+
 /** One lat/lon projection for the trail map, compare cards, and the live track. */
 export function projectPoints(
-  coordinates: [number, number][],
+  coordinates: [number, number][] | [number, number, number][],
   width: number,
   height: number,
   pad: number,
