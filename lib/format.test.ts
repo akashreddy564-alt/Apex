@@ -18,6 +18,9 @@ describe('chart formatters', () => {
     assert.equal(formatChartDistance({ value: 12_400 }), '12.4 km');
     assert.equal(formatChartDistance({ value: '12400' }), '12.4 km');
     assert.equal(formatChartDistance({ value: 1_000_000 }), '1000.0 km');
+    assert.equal(formatChartDistance({ value: -1, atRestMeters: 12_400 }), '12.4 km');
+    assert.equal(formatChartDistance({ value: -1 }), '\u2013');
+    assert.equal(formatChartDistance({ value: -1, atRestMeters: null }), '\u2013');
   });
 
   it('writes elevation in whole meters with a thousands comma', () => {
@@ -31,5 +34,8 @@ describe('chart formatters', () => {
     assert.equal(formatChartElevation({ value: '240' }), '240 m');
     assert.equal(formatChartElevation({ value: '1240' }), '1,240 m');
     assert.equal(formatChartElevation({ value: '12400.4' }), '12,400 m');
+    assert.equal(formatChartElevation({ value: '', atRestMeters: 1240 }), '1,240 m');
+    assert.equal(formatChartElevation({ value: '' }), '\u2013');
+    assert.equal(formatChartElevation({ value: '', atRestMeters: null }), '\u2013');
   });
 });

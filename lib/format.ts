@@ -23,24 +23,47 @@ export function formatElevationM(m: number): string {
   return `${groupInteger(m)} m`;
 }
 
+const NO_CHART_VALUE = '\u2013';
+
 /**
- * Wagmi price text. Runs on the UI runtime, so this is a worklet and
- * closes over nothing but the elevation string.
+ * Wagmi price text. Idle passes `''`. That shows the trail's high point.
+ * With no trail elevation to fall back on, it is an en dash.
  */
-export function formatChartElevation({ value }: { value: string }): string {
+export function formatChartElevation({
+  value,
+  atRestMeters,
+}: {
+  value: string;
+  atRestMeters?: number | null;
+}): string {
   'worklet';
+  if (value === '') {
+    if (atRestMeters == null || Number.isNaN(atRestMeters)) return NO_CHART_VALUE;
+    return formatElevationM(atRestMeters);
+  }
   const meters = Number(value);
-  if (Number.isNaN(meters)) return '—';
+  if (Number.isNaN(meters)) return NO_CHART_VALUE;
   return formatElevationM(meters);
 }
 
 /**
- * Wagmi date text. The chart stores distance along the trail in this channel.
+ * Wagmi date text. The chart stores distance in meters on this channel.
+ * Idle, and a falsy 0 that wagmi turns into -1, pass `-1` and show the
+ * trail's full distance. With no distance to fall back on, it is an en dash.
  */
-export function formatChartDistance({ value }: { value: number | string }): string {
+export function formatChartDistance({
+  value,
+  atRestMeters,
+}: {
+  value: number | string;
+  atRestMeters?: number | null;
+}): string {
   'worklet';
   const meters = typeof value === 'string' ? Number(value) : value;
-  if (Number.isNaN(meters)) return '—';
+  if (Number.isNaN(meters) || meters < 0) {
+    if (atRestMeters == null || Number.isNaN(atRestMeters)) return NO_CHART_VALUE;
+    return formatDistanceKm(atRestMeters / 1000);
+  }
   return formatDistanceKm(meters / 1000);
 }
 

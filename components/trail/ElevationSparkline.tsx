@@ -277,6 +277,11 @@ export function ElevationSparkline({
     );
   }
 
+  let peakM = plotted[0]?.elevation_m ?? 0;
+  for (const sample of plotted) {
+    if (sample.elevation_m > peakM) peakM = sample.elevation_m;
+  }
+  const totalM = plotted[plotted.length - 1]?.distance_m ?? 0;
   const digits = numericStyle();
   const showTrace = !reducedMotion;
 
@@ -300,11 +305,17 @@ export function ElevationSparkline({
           </Text>
           <View className="items-end">
             <LineChart.PriceText
-              format={formatChartElevation}
+              format={({ value }) => {
+                'worklet';
+                return formatChartElevation({ value, atRestMeters: peakM });
+              }}
               style={{ ...digits, color: colors.fgMuted, fontSize: typeScale.caption }}
             />
             <LineChart.DatetimeText
-              format={formatChartDistance}
+              format={({ value }) => {
+                'worklet';
+                return formatChartDistance({ value, atRestMeters: totalM });
+              }}
               style={{ ...digits, color: colors.fgFaint, fontSize: typeScale.caption }}
             />
           </View>
@@ -363,6 +374,10 @@ export function ElevationSparkline({
                   size={6}
                 >
                   <LineChart.Tooltip
+                    format={({ value }) => {
+                      'worklet';
+                      return formatChartElevation({ value, atRestMeters: peakM });
+                    }}
                     cursorGutter={12}
                     textStyle={{
                       ...digits,
