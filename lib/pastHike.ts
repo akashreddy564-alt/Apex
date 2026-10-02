@@ -1,0 +1,51 @@
+import { MOCK_USER_ID } from '@/data/mockTrails';
+import type { HikeLog } from '@/types/trail';
+
+export interface PastHikeDraft {
+  trailId: string;
+  hikedOn: Date;
+  hours: number;
+  minutes: number;
+  notes: string;
+  userId?: string;
+  id?: string;
+  /** Clock used to reject a future day. Defaults to now. */
+  now?: Date;
+}
+
+export function localDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function isFutureDay(date: Date, now: Date = new Date()): boolean {
+  return localDay(date).getTime() > localDay(now).getTime();
+}
+
+export function durationFromParts(hours: number, minutes: number): number {
+  const h = Number.isFinite(hours) ? Math.max(0, Math.floor(hours)) : 0;
+  const m = Number.isFinite(minutes) ? Math.max(0, Math.floor(minutes)) : 0;
+  return h * 3600 + m * 60;
+}
+
+/** Noon local time so the stored day does not shift across UTC. */
+export function hikeTimestamp(date: Date): string {
+  const day = localDay(date);
+  day.setHours(12, 0, 0, 0);
+  return day.toISOString();
+}
+
+export function buildPastHikeLog(draft: PastHikeDraft): HikeLog | null {
+  if (!draft.trailId) return null;
+  if (isFutureDay(draft.hikedOn, draft.now ?? new Date())) return null;
+  const notes = draft.notes.trim();
+  return {
+    id: draft.id ?? `log-${Date.now()}`,
+    user_id: draft.userId ?? MOCK_USER_ID,
+    trail_id: draft.trailId,
+    duration_seconds: durationFromParts(draft.hours, draft.minutes),
+    photos: [],
+    notes: notes.length > 0 ? notes : null,
+    recorded_path: null,
+    created_at: hikeTimestamp(draft.hikedOn),
+  };
+}

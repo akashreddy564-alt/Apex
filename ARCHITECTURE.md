@@ -77,7 +77,7 @@
 
 ## Data flow (ranking)
 
-1. User finishes a hike on `log` → `useTrailTracker.complete()` writes `hike_logs` (optimistic).
+1. User finishes a live hike on `log` (`useTrailTracker.complete()`) or saves a past hike (`logPast`) → `hike_logs` (optimistic, offline). A past hike stores the chosen day, duration, and notes, then uses the same ranking path.
 2. `PairwiseModal` opens with the new trail as challenger.
 3. The user picks Loved, Fine, or Didn't like. `useTrailComparison` binary-searches that bucket's order, frozen at the start.
 4. Undo walks a history stack. Too close inserts beside the current hike and stops. Nothing is written yet.

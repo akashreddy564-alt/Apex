@@ -15,6 +15,7 @@ import {
 } from '@/lib/activeHike';
 import { newId } from '@/lib/geo';
 import { stopTracking } from '@/lib/locationTask';
+import { buildPastHikeLog, type PastHikeDraft } from '@/lib/pastHike';
 import { pushLog } from '@/lib/remoteSync';
 import { useTrailCache } from '@/stores/trailCache';
 import type { GeoJSONLineString, HikeLog } from '@/types/trail';
@@ -37,6 +38,7 @@ export interface UseTrailTrackerResult {
   elevationGainM: number;
   tick: () => void;
   complete: () => HikeLog | null;
+  logPast: (draft: PastHikeDraft) => HikeLog | null;
   discard: () => void;
 }
 
@@ -100,6 +102,16 @@ export function useTrailTracker(): UseTrailTrackerResult {
     }
   }, []);
 
+  const logPast = useCallback(
+    (draft: PastHikeDraft): HikeLog | null => {
+      const log = buildPastHikeLog(draft);
+      if (!log) return null;
+      upsertLog(log);
+      return log;
+    },
+    [upsertLog],
+  );
+
   const discard = useCallback(() => {
     void clearHike();
     void stopTracking();
@@ -154,6 +166,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       elevationGainM: session?.elevationGainM ?? 0,
       tick,
       complete,
+      logPast,
       discard,
     }),
     [
@@ -167,6 +180,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       replacePhoto,
       tick,
       complete,
+      logPast,
       discard,
     ],
   );
