@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { activeAltitudeCorrector } from '@/lib/altitude';
 import { haversineMeters } from '@/lib/geo';
+import { applyAltitudeStep } from '@/lib/hikeStats';
 
 const KEY = 'apex-active-hike';
 
@@ -8,7 +10,6 @@ const KEY = 'apex-active-hike';
 export const ACCURACY_MAX_M = 25;
 /** Smoothed climb must clear this before it counts as gain. */
 export const GAIN_THRESHOLD_M = 3;
-const ALT_BLEND = 0.3;
 
 export interface LocationFix {
   longitude: number;
@@ -28,6 +29,9 @@ export interface PersistedHike {
   pausedMs: number;
   distanceM: number;
   elevationGainM: number;
+  elevationLossM: number;
+  /** Wall clock of the last successful disk write. */
+  savedAt: number;
   smoothedAltitude: number | null;
   /** Valley the next climb is measured from. */
   gainBaseline: number | null;
@@ -88,10 +92,11 @@ export function hydrateHike(): Promise<PersistedHike | null> {
 }
 
 async function commit(hike: PersistedHike | null): Promise<PersistedHike | null> {
-  memory = hike;
-  await writeDisk(hike);
-  emit(hike);
-  return hike;
+  const next = hike ? { ...hike, savedAt: Date.now() } : null;
+  memory = next;
+  await writeDisk(next);
+  emit(next);
+  return next;
 }
 
 export function startHike(trailId: string): Promise<PersistedHike> {
@@ -106,6 +111,8 @@ export function startHike(trailId: string): Promise<PersistedHike> {
       pausedMs: 0,
       distanceM: 0,
       elevationGainM: 0,
+      elevationLossM: 0,
+      savedAt: Date.now(),
       smoothedAltitude: null,
       gainBaseline: null,
     };
@@ -171,31 +178,29 @@ export function applyFix(hike: PersistedHike, fix: LocationFix): PersistedHike {
   let distanceM = hike.distanceM;
   if (last) distanceM += haversineMeters(last, fix);
 
-  let smoothedAltitude = hike.smoothedAltitude;
-  let gainBaseline = hike.gainBaseline;
-  let elevationGainM = hike.elevationGainM;
-  if (fix.altitude != null) {
-    smoothedAltitude =
-      smoothedAltitude == null
-        ? fix.altitude
-        : smoothedAltitude + ALT_BLEND * (fix.altitude - smoothedAltitude);
-    if (gainBaseline == null) {
-      gainBaseline = smoothedAltitude;
-    } else if (smoothedAltitude - gainBaseline > GAIN_THRESHOLD_M) {
-      elevationGainM += smoothedAltitude - gainBaseline;
-      gainBaseline = smoothedAltitude;
-    } else if (gainBaseline - smoothedAltitude > GAIN_THRESHOLD_M) {
-      gainBaseline = smoothedAltitude;
-    }
-  }
+  const smoothedAltitude = activeAltitudeCorrector.correct(hike.smoothedAltitude, {
+    altitude: fix.altitude,
+    latitude: fix.latitude,
+    longitude: fix.longitude,
+  });
+  const climb = applyAltitudeStep(
+    {
+      elevationGainM: hike.elevationGainM,
+      elevationLossM: hike.elevationLossM ?? 0,
+      baseline: hike.gainBaseline,
+    },
+    smoothedAltitude,
+    GAIN_THRESHOLD_M,
+  );
 
   return {
     ...hike,
     points: [...hike.points, fix],
     distanceM,
-    elevationGainM,
+    elevationGainM: climb.elevationGainM,
+    elevationLossM: climb.elevationLossM,
     smoothedAltitude,
-    gainBaseline,
+    gainBaseline: climb.baseline,
   };
 }
 

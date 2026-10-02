@@ -1,8 +1,10 @@
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { Platform } from 'react-native';
 
 import { appendFixes, type LocationFix } from '@/lib/activeHike';
+import { backgroundRecordingAvailable } from '@/lib/recordingEnvironment';
 
 export const HIKE_LOCATION_TASK = 'apex-hike-location';
 
@@ -75,13 +77,15 @@ export async function startForegroundWatch(): Promise<void> {
 }
 
 /**
- * Start updates while the app is in the foreground. iOS keeps them going with
- * the screen locked via UIBackgroundModes `location` and the blue indicator.
- * Android uses a location foreground service. This does not request Always
- * or ACCESS_BACKGROUND_LOCATION.
+ * Dev builds record in the background (iOS Always, Android foreground service).
+ * Expo Go and web only get the foreground watch. Background APIs throw there.
  */
 export async function startRecordingTask(): Promise<void> {
-  if (Platform.OS === 'web') {
+  const background = backgroundRecordingAvailable(
+    Platform.OS,
+    Constants.executionEnvironment,
+  );
+  if (!background) {
     await startForegroundWatch();
     return;
   }

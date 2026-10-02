@@ -1,8 +1,12 @@
 import * as Location from 'expo-location';
 import { useEffect, useState } from 'react';
 
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
 import { currentHike } from '@/lib/activeHike';
 import { startForegroundWatch, startRecordingTask, stopTracking } from '@/lib/locationTask';
+import { backgroundRecordingAvailable } from '@/lib/recordingEnvironment';
 
 interface UseLiveLocationResult {
   message: string | null;
@@ -32,7 +36,17 @@ export function useLiveLocation(active: boolean, paused: boolean): UseLiveLocati
           return;
         }
         await startRecordingTask();
-        if (!cancelled) setMessage(null);
+        if (!cancelled) {
+          const background = backgroundRecordingAvailable(
+            Platform.OS,
+            Constants.executionEnvironment,
+          );
+          setMessage(
+            background
+              ? null
+              : 'Recording while Apex is open. A dev build can keep recording with the screen locked.',
+          );
+        }
       } catch {
         try {
           await startForegroundWatch();

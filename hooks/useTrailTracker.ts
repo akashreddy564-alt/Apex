@@ -13,6 +13,7 @@ import {
   updateHike,
   type PersistedHike,
 } from '@/lib/activeHike';
+import { formatPace, paceSecondsPerKm, totalSeconds } from '@/lib/hikeStats';
 import { newId } from '@/lib/geo';
 import { stopTracking } from '@/lib/locationTask';
 import { buildPastHikeLog, type PastHikeDraft } from '@/lib/pastHike';
@@ -36,6 +37,13 @@ export interface UseTrailTrackerResult {
   replacePhoto: (from: string, to: string) => void;
   distanceM: number;
   elevationGainM: number;
+  elevationLossM: number;
+  currentElevationM: number | null;
+  totalSeconds: number;
+  paceLabel: string;
+  savedAt: number | null;
+  recovered: boolean;
+  dismissRecovery: () => void;
   tick: () => void;
   complete: () => HikeLog | null;
   logPast: (draft: PastHikeDraft) => HikeLog | null;
@@ -49,12 +57,15 @@ export interface UseTrailTrackerResult {
 export function useTrailTracker(): UseTrailTrackerResult {
   const upsertLog = useTrailCache((s) => s.upsertLog);
   const [session, setSession] = useState<PersistedHike | null>(null);
+  const [recovered, setRecovered] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let alive = true;
     void hydrateHike().then((hike) => {
-      if (alive) setSession(hike);
+      if (!alive) return;
+      setSession(hike);
+      if (hike) setRecovered(true);
     });
     return subscribeHike((hike) => {
       if (alive) setSession(hike);
@@ -63,6 +74,10 @@ export function useTrailTracker(): UseTrailTrackerResult {
 
   const tick = useCallback(() => {
     setNow(Date.now());
+  }, []);
+
+  const dismissRecovery = useCallback(() => {
+    setRecovered(false);
   }, []);
 
   const start = useCallback((trailId: string) => {
@@ -164,6 +179,15 @@ export function useTrailTracker(): UseTrailTrackerResult {
       replacePhoto,
       distanceM: session?.distanceM ?? 0,
       elevationGainM: session?.elevationGainM ?? 0,
+      elevationLossM: session?.elevationLossM ?? 0,
+      currentElevationM: session?.smoothedAltitude ?? null,
+      totalSeconds: session ? totalSeconds(session.startedAt, now) : 0,
+      paceLabel: formatPace(
+        session ? paceSecondsPerKm(session.distanceM, elapsed) : null,
+      ),
+      savedAt: session?.savedAt ?? null,
+      recovered,
+      dismissRecovery,
       tick,
       complete,
       logPast,
@@ -172,6 +196,8 @@ export function useTrailTracker(): UseTrailTrackerResult {
     [
       session,
       elapsed,
+      recovered,
+      dismissRecovery,
       start,
       pause,
       resume,

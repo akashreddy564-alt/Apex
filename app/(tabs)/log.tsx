@@ -1,10 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
+import Constants from 'expo-constants';
 import * as Location from 'expo-location';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -23,6 +25,7 @@ import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
+import { backgroundRecordingAvailable } from '@/lib/recordingEnvironment';
 import { useTrailCache } from '@/stores/trailCache';
 import { displayM } from '@/theme/tokens';
 
@@ -61,6 +64,12 @@ export default function LogScreen() {
   const acceptLocation = async () => {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
+    if (
+      permission.granted &&
+      backgroundRecordingAvailable(Platform.OS, Constants.executionEnvironment)
+    ) {
+      await Location.requestBackgroundPermissionsAsync();
+    }
     setExplainer(false);
     if (!permission.granted || !selectedTrailId) return;
     tracker.start(selectedTrailId);
@@ -203,10 +212,23 @@ export default function LogScreen() {
               <Text className="mt-4 font-mono text-3xl tracking-tight text-accent">
                 {formatDuration(tracker.elapsedSeconds)}
               </Text>
-              <Text className="mt-3 font-mono text-[11px] text-zinc-400">
-                {(tracker.distanceM / 1000).toFixed(2)} km · ↑{' '}
-                {Math.round(tracker.elevationGainM)} m · {tracker.session?.points.length ?? 0}{' '}
-                pts
+              <Text className="mt-1 text-[13px] text-zinc-400">
+                Total {formatDuration(tracker.totalSeconds)}
+              </Text>
+              <Text className="mt-3 text-[13px] text-zinc-300">
+                {(tracker.distanceM / 1000).toFixed(2)} km · {tracker.paceLabel}
+              </Text>
+              <Text className="mt-1 text-[13px] text-zinc-300">
+                Gain {Math.round(tracker.elevationGainM)} m · Loss{' '}
+                {Math.round(tracker.elevationLossM)} m · Elevation{' '}
+                {tracker.currentElevationM == null
+                  ? '—'
+                  : `${Math.round(tracker.currentElevationM)} m`}
+              </Text>
+              <Text className="mt-1 text-[12px] text-zinc-500">
+                {tracker.savedAt
+                  ? `Saved ${Math.max(0, Math.round((Date.now() - tracker.savedAt) / 1000))} s ago`
+                  : 'Not saved yet'}
               </Text>
               {location.message ? (
                 <Text className="mt-2 font-mono text-[11px] leading-4 text-zinc-500">
@@ -262,6 +284,36 @@ export default function LogScreen() {
               style={{ borderRadius: 12, textAlignVertical: 'top' }}
             />
 
+            {tracker.recovered ? (
+              <View className="mt-4 border border-zinc-800 p-3" style={{ borderRadius: 12 }}>
+                <Text className="text-[15px] text-zinc-100">
+                  This hike is still in progress.
+                </Text>
+                <View className="mt-3 flex-row gap-2">
+                  <Pressable
+                    onPress={() => {
+                      if (tracker.isPaused) tracker.resume();
+                      tracker.dismissRecovery();
+                    }}
+                    className="flex-1 items-center border border-zinc-800 py-3"
+                    style={{ borderRadius: 12 }}
+                  >
+                    <Text className="text-[15px] text-zinc-100">Resume</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      tracker.dismissRecovery();
+                      finish();
+                    }}
+                    className="flex-1 items-center border border-zinc-800 py-3"
+                    style={{ borderRadius: 12 }}
+                  >
+                    <Text className="text-[15px] text-zinc-100">Finish</Text>
+                  </Pressable>
+                </View>
+              </View>
+            ) : null}
+
             <View className="mt-4 flex-row gap-2">
               <Pressable
                 accessibilityLabel={tracker.isPaused ? 'Resume hike' : 'Pause hike'}
@@ -293,7 +345,7 @@ export default function LogScreen() {
                 className="flex-1 items-center border border-accent bg-accent/15 py-3.5 active:bg-accent/25"
                 style={{ borderRadius: 12 }}
               >
-                <Text className="font-mono text-sm text-accent">Finish & rank</Text>
+                <Text className="font-mono text-sm text-accent">Stop</Text>
               </Pressable>
             </View>
           </View>
