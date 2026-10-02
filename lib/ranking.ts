@@ -4,6 +4,11 @@ import { generateKeyBetween } from 'fractional-indexing';
 export const HIKE_TYPES = ['hike'] as const;
 export type HikeTypeId = (typeof HIKE_TYPES)[number];
 
+/** Sentence-case labels. The stored id stays lowercase. */
+export const HIKE_TYPE_LABELS: Record<HikeTypeId, string> = {
+  hike: 'Hike',
+};
+
 /** One list per user, trail, and hike type. D can add types without a new key. */
 export const DEFAULT_HIKE_TYPE: HikeTypeId = 'hike';
 

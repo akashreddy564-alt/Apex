@@ -14,9 +14,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 import { HikeDateField } from '@/components/log/HikeDateField';
+import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
 import { formatHikeDay, suggestHikeType } from '@/lib/pastHike';
-import { reencodePhoto } from '@/lib/photoEncode';
-import { DEFAULT_HIKE_TYPE, HIKE_TYPES } from '@/lib/ranking';
+import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
 import { colors, fonts, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
 const CHIPS = ['Dry', 'Muddy', 'Snow', 'Rocky', 'Rain', 'Fog', 'Hot', 'Windy'] as const;
@@ -98,6 +98,7 @@ export function PastHikeSheet({
   const [difficulty, setDifficulty] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const maximumDate = useMemo(() => new Date(), []);
 
   useEffect(() => {
@@ -121,10 +122,15 @@ export function PastHikeSheet({
         const asset = result.assets[0];
         if (!asset?.uri) return;
         try {
-          const prepared = await reencodePhoto(asset.uri, asset.width ?? 0, asset.height ?? 0);
-          setPhotos((current) => [...current, prepared.uri]);
+          setPhotoError(null);
+          const stored = await persistHikePhoto({
+            uri: asset.uri,
+            width: asset.width,
+            height: asset.height,
+          });
+          setPhotos((current) => [...current, stored]);
         } catch {
-          // A photo that still has EXIF is not stored.
+          setPhotoError('Could not add that photo.');
         }
       },
     );
@@ -351,61 +357,63 @@ export function PastHikeSheet({
                   </View>
                 </View>
 
-                <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                    <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Hike type</Text>
-                    <Text style={{ flexShrink: 1, fontSize: 12, color: colors.fgFaint, fontFamily: fonts.ui }}>
-                      Suggested from distance and gain
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      marginTop: 9,
-                      flexDirection: 'row',
-                      gap: 3,
-                      backgroundColor: colors.surface,
-                      borderWidth: 1,
-                      borderColor: colors.raised,
-                      borderRadius: 12,
-                      padding: 3,
-                    }}
-                  >
-                    {HIKE_TYPES.map((type) => {
-                      const on = hikeType === type;
-                      return (
-                        <Pressable
-                          key={type}
-                          onPress={() => {
-                            setTypeTouched(true);
-                            setHikeType(type);
-                          }}
-                          style={{
-                            flex: 1,
-                            height: 36,
-                            borderRadius: 10,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: on ? colors.fg : 'transparent',
-                            paddingHorizontal: 2,
-                          }}
-                        >
-                          <Text
-                            numberOfLines={1}
-                            adjustsFontSizeToFit
+                {HIKE_TYPES.length > 1 ? (
+                  <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
+                      <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Hike type</Text>
+                      <Text style={{ flexShrink: 1, fontSize: 12, color: colors.fgFaint, fontFamily: fonts.ui }}>
+                        Suggested from distance and gain
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        marginTop: 9,
+                        flexDirection: 'row',
+                        gap: 3,
+                        backgroundColor: colors.surface,
+                        borderWidth: 1,
+                        borderColor: colors.raised,
+                        borderRadius: 12,
+                        padding: 3,
+                      }}
+                    >
+                      {HIKE_TYPES.map((type) => {
+                        const on = hikeType === type;
+                        return (
+                          <Pressable
+                            key={type}
+                            onPress={() => {
+                              setTypeTouched(true);
+                              setHikeType(type);
+                            }}
                             style={{
-                              fontSize: 12,
-                              color: on ? colors.onSage : colors.fgMuted,
-                              fontFamily: fonts.uiSemibold,
-                              fontWeight: 'normal',
+                              flex: 1,
+                              height: 36,
+                              borderRadius: 10,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: on ? colors.fg : 'transparent',
+                              paddingHorizontal: 2,
                             }}
                           >
-                            {type}
-                          </Text>
-                        </Pressable>
-                      );
-                    })}
+                            <Text
+                              numberOfLines={1}
+                              adjustsFontSizeToFit
+                              style={{
+                                fontSize: 12,
+                                color: on ? colors.onSage : colors.fgMuted,
+                                fontFamily: fonts.uiSemibold,
+                                fontWeight: 'normal',
+                              }}
+                            >
+                              {HIKE_TYPE_LABELS[type]}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                    </View>
                   </View>
-                </View>
+                ) : null}
 
                 <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
                   <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
@@ -468,11 +476,7 @@ export function PastHikeSheet({
                   <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Photos</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                     {photos.map((uri) => (
-                      <Image
-                        key={uri}
-                        source={{ uri }}
-                        style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.raised }}
-                      />
+                      <PastPhoto key={uri} stored={uri} />
                     ))}
                     <Pressable
                       accessibilityLabel="Add photo"
@@ -491,6 +495,11 @@ export function PastHikeSheet({
                       <Text style={{ fontSize: 22, color: colors.fgMuted }}>+</Text>
                     </Pressable>
                   </View>
+                  {photoError ? (
+                    <Text style={{ marginTop: 8, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                      {photoError}
+                    </Text>
+                  ) : null}
                 </View>
               </>
             )}
@@ -526,7 +535,7 @@ export function PastHikeSheet({
                   terrain,
                   conditions,
                   difficulty,
-                  hikeType,
+                  hikeType: HIKE_TYPES.length === 1 ? HIKE_TYPES[0] : hikeType,
                   photos,
                 });
               }}
@@ -565,6 +574,32 @@ const stepStyle = {
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 };
+
+function PastPhoto({ stored }: { stored: string }) {
+  const [uri, setUri] = useState(stored.startsWith('sb:') ? '' : stored);
+
+  useEffect(() => {
+    if (!stored.startsWith('sb:')) {
+      setUri(stored);
+      return;
+    }
+    let cancelled = false;
+    void resolvePhotoUri(stored).then((next) => {
+      if (!cancelled) setUri(next);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [stored]);
+
+  return (
+    <Image
+      source={{ uri }}
+      accessibilityLabel="Hike photo"
+      style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.raised }}
+    />
+  );
+}
 
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
