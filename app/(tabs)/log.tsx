@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
+import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams } from 'expo-router';
@@ -31,6 +32,15 @@ function digits(value: string, maxLength: number): string {
   return value.replace(/\D/g, '').slice(0, maxLength);
 }
 
+const TERRAIN = ['Dirt', 'Rock', 'Snow', 'Sand'];
+const CONDITIONS = ['Dry', 'Wet', 'Icy', 'Muddy', 'Windy'];
+const EFFORT = ['Easy', 'Moderate', 'Hard'];
+const HIKE_TYPES = ['Walk', 'Day Hike', 'Summit', 'Scramble', 'Backpacking'];
+
+function toggle(list: string[], value: string): string[] {
+  return list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
+}
+
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const trails = useTrailCache((s) => s.trails);
@@ -51,7 +61,20 @@ export default function LogScreen() {
   const [hours, setHours] = useState('');
   const [minutes, setMinutes] = useState('');
   const [pastNotes, setPastNotes] = useState('');
+  const [distanceText, setDistanceText] = useState('');
+  const [distanceTouched, setDistanceTouched] = useState(false);
+  const [terrain, setTerrain] = useState<string[]>([]);
+  const [conditions, setConditions] = useState<string[]>([]);
+  const [difficulty, setDifficulty] = useState<string | null>(null);
+  const [hikeType, setHikeType] = useState<string | null>(null);
+  const [pastPhotos, setPastPhotos] = useState<string[]>([]);
   const maximumDate = useMemo(() => new Date(), []);
+
+  useEffect(() => {
+    if (distanceTouched) return;
+    const trail = trails.find((item) => item.id === selectedTrailId);
+    setDistanceText(trail ? String(trail.distance_km) : '');
+  }, [distanceTouched, selectedTrailId, trails]);
 
   useEffect(() => {
     if (!tracker.isTracking || tracker.isPaused) return;
@@ -95,12 +118,19 @@ export default function LogScreen() {
   }, [params.recording, tracker.pause, tracker.complete]);
 
   const savePast = () => {
+    const distanceKm = distanceText.trim() === '' ? null : Number(distanceText);
     const log = tracker.logPast({
       trailId: selectedTrailId,
       hikedOn,
       hours: Number(hours) || 0,
       minutes: Number(minutes) || 0,
       notes: pastNotes,
+      distanceKm: distanceKm != null && Number.isFinite(distanceKm) ? distanceKm : null,
+      terrain,
+      conditions,
+      difficulty,
+      hikeType,
+      photos: pastPhotos,
     });
     if (!log) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -109,6 +139,12 @@ export default function LogScreen() {
     setHours('');
     setMinutes('');
     setPastNotes('');
+    setTerrain([]);
+    setConditions([]);
+    setDifficulty(null);
+    setHikeType(null);
+    setPastPhotos([]);
+    setDistanceTouched(false);
   };
 
   return (
@@ -254,6 +290,101 @@ export default function LogScreen() {
                     style={{ borderRadius: 12, textAlignVertical: 'top' }}
                   />
                 </View>
+                <View>
+                  <Text className="mb-2 text-[13px] text-zinc-400">Optional details</Text>
+                  <Text className="mb-2 text-[13px] text-zinc-400">Distance (km)</Text>
+                  <TextInput
+                    value={distanceText}
+                    onChangeText={(value) => {
+                      setDistanceTouched(true);
+                      setDistanceText(value.replace(/[^0-9.]/g, ''));
+                    }}
+                    keyboardType="decimal-pad"
+                    accessibilityLabel="Distance"
+                    placeholder="From the trail"
+                    placeholderTextColor="#52525B"
+                    className="border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
+                    style={{ borderRadius: 12 }}
+                  />
+                </View>
+                <View className="gap-2">
+                  <Text className="text-[13px] text-zinc-400">Type</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {HIKE_TYPES.map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => setHikeType(hikeType === type ? null : type)}
+                        className={`border px-3 py-2 ${hikeType === type ? 'border-accent' : 'border-zinc-800'}`}
+                        style={{ borderRadius: 12 }}
+                      >
+                        <Text className="text-[13px] text-zinc-100">{type}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View className="gap-2">
+                  <Text className="text-[13px] text-zinc-400">Terrain</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {TERRAIN.map((item) => (
+                      <Pressable
+                        key={item}
+                        onPress={() => setTerrain(toggle(terrain, item))}
+                        className={`border px-3 py-2 ${terrain.includes(item) ? 'border-accent' : 'border-zinc-800'}`}
+                        style={{ borderRadius: 12 }}
+                      >
+                        <Text className="text-[13px] text-zinc-100">{item}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View className="gap-2">
+                  <Text className="text-[13px] text-zinc-400">Conditions</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {CONDITIONS.map((item) => (
+                      <Pressable
+                        key={item}
+                        onPress={() => setConditions(toggle(conditions, item))}
+                        className={`border px-3 py-2 ${conditions.includes(item) ? 'border-accent' : 'border-zinc-800'}`}
+                        style={{ borderRadius: 12 }}
+                      >
+                        <Text className="text-[13px] text-zinc-100">{item}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <View className="gap-2">
+                  <Text className="text-[13px] text-zinc-400">Effort</Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {EFFORT.map((item) => (
+                      <Pressable
+                        key={item}
+                        onPress={() => setDifficulty(difficulty === item ? null : item)}
+                        className={`border px-3 py-2 ${difficulty === item ? 'border-accent' : 'border-zinc-800'}`}
+                        style={{ borderRadius: 12 }}
+                      >
+                        <Text className="text-[13px] text-zinc-100">{item}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+                <Pressable
+                  onPress={() => {
+                    void ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ['images'],
+                      quality: 0.7,
+                    }).then((result) => {
+                      if (result.canceled) return;
+                      const uri = result.assets[0]?.uri;
+                      if (uri) setPastPhotos((current) => [...current, uri]);
+                    });
+                  }}
+                  className="items-center border border-zinc-800 py-3"
+                  style={{ borderRadius: 12 }}
+                >
+                  <Text className="text-[15px] text-zinc-200">
+                    Photos{pastPhotos.length > 0 ? ` · ${pastPhotos.length}` : ''}
+                  </Text>
+                </Pressable>
                 <Pressable
                   onPress={savePast}
                   className="items-center border border-accent bg-accent/15 py-3.5 active:bg-accent/25"

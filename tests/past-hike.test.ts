@@ -72,4 +72,45 @@ describe('buildPastHikeLog', () => {
   it('ignores negative duration parts', () => {
     expect(durationFromParts(-2, -30)).toBe(0);
   });
+
+  it('keeps a hike when only the trail and date are set', () => {
+    const log = buildPastHikeLog({
+      trailId: 'trail-mission',
+      hikedOn: new Date(2024, 0, 4),
+      now,
+    });
+    expect(log).toMatchObject({
+      trail_id: 'trail-mission',
+      duration_seconds: 0,
+      notes: null,
+      photos: [],
+      distance_km: null,
+      terrain: [],
+      conditions: [],
+      difficulty: null,
+      hike_type: null,
+    });
+  });
+
+  it('stores optional distance, terrain, conditions, effort, type, and photos', () => {
+    const log = buildPastHikeLog({
+      trailId: 'trail-mission',
+      hikedOn: new Date(2024, 0, 4),
+      distanceKm: 9.8,
+      terrain: ['rock'],
+      conditions: ['windy'],
+      difficulty: 'hard',
+      hikeType: 'Summit',
+      photos: ['file://ridge.jpg'],
+      now,
+    });
+    expect(log).toMatchObject({
+      distance_km: 9.8,
+      terrain: ['rock'],
+      conditions: ['windy'],
+      difficulty: 'hard',
+      hike_type: 'Summit',
+      photos: ['file://ridge.jpg'],
+    });
+  });
 });

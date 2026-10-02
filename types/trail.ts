@@ -50,6 +50,12 @@ export interface HikeLog {
   notes: string | null;
   recorded_path: GeoJSONLineString | null;
   created_at: string;
+  /** Optional past-hike details. Absent on older logs. */
+  distance_km?: number | null;
+  terrain?: string[];
+  conditions?: string[];
+  difficulty?: string | null;
+  hike_type?: string | null;
 }
 
 export interface TrailRanking {
