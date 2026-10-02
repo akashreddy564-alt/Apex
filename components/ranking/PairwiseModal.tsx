@@ -89,6 +89,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
               entries={preview.leaderboard}
               ordinalRank={preview.ordinalRank}
               score={preview.score}
+              count={preview.count}
               bucket={preview.bucket}
               onUndo={undo}
               onPlace={confirmPlace}

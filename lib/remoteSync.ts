@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
+import { withStoredScores } from '@/lib/ranking';
 import { supabase } from '@/lib/supabase';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
@@ -102,10 +103,12 @@ export async function pullRemote(): Promise<SyncResult> {
     logs: mergeById(local.logs, remoteLogs, dirtyIds(dirty, 'log')),
   });
   useRankingStore.setState({
-    rankings: mergeById(
-      useRankingStore.getState().rankings,
-      remoteRanks,
-      dirtyIds(dirty, 'ranking'),
+    rankings: withStoredScores(
+      mergeById(
+        useRankingStore.getState().rankings,
+        remoteRanks,
+        dirtyIds(dirty, 'ranking'),
+      ),
     ),
     comparisons: mergeById(
       useRankingStore.getState().comparisons,
@@ -175,6 +178,7 @@ function mapRanking(row: Record<string, unknown>): TrailRanking | null {
     bucket,
     position: row.position,
     comparison_count: num(row.comparison_count),
+    score: num(row.score),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
   };
 }
@@ -260,6 +264,7 @@ async function sendRanking(ranking: TrailRanking): Promise<boolean> {
     hike_type: ranking.hike_type,
     bucket: ranking.bucket,
     position: ranking.position,
+    score: ranking.score,
     comparison_count: ranking.comparison_count,
     updated_at: ranking.updated_at,
   };

@@ -7,6 +7,7 @@ import { MOCK_USER_ID } from '@/data/mockTrails';
 import {
   DEFAULT_HIKE_TYPE,
   migrateLegacyRankings,
+  withStoredScores,
   type LegacyRanking,
 } from '@/lib/ranking';
 import type { PairwiseComparison, TrailRanking } from '@/types/trail';
@@ -14,7 +15,7 @@ import type { PairwiseComparison, TrailRanking } from '@/types/trail';
 const SEED_KEYS = generateNKeysBetween(null, null, 5);
 
 /** Seed a few ranked trails so placement is immediately demoable. Best first. */
-const SEED_RANKINGS: TrailRanking[] = [
+const SEED_RANKINGS: TrailRanking[] = withStoredScores([
   ['trail-halfdome', 4],
   ['trail-diablo', 3],
   ['trail-tam', 3],
@@ -25,11 +26,11 @@ const SEED_RANKINGS: TrailRanking[] = [
   user_id: MOCK_USER_ID,
   trail_id: String(trailId),
   hike_type: DEFAULT_HIKE_TYPE,
-  bucket: 'loved',
+  bucket: 'loved' as const,
   position: SEED_KEYS[index] ?? `a${index}`,
   comparison_count: Number(comparisons),
   updated_at: new Date().toISOString(),
-}));
+})));
 
 interface RankingState {
   rankings: TrailRanking[];
@@ -52,7 +53,7 @@ export const useRankingStore = create<RankingState>()(
         ),
       upsertRanking: (ranking) => {
         set((state) => ({
-          rankings: [
+          rankings: withStoredScores([
             ...state.rankings.filter(
               (row) =>
                 !(
@@ -62,13 +63,13 @@ export const useRankingStore = create<RankingState>()(
                 ),
             ),
             ranking,
-          ],
+          ]),
         }));
       },
-      setRankings: (rankings) => set({ rankings }),
+      setRankings: (rankings) => set({ rankings: withStoredScores(rankings) }),
       place: (ranking, comparisons) => {
         set((state) => ({
-          rankings: [
+          rankings: withStoredScores([
             ...state.rankings.filter(
               (row) =>
                 !(
@@ -78,14 +79,14 @@ export const useRankingStore = create<RankingState>()(
                 ),
             ),
             ranking,
-          ],
+          ]),
           comparisons: [...state.comparisons, ...comparisons],
         }));
       },
     }),
     {
       name: 'apex-rankings',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         rankings: state.rankings,
@@ -96,14 +97,12 @@ export const useRankingStore = create<RankingState>()(
           rankings?: LegacyRanking[];
           comparisons?: PairwiseComparison[];
         };
-        if (version < 1) {
-          return {
-            rankings: migrateLegacyRankings(state.rankings ?? []),
-            comparisons: state.comparisons ?? [],
-          };
-        }
+        const rankings =
+          version < 1
+            ? migrateLegacyRankings(state.rankings ?? [])
+            : withStoredScores((state.rankings ?? []) as TrailRanking[]);
         return {
-          rankings: state.rankings ?? [],
+          rankings,
           comparisons: state.comparisons ?? [],
         };
       },

@@ -9,7 +9,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
-import { BUCKET_BANDS, formatRankScore, type Bucket } from '@/lib/ranking';
+import { BUCKET_BANDS, placementScoreLabel, type Bucket } from '@/lib/ranking';
 import type { LeaderboardEntry } from '@/types/trail';
 
 const SPRING = { damping: 18, stiffness: 260, mass: 0.7 };
@@ -18,12 +18,22 @@ interface LeaderboardRevealProps {
   entries: LeaderboardEntry[];
   ordinalRank: number;
   score: number;
+  /** Full bucket size, including rows that are not on screen. */
+  count: number;
   bucket: Bucket;
   onUndo: () => void;
   onPlace: () => void;
 }
 
-function Row({ entry, index }: { entry: LeaderboardEntry; index: number }) {
+function Row({
+  entry,
+  index,
+  count,
+}: {
+  entry: LeaderboardEntry;
+  index: number;
+  count: number;
+}) {
   const scale = useSharedValue(entry.isNew ? 0.96 : 1);
 
   useEffect(() => {
@@ -62,7 +72,7 @@ function Row({ entry, index }: { entry: LeaderboardEntry; index: number }) {
         className="text-[15px] text-zinc-100"
         style={{ fontVariant: ['tabular-nums'] }}
       >
-        {formatRankScore(entry.score)}
+        {placementScoreLabel(entry.ranking.bucket, count, entry.score)}
       </Text>
     </Animated.View>
   );
@@ -73,6 +83,7 @@ export function LeaderboardReveal({
   ordinalRank,
   score,
   bucket,
+  count,
   onUndo,
   onPlace,
 }: LeaderboardRevealProps) {
@@ -88,15 +99,15 @@ export function LeaderboardReveal({
         className="text-center text-[34px] text-zinc-50"
         style={{ fontVariant: ['tabular-nums'] }}
       >
-        {formatRankScore(score)}
+        {placementScoreLabel(bucket, count, score)}
       </Text>
       <Text className="mt-1 text-center text-[15px] text-zinc-200">
-        #{ordinalRank} in {label}
+        #{ordinalRank} in {label} · {placementScoreLabel(bucket, count, score)}
       </Text>
 
       <View className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 px-3">
         {entries.map((entry, index) => (
-          <Row key={entry.trail.id} entry={entry} index={index} />
+          <Row key={entry.trail.id} entry={entry} index={index} count={count} />
         ))}
       </View>
 

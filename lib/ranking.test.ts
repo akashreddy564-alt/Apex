@@ -9,10 +9,15 @@ import {
   expectedComparisons,
   formatRankScore,
   migrateLegacyRankings,
+  overallByScore,
+  placementScoreLabel,
   positionForInsert,
   startSession,
   undo,
+  withStoredScores,
+  type Bucket,
   type PlacementAnswer,
+  type StoredRanking,
 } from './ranking.ts';
 
 function place(order: string[], choices: PlacementAnswer[]): number {
@@ -128,6 +133,91 @@ test('legacy Elo rows keep their order inside Loved', () => {
   assert.ok(migrated.every((row) => row.bucket === 'loved' && row.hike_type === 'hike'));
   assert.ok(migrated[0].position < migrated[1].position);
   assert.equal(migrated[0].comparison_count, 3);
+});
+
+function unscored(
+  trailId: string,
+  hikeType: string,
+  bucket: Bucket,
+  position: string,
+): Omit<StoredRanking, 'score'> {
+  return {
+    id: `rank-${hikeType}-${trailId}`,
+    user_id: 'user',
+    trail_id: trailId,
+    hike_type: hikeType,
+    bucket,
+    position,
+    comparison_count: 1,
+    updated_at: '2020-01-01T00:00:00.000Z',
+  };
+}
+
+test('rows show the bucket name until that bucket reaches 3 hikes', () => {
+  for (const bucket of BUCKETS) {
+    const two = withStoredScores(
+      [0, 1].map((index) => unscored(`${bucket}-${index}`, 'hike', bucket, `a${index}`)),
+    );
+    assert.equal(two.length, 2);
+    for (const [index, row] of two.entries()) {
+      assert.equal(row.score, bandScore(bucket, index, 2));
+      assert.equal(typeof row.score, 'number');
+      assert.equal(placementScoreLabel(bucket, two.length, row.score), BUCKET_BANDS[bucket].label);
+    }
+
+    const three = withStoredScores(
+      [0, 1, 2].map((index) => unscored(`${bucket}-${index}`, 'hike', bucket, `a${index}`)),
+    );
+    assert.equal(three.length, 3);
+    for (const row of three) {
+      assert.equal(placementScoreLabel(bucket, three.length, row.score), formatRankScore(row.score));
+    }
+  }
+});
+
+test('a 50-hike bucket stays inside its band and follows position', () => {
+  for (const bucket of BUCKETS) {
+    const { lo, hi } = BUCKET_BANDS[bucket];
+    const scores = Array.from({ length: 50 }, (_, index) => bandScore(bucket, index, 50));
+    for (const score of scores) {
+      assert.ok(score >= lo && score <= hi, `${bucket} ${score} outside ${lo}-${hi}`);
+      assert.equal(score, Math.round(score * 10) / 10);
+    }
+    for (let index = 1; index < scores.length; index++) {
+      assert.ok(scores[index] <= scores[index - 1]);
+    }
+  }
+});
+
+test('an Overall list sorts hikes from small buckets by stored score', () => {
+  const summit = withStoredScores([
+    unscored('alta', 'summit', 'loved', 'a0'),
+    unscored('baja', 'summit', 'loved', 'a1'),
+  ]);
+  const day = withStoredScores([unscored('solo', 'day', 'loved', 'a0')]);
+  const walk = withStoredScores([unscored('meadow', 'walk', 'fine', 'a0')]);
+  const scramble = withStoredScores([
+    unscored('scree', 'scramble', 'disliked', 'a0'),
+    unscored('talus', 'scramble', 'disliked', 'a1'),
+  ]);
+
+  for (const row of [...summit, ...day, ...walk, ...scramble]) {
+    assert.equal(typeof row.score, 'number');
+    const count = row.hike_type === 'day' || row.hike_type === 'walk' ? 1 : 2;
+    assert.equal(placementScoreLabel(row.bucket, count, row.score), BUCKET_BANDS[row.bucket].label);
+  }
+
+  const merged = overallByScore([...scramble, ...walk, ...day, ...summit]);
+  assert.deepEqual(
+    merged.map((row) => row.trail_id),
+    ['alta', 'solo', 'baja', 'meadow', 'scree', 'talus'],
+  );
+  for (let index = 1; index < merged.length; index++) {
+    assert.ok(merged[index].score <= merged[index - 1].score);
+  }
+  assert.equal(day[0].score, bandScore('loved', 0, 1));
+  assert.equal(summit[0].score, bandScore('loved', 0, 2));
+  assert.equal(summit[1].score, bandScore('loved', 1, 2));
 });
 
 test('expected comparisons follow the binary-search bound', () => {

@@ -6,10 +6,15 @@ import {
   expectedComparisons,
   formatRankScore,
   migrateLegacyRankings,
+  overallByScore,
+  placementScoreLabel,
   positionForInsert,
   startSession,
   undo,
+  withStoredScores,
+  type Bucket,
   type PlacementAnswer,
+  type StoredRanking,
 } from '@/lib/ranking';
 
 function place(order: string[], choices: PlacementAnswer[]): number {
@@ -110,5 +115,97 @@ describe('bucket placement', () => {
     );
     expect(migrated[0]?.position < migrated[1]?.position).toBe(true);
     expect(expectedComparisons(15)).toBe(4);
+  });
+
+  function unscored(
+    trailId: string,
+    hikeType: string,
+    bucket: Bucket,
+    position: string,
+  ): Omit<StoredRanking, 'score'> {
+    return {
+      id: `rank-${hikeType}-${trailId}`,
+      user_id: 'user',
+      trail_id: trailId,
+      hike_type: hikeType,
+      bucket,
+      position,
+      comparison_count: 1,
+      updated_at: '2020-01-01T00:00:00.000Z',
+    };
+  }
+
+  it('shows the bucket name until that bucket reaches 3 hikes', () => {
+    for (const bucket of BUCKETS) {
+      const two = withStoredScores(
+        [0, 1].map((index) => unscored(`${bucket}-${index}`, 'hike', bucket, `a${index}`)),
+      );
+      expect(two).toHaveLength(2);
+      two.forEach((row, index) => {
+        expect(row.score).toBe(bandScore(bucket, index, 2));
+        expect(placementScoreLabel(bucket, two.length, row.score)).toBe(
+          BUCKET_BANDS[bucket].label,
+        );
+      });
+
+      const three = withStoredScores(
+        [0, 1, 2].map((index) => unscored(`${bucket}-${index}`, 'hike', bucket, `a${index}`)),
+      );
+      expect(three).toHaveLength(3);
+      for (const row of three) {
+        expect(placementScoreLabel(bucket, three.length, row.score)).toBe(
+          formatRankScore(row.score),
+        );
+      }
+    }
+  });
+
+  it('keeps a 50-hike bucket inside its band and in position order', () => {
+    for (const bucket of BUCKETS) {
+      const { lo, hi } = BUCKET_BANDS[bucket];
+      const scores = Array.from({ length: 50 }, (_, index) => bandScore(bucket, index, 50));
+      for (const score of scores) {
+        expect(score).toBeGreaterThanOrEqual(lo);
+        expect(score).toBeLessThanOrEqual(hi);
+        expect(score).toBe(Math.round(score * 10) / 10);
+      }
+      for (let index = 1; index < scores.length; index++) {
+        expect(scores[index]).toBeLessThanOrEqual(scores[index - 1]);
+      }
+    }
+  });
+
+  it('sorts an Overall list of small buckets by stored score', () => {
+    const summit = withStoredScores([
+      unscored('alta', 'summit', 'loved', 'a0'),
+      unscored('baja', 'summit', 'loved', 'a1'),
+    ]);
+    const day = withStoredScores([unscored('solo', 'day', 'loved', 'a0')]);
+    const walk = withStoredScores([unscored('meadow', 'walk', 'fine', 'a0')]);
+    const scramble = withStoredScores([
+      unscored('scree', 'scramble', 'disliked', 'a0'),
+      unscored('talus', 'scramble', 'disliked', 'a1'),
+    ]);
+
+    for (const row of [...summit, ...day, ...walk, ...scramble]) {
+      const count = row.hike_type === 'day' || row.hike_type === 'walk' ? 1 : 2;
+      expect(placementScoreLabel(row.bucket, count, row.score)).toBe(BUCKET_BANDS[row.bucket].label);
+    }
+
+    const merged = overallByScore([...scramble, ...walk, ...day, ...summit]);
+    expect(merged.map((row) => row.trail_id)).toEqual([
+      'alta',
+      'solo',
+      'baja',
+      'meadow',
+      'scree',
+      'talus',
+    ]);
+    for (let index = 1; index < merged.length; index++) {
+      expect(merged[index]?.score).toBeLessThanOrEqual(merged[index - 1]?.score ?? 0);
+    }
+    expect(day[0]?.score).toBe(bandScore('loved', 0, 1));
+    expect(summit[0]?.score).toBe(bandScore('loved', 0, 2));
+    expect(summit[1]?.score).toBe(bandScore('loved', 1, 2));
   });
 });

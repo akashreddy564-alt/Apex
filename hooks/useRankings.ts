@@ -3,11 +3,12 @@ import { useMemo } from 'react';
 
 import { pushRanking } from '@/lib/remoteSync';
 import {
-  bandScore,
   BUCKET_BANDS,
   BUCKETS,
   DEFAULT_HIKE_TYPE,
+  overallByScore,
   sortByPosition,
+  withStoredScores,
   type Bucket,
 } from '@/lib/ranking';
 import { useRankingStore } from '@/stores/rankingStore';
@@ -19,6 +20,8 @@ const RANKINGS_KEY = ['rankings'] as const;
 export interface BucketSection {
   bucket: Bucket;
   label: string;
+  /** Hikes in this bucket. The row label uses this, not a recomputed score. */
+  count: number;
   entries: LeaderboardEntry[];
 }
 
@@ -42,20 +45,35 @@ export function useRankings() {
           (row) => row.bucket === bucket && row.hike_type === DEFAULT_HIKE_TYPE,
         ),
       );
-      const entries = group
-        .map((ranking, index) => {
-          const trail = trails.find((item) => item.id === ranking.trail_id);
-          if (!trail) return null;
-          return {
+      const entries = overallByScore(group).flatMap((ranking, index) => {
+        const trail = trails.find((item) => item.id === ranking.trail_id);
+        if (!trail) return [];
+        return [
+          {
             trail,
             ranking,
-            score: bandScore(bucket, index, group.length),
+            score: ranking.score,
             ordinal: index + 1,
-          };
-        })
-        .filter((entry): entry is LeaderboardEntry => entry !== null);
-      return { bucket, label: BUCKET_BANDS[bucket].label, entries };
+          },
+        ];
+      });
+      return { bucket, label: BUCKET_BANDS[bucket].label, count: group.length, entries };
     }).filter((section) => section.entries.length > 0);
+  }, [rankings, trails]);
+
+  const overall: LeaderboardEntry[] = useMemo(() => {
+    return overallByScore(rankings).flatMap((ranking, index) => {
+      const trail = trails.find((item) => item.id === ranking.trail_id);
+      if (!trail) return [];
+      return [
+        {
+          trail,
+          ranking,
+          score: ranking.score,
+          ordinal: index + 1,
+        },
+      ];
+    });
   }, [rankings, trails]);
 
   const leaderboard = useMemo(
@@ -66,7 +84,10 @@ export function useRankings() {
   const optimisticUpsert = useMutation({
     mutationFn: async (ranking: TrailRanking) => {
       upsertRanking(ranking);
-      void pushRanking(ranking);
+      const stamped = useRankingStore
+        .getState()
+        .rankings.filter((row) => row.hike_type === ranking.hike_type);
+      for (const row of stamped) void pushRanking(row);
       return ranking;
     },
     onMutate: async (ranking) => {
@@ -77,7 +98,7 @@ export function useRankings() {
           (row) =>
             !(row.trail_id === ranking.trail_id && row.hike_type === ranking.hike_type),
         );
-        return [...without, ranking];
+        return withStoredScores([...without, ranking]);
       });
       return { previous };
     },
@@ -95,6 +116,7 @@ export function useRankings() {
   return {
     rankings: query.data ?? rankings,
     sections,
+    overall,
     leaderboard,
     isLoading: query.isLoading,
     optimisticUpsert,

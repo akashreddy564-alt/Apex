@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TrailCard } from '@/components/trail/TrailCard';
 import { useRankings } from '@/hooks/useRankings';
-import { formatRankScore } from '@/lib/ranking';
+import { placementScoreLabel } from '@/lib/ranking';
 import { displayM } from '@/theme/tokens';
 
 export default function RankingsScreen() {
@@ -39,7 +39,7 @@ export default function RankingsScreen() {
                   key={entry.trail.id}
                   trail={entry.trail}
                   rank={entry.ordinal}
-                  score={formatRankScore(entry.score)}
+                  score={placementScoreLabel(section.bucket, section.count, entry.score)}
                   onPress={() => router.push(`/trail/${entry.trail.id}`)}
                 />
               ))}
