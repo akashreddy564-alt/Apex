@@ -61,6 +61,7 @@ export default function TrailDetailScreen() {
         </View>
 
         <TelemetryRow
+          trailId={trail.id}
           telemetry={{
             peak_elevation_m: trail.peak_elevation_m,
             elevation_gain_m: trail.elevation_gain_m,
@@ -69,7 +70,10 @@ export default function TrailDetailScreen() {
           }}
         />
 
-        <ElevationSparkline samples={trail.elevation_profile} />
+        <ElevationSparkline
+          trailId={trail.id}
+          samples={trail.elevation_profile}
+        />
 
         <View
           className="border border-zinc-800 bg-zinc-900 p-3"

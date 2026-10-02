@@ -6,6 +6,7 @@ import { formatCompactDuration, formatDistanceKm, formatElevationM } from '@/lib
 import type { TrailTelemetry } from '@/types/trail';
 
 interface TelemetryRowProps {
+  trailId: string;
   telemetry: TrailTelemetry;
 }
 
@@ -35,7 +36,7 @@ function Cell({ label, spoken, children }: CellProps) {
 /** Slow stagger so each cell settles before the next climbs. */
 const STAGGER_MS = 400;
 
-export function TelemetryRow({ telemetry }: TelemetryRowProps) {
+export function TelemetryRow({ trailId, telemetry }: TelemetryRowProps) {
   return (
     <View className="gap-2">
       <View className="flex-row flex-wrap gap-2">
@@ -48,6 +49,7 @@ export function TelemetryRow({ telemetry }: TelemetryRowProps) {
           }
         >
           <CountUpText
+            trailId={trailId}
             value={telemetry.peak_elevation_m}
             format="elevation"
             delayMs={0}
@@ -62,6 +64,7 @@ export function TelemetryRow({ telemetry }: TelemetryRowProps) {
           }
         >
           <CountUpText
+            trailId={trailId}
             value={telemetry.elevation_gain_m}
             format="elevation"
             delayMs={STAGGER_MS}
@@ -78,6 +81,7 @@ export function TelemetryRow({ telemetry }: TelemetryRowProps) {
           }
         >
           <CountUpText
+            trailId={trailId}
             value={telemetry.distance_km}
             format="distance"
             delayMs={STAGGER_MS * 2}
@@ -88,6 +92,7 @@ export function TelemetryRow({ telemetry }: TelemetryRowProps) {
           spoken={`Average moving time, ${formatCompactDuration(telemetry.avg_moving_time_seconds)}`}
         >
           <CountUpText
+            trailId={trailId}
             value={telemetry.avg_moving_time_seconds}
             format="duration"
             delayMs={STAGGER_MS * 3}

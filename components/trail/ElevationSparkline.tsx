@@ -21,11 +21,20 @@ import {
   useLineChart,
 } from 'react-native-wagmi-charts';
 
+import {
+  applyElevationUpdate,
+  blendProfiles,
+  clipWidth,
+  SHAPE_EASE_MS,
+  shapeEase,
+} from '@/lib/elevationMotion';
 import { formatDistanceKm, formatElevationM } from '@/lib/format';
 import type { ElevationSample } from '@/types/trail';
 
 /** Accent sage — crisp stroke only, no bloom. */
 const LINE_COLOR = '#8B9A6D';
+/** Flat sage under the stroke. Same geometry as the line, 12% opacity. */
+const FILL_COLOR = 'rgba(139,154,109,0.12)';
 /** zinc-400. The dash is a flat stroke, not a glow. */
 const DASH_COLOR = '#A1A1AA';
 /** Near-white tip. No shadow, no blur. */
@@ -45,6 +54,8 @@ const BEAD_R = 3.25;
 const BEAD_INSET = 1;
 
 interface ElevationSparklineProps {
+  /** Reveal and the scrub haptic index reset when this changes, not when samples do. */
+  trailId: string;
   samples: ElevationSample[];
   height?: number;
 }
@@ -148,11 +159,15 @@ function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
  * outside it so it can be read before the wipe finishes.
  */
 export function ElevationSparkline({
+  trailId,
   samples,
   height = 168,
 }: ElevationSparklineProps) {
   const lastIndex = useRef<number | null>(null);
   const seenSamples = useRef(samples);
+  const seenTrail = useRef<string | null>(null);
+  const plottedRef = useRef(samples);
+  const [plotted, setPlotted] = useState(samples);
   const [chartWidth, setChartWidth] = useState(0);
   const widthSv = useSharedValue(0);
   const reducedMotion = useReducedMotion();
@@ -161,23 +176,71 @@ export function ElevationSparkline({
 
   const data = useMemo(
     () =>
-      samples.map((s) => ({
+      plotted.map((s) => ({
         timestamp: s.distance_m,
         value: s.elevation_m,
       })),
-    [samples],
+    [plotted],
   );
 
   useEffect(() => {
+    let frame: number | null = null;
+    const cancelMorph = () => {
+      if (frame != null) cancelAnimationFrame(frame);
+      frame = null;
+    };
+
+    const trailChanged = seenTrail.current !== trailId;
     const samplesChanged = seenSamples.current !== samples;
-    if (samplesChanged) {
+    const decision = applyElevationUpdate(
+      {
+        trailId: seenTrail.current,
+        reveal: reveal.value,
+        hapticIndex: lastIndex.current,
+      },
+      {
+        trailId,
+        samplesChanged,
+        reducedMotion: reducedMotion === true,
+      },
+    );
+
+    if (trailChanged) {
+      seenTrail.current = trailId;
       seenSamples.current = samples;
-      lastIndex.current = null;
+      lastIndex.current = decision.hapticIndex;
+      plottedRef.current = samples;
+      setPlotted(samples);
       cancelAnimation(reveal);
-      reveal.value = reducedMotion ? 1 : 0;
+      reveal.value = decision.reveal;
+    } else if (samplesChanged && samples.length >= 2) {
+      seenSamples.current = samples;
+      const from = plottedRef.current;
+      const to = samples;
+      if (!decision.easeShape || from.length < 2) {
+        plottedRef.current = to;
+        setPlotted(to);
+      } else {
+        const started = globalThis.performance?.now?.() ?? Date.now();
+        const tick = (now: number) => {
+          const raw = Math.min(1, (now - started) / SHAPE_EASE_MS);
+          const next = raw >= 1 ? to : blendProfiles(from, to, shapeEase(raw));
+          plottedRef.current = next;
+          setPlotted(next);
+          if (raw < 1) frame = requestAnimationFrame(tick);
+          else frame = null;
+        };
+        frame = requestAnimationFrame(tick);
+      }
+    } else if (samplesChanged) {
+      seenSamples.current = samples;
     }
 
-    if (chartWidth <= 0 || data.length < 2) return;
+    return cancelMorph;
+  }, [reducedMotion, reveal, samples, trailId]);
+
+  useEffect(() => {
+    if (chartWidth <= 0) return;
 
     if (reducedMotion) {
       cancelAnimation(reveal);
@@ -195,15 +258,13 @@ export function ElevationSparkline({
     const duration = Math.max(1, PATH_REVEAL_MS * remaining);
     const timing = withTiming(1, { duration, easing: Easing.linear });
     const fresh = reveal.value <= 0.001;
-    reveal.value = fresh
-      ? withDelay(PATH_REVEAL_DELAY_MS, timing)
-      : timing;
+    reveal.value = fresh ? withDelay(PATH_REVEAL_DELAY_MS, timing) : timing;
 
     return () => cancelAnimation(reveal);
-  }, [chartWidth, data.length, focused, reducedMotion, reveal, samples]);
+  }, [chartWidth, focused, reducedMotion, reveal, trailId]);
 
   const clipStyle = useAnimatedStyle(() => ({
-    width: Math.max(0, widthSv.value * reveal.value),
+    width: clipWidth(widthSv.value, reveal.value),
   }));
 
   if (data.length < 2) {
@@ -214,7 +275,7 @@ export function ElevationSparkline({
     );
   }
 
-  const endKm = (samples[samples.length - 1].distance_m / 1000).toFixed(1);
+  const endKm = (plotted[plotted.length - 1].distance_m / 1000).toFixed(1);
   const mono = 'SpaceMono';
   const showTrace = !reducedMotion;
 
@@ -289,8 +350,11 @@ export function ElevationSparkline({
                       pathProps={{
                         strokeLinecap: 'round',
                         strokeLinejoin: 'round',
+                        isTransitionEnabled: false,
                       }}
-                    />
+                    >
+                      <LineChart.Gradient fill={FILL_COLOR} />
+                    </LineChart.Path>
                     {showTrace ? <FlowingTrace reveal={reveal} /> : null}
                     <RevealHead reveal={reveal} />
                   </View>

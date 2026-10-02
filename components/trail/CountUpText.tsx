@@ -8,6 +8,7 @@ import Animated, {
   runOnJS,
   useAnimatedProps,
   useAnimatedReaction,
+  useAnimatedStyle,
   useDerivedValue,
   useReducedMotion,
   useSharedValue,
@@ -16,6 +17,7 @@ import Animated, {
   type SharedValue,
 } from 'react-native-reanimated';
 
+import { planCountUp, type CountState } from '@/lib/elevationMotion';
 import {
   formatCompactDuration,
   formatDistanceKm,
@@ -25,6 +27,8 @@ import {
 export type CountUpFormat = 'elevation' | 'distance' | 'duration';
 
 interface CountUpTextProps {
+  /** Count-up restarts when this changes, not when `value` does. */
+  trailId: string;
   /** Target metric. `null` shows an em dash (no animation). */
   value: number | null;
   format: CountUpFormat;
@@ -138,6 +142,7 @@ function useLinearProgress(
  * screen does not re-render every tick. Pauses while unfocused.
  */
 export function CountUpText({
+  trailId,
   value,
   format,
   delayMs = 0,
@@ -147,13 +152,35 @@ export function CountUpText({
   const focused = useIsFocused();
   const inputRef = useRef<TextInput>(null);
   const label = finalLabel(format, value);
+  const seen = useRef<CountState>({ trailId: null, value: null });
+  const fade = useSharedValue(1);
   const progress = useLinearProgress(
     COUNT_MS,
     delayMs,
-    `${format}:${delayMs}:${value ?? 'null'}`,
+    `${trailId}:${format}:${delayMs}`,
     reducedMotion || value == null,
     focused,
   );
+
+  useEffect(() => {
+    const plan = planCountUp(seen.current, { trailId, value });
+    seen.current = { trailId, value };
+    if (!plan.showDirect || plan.fadeMs === 0) {
+      fade.value = 1;
+      return;
+    }
+    cancelAnimation(progress);
+    progress.value = 1;
+    fade.value = 0.4;
+    fade.value = withTiming(1, {
+      duration: plan.fadeMs,
+      easing: Easing.out(Easing.cubic),
+    });
+  }, [fade, progress, trailId, value]);
+
+  const fadeStyle = useAnimatedStyle(() => ({
+    opacity: fade.value,
+  }));
 
   const text = useDerivedValue(() => {
     if (value == null) return '—';
@@ -177,7 +204,7 @@ export function CountUpText({
   }
 
   return (
-    <>
+    <Animated.View style={[{ width: '100%' }, fadeStyle]}>
       <CountUpFace
         inputRef={inputRef}
         accessibilityLabel={label}
@@ -189,7 +216,7 @@ export function CountUpText({
       {Platform.OS === 'web' ? (
         <WebValueSync text={text} inputRef={inputRef} />
       ) : null}
-    </>
+    </Animated.View>
   );
 }
 

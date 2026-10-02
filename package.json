@@ -47,6 +47,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts",
     "start": "expo start --port 43127",
     "android": "expo start --android",
     "ios": "expo start --ios",
