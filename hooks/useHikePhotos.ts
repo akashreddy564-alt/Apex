@@ -2,7 +2,8 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useState } from 'react';
 
-import { persistHikePhoto } from '@/lib/hikePhotos';
+import { uploadEncodedPhoto } from '@/lib/hikePhotos';
+import { reencodePhoto } from '@/lib/photoEncode';
 
 interface UseHikePhotosArgs {
   addPhoto: (uri: string) => void;
@@ -11,8 +12,8 @@ interface UseHikePhotosArgs {
 
 /**
  * Library / camera capture for the active hike.
- * The local image is attached immediately; a configured Supabase session
- * replaces it with a hike-photos bucket ref when the upload finishes.
+ * The photo is re-encoded to a JPEG before it is kept or uploaded.
+ * A configured Supabase session then replaces the file URI with a bucket ref.
  */
 export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
   const [busy, setBusy] = useState(false);
@@ -22,11 +23,18 @@ export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
     async (result: ImagePicker.ImagePickerResult) => {
       if (result.canceled || !result.assets?.[0]) return;
       const asset = result.assets[0];
-      addPhoto(asset.uri);
+      let prepared;
+      try {
+        prepared = await reencodePhoto(asset.uri, asset.width ?? 0, asset.height ?? 0);
+      } catch {
+        setMessage('Could not prepare that photo.');
+        return;
+      }
+      addPhoto(prepared.uri);
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       try {
-        const stored = await persistHikePhoto(asset);
-        if (stored !== asset.uri) replacePhoto(asset.uri, stored);
+        const stored = await uploadEncodedPhoto(prepared);
+        if (stored !== prepared.uri) replacePhoto(prepared.uri, stored);
       } catch {
         setMessage('Photo kept on this device. Upload did not finish.');
       }
@@ -45,8 +53,7 @@ export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
       }
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        quality: 0.6,
-        base64: true,
+        quality: 1,
       });
       void attach(result);
     } catch {
@@ -67,8 +74,7 @@ export function useHikePhotos({ addPhoto, replacePhoto }: UseHikePhotosArgs) {
       }
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ['images'],
-        quality: 0.6,
-        base64: true,
+        quality: 1,
       });
       void attach(result);
     } catch {

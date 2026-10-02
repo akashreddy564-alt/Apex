@@ -22,7 +22,8 @@
 ├── lib/
 │   ├── elo.ts                          # Elo update + expected score
 │   ├── format.ts                       # duration / elevation / distance formatters
-│   ├── hikePhotos.ts                   # local data URI or hike-photos bucket ref
+│   ├── hikePhotos.ts                   # stripped JPEG file URI or hike-photos bucket ref
+│   ├── photoEncode.ts                  # re-encode via ImageManipulator, reject EXIF
 │   └── supabase.ts                     # client (env + local mock fallback)
 │
 ├── data/
