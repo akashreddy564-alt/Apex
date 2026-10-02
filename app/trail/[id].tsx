@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Animated, {
@@ -11,12 +11,12 @@ import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
 import { TelemetryRow } from '@/components/trail/TelemetryRow';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
+import { displayM } from '@/theme/tokens';
 
 const ENTRANCE = { damping: 20, stiffness: 240, mass: 0.85 };
 
 export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const navigation = useNavigation();
   const trail = useTrailCache((s) => s.getTrail(String(id)));
   const ranking = useRankingStore((s) => s.getRanking(String(id)));
 
@@ -26,12 +26,6 @@ export default function TrailDetailScreen() {
     progress.value = 0;
     progress.value = withSpring(1, ENTRANCE);
   }, [id, progress]);
-
-  useEffect(() => {
-    if (trail) {
-      navigation.setOptions({ title: trail.name });
-    }
-  }, [navigation, trail]);
 
   const entranceStyle = useAnimatedStyle(() => ({
     opacity: progress.value,
@@ -50,7 +44,9 @@ export default function TrailDetailScreen() {
     <ScrollView className="flex-1 bg-zinc-950" contentContainerStyle={{ padding: 16 }}>
       <Animated.View style={entranceStyle} className="gap-5">
         <View>
-          <Text className="text-xl font-medium text-zinc-50">{trail.name}</Text>
+          <Text style={displayM} numberOfLines={2}>
+            {trail.name}
+          </Text>
           <Text className="mt-1 font-mono text-xs text-zinc-500">{trail.region}</Text>
           {ranking?.ordinal_rank != null ? (
             <Text className="mt-3 font-mono text-[11px] text-accent">
