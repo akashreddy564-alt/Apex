@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { HikeDateField } from '@/components/log/HikeDateField';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
@@ -25,6 +26,10 @@ import { useTrailCache } from '@/stores/trailCache';
 import { displayM } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
+
+function digits(value: string, maxLength: number): string {
+  return value.replace(/\D/g, '').slice(0, maxLength);
+}
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
@@ -41,6 +46,12 @@ export default function LogScreen() {
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
+  const [entry, setEntry] = useState<'now' | 'past'>('now');
+  const [hikedOn, setHikedOn] = useState(() => new Date());
+  const [hours, setHours] = useState('');
+  const [minutes, setMinutes] = useState('');
+  const [pastNotes, setPastNotes] = useState('');
+  const maximumDate = useMemo(() => new Date(), []);
 
   useEffect(() => {
     if (!tracker.isTracking || tracker.isPaused) return;
@@ -83,6 +94,23 @@ export default function LogScreen() {
     return () => sub.remove();
   }, [params.recording, tracker.pause, tracker.complete]);
 
+  const savePast = () => {
+    const log = tracker.logPast({
+      trailId: selectedTrailId,
+      hikedOn,
+      hours: Number(hours) || 0,
+      minutes: Number(minutes) || 0,
+      notes: pastNotes,
+    });
+    if (!log) return;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    comparison.start(log.trail_id, log.id);
+    setModalOpen(true);
+    setHours('');
+    setMinutes('');
+    setPastNotes('');
+  };
+
   return (
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
@@ -93,6 +121,41 @@ export default function LogScreen() {
 
         {!tracker.isTracking ? (
           <View className="mt-6 gap-2">
+            <View className="mb-2 flex-row border border-zinc-800" style={{ borderRadius: 12 }}>
+              <Pressable
+                onPress={() => {
+                  setEntry('now');
+                  void Haptics.selectionAsync();
+                }}
+                className={`flex-1 items-center py-2.5 ${entry === 'now' ? 'bg-zinc-100' : ''}`}
+                style={{ borderRadius: 11 }}
+              >
+                <Text
+                  className={`font-mono text-sm ${
+                    entry === 'now' ? 'font-medium text-zinc-950' : 'text-zinc-400'
+                  }`}
+                >
+                  Now
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setEntry('past');
+                  void Haptics.selectionAsync();
+                }}
+                className={`flex-1 items-center py-2.5 ${entry === 'past' ? 'bg-zinc-100' : ''}`}
+                style={{ borderRadius: 11 }}
+              >
+                <Text
+                  className={`font-mono text-sm ${
+                    entry === 'past' ? 'font-medium text-zinc-950' : 'text-zinc-400'
+                  }`}
+                >
+                  Past hike
+                </Text>
+              </Pressable>
+            </View>
+
             <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
               Select trail
             </Text>
@@ -120,22 +183,86 @@ export default function LogScreen() {
               );
             })}
 
-            <Pressable
-              onPress={() => {
-                if (!selectedTrailId) return;
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
-                  if (seen === '1') tracker.start(selectedTrailId);
-                  else setExplainer(true);
-                });
-              }}
-              className="mt-4 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
-              style={{ borderRadius: 12 }}
-            >
-              <Text className="font-mono text-sm font-medium text-zinc-950">
-                Start tracking
-              </Text>
-            </Pressable>
+            {entry === 'now' ? (
+              <Pressable
+                onPress={() => {
+                  if (!selectedTrailId) return;
+                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
+                    if (seen === '1') tracker.start(selectedTrailId);
+                    else setExplainer(true);
+                  });
+                }}
+                className="mt-4 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
+                style={{ borderRadius: 12 }}
+              >
+                <Text className="font-mono text-sm font-medium text-zinc-950">
+                  Start tracking
+                </Text>
+              </Pressable>
+            ) : (
+              <View className="mt-4 gap-4">
+                <View>
+                  <Text className="mb-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                    Date
+                  </Text>
+                  <HikeDateField
+                    value={hikedOn}
+                    maximumDate={maximumDate}
+                    onChange={setHikedOn}
+                  />
+                </View>
+                <View>
+                  <Text className="mb-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                    Duration
+                  </Text>
+                  <View className="flex-row gap-2">
+                    <TextInput
+                      value={hours}
+                      onChangeText={(value) => setHours(digits(value, 3))}
+                      keyboardType="number-pad"
+                      placeholder="Hours"
+                      placeholderTextColor="#52525B"
+                      accessibilityLabel="Hours"
+                      className="flex-1 border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
+                      style={{ borderRadius: 12 }}
+                    />
+                    <TextInput
+                      value={minutes}
+                      onChangeText={(value) => setMinutes(digits(value, 2))}
+                      keyboardType="number-pad"
+                      placeholder="Minutes"
+                      placeholderTextColor="#52525B"
+                      accessibilityLabel="Minutes"
+                      className="flex-1 border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
+                      style={{ borderRadius: 12 }}
+                    />
+                  </View>
+                </View>
+                <View>
+                  <Text className="mb-2 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+                    Notes
+                  </Text>
+                  <TextInput
+                    value={pastNotes}
+                    onChangeText={setPastNotes}
+                    placeholder="Conditions, pace, crowd…"
+                    placeholderTextColor="#52525B"
+                    multiline
+                    accessibilityLabel="Notes"
+                    className="min-h-[96px] border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
+                    style={{ borderRadius: 12, textAlignVertical: 'top' }}
+                  />
+                </View>
+                <Pressable
+                  onPress={savePast}
+                  className="items-center border border-accent bg-accent/15 py-3.5 active:bg-accent/25"
+                  style={{ borderRadius: 12 }}
+                >
+                  <Text className="font-mono text-sm text-accent">Save & rank</Text>
+                </Pressable>
+              </View>
+            )}
           </View>
         ) : (
           <View className="mt-6">
