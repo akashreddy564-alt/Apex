@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { MOCK_USER_ID } from '@/data/mockTrails';
 import { newId } from '@/lib/geo';
-import { pushComparison, pushRanking } from '@/lib/remoteSync';
+import { pushComparison, pushRankings } from '@/lib/remoteSync';
 import {
   answer,
   bandScore,
@@ -10,6 +10,7 @@ import {
   DEFAULT_HIKE_TYPE,
   expectedComparisons,
   positionForInsert,
+  rankingsToSync,
   sortByPosition,
   startSession,
   undo as undoSession,
@@ -33,6 +34,8 @@ export interface ComparisonSessionResult {
   leaderboard: LeaderboardEntry[];
   ordinalRank: number;
   score: number;
+  /** Full bucket size. The visible leaderboard may be shorter. */
+  count: number;
 }
 
 export interface UseTrailComparisonResult {
@@ -100,6 +103,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
         const trail = allTrails.find((item) => item.id === id);
         if (!trail) return;
         const existing = orderRef.current.find((row) => row.id === id);
+        const score = bandScore(selected, index, ids.length);
         const ranking: TrailRanking = {
           id: `rank-${id}`,
           user_id: MOCK_USER_ID,
@@ -109,11 +113,12 @@ export function useTrailComparison(): UseTrailComparisonResult {
           position: existing?.position ?? '',
           comparison_count: existing ? 0 : pendingRef.current.length,
           updated_at: '',
+          score,
         };
         shown.push({
           trail,
           ranking,
-          score: bandScore(selected, index, ids.length),
+          score,
           ordinal: index + 1,
           isNew: id === trailId,
         });
@@ -131,6 +136,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
         leaderboard: visible,
         ordinalRank: placed?.ordinal ?? insertAt + 1,
         score: placed?.score ?? bandScore(selected, insertAt, ids.length),
+        count: ids.length,
       };
     },
     [trailId],
@@ -257,10 +263,13 @@ export function useTrailComparison(): UseTrailComparisonResult {
       ),
       comparison_count: (existing?.comparison_count ?? 0) + pendingRef.current.length,
       updated_at: new Date().toISOString(),
+      score: 0,
     };
     const comparisons = pendingRef.current;
+    const before = useRankingStore.getState().rankings;
     placeRanking(ranking, comparisons);
-    void pushRanking(ranking);
+    const after = useRankingStore.getState().rankings;
+    void pushRankings(rankingsToSync(before, after));
     for (const comparison of comparisons) void pushComparison(comparison);
   }, [bucket, placeRanking, trailId]);
 

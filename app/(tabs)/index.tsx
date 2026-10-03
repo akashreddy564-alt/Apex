@@ -3,7 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TrailCard } from '@/components/trail/TrailCard';
-import { describePlacement, formatRankScore } from '@/lib/ranking';
+import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { displayXL } from '@/theme/tokens';
@@ -38,7 +38,15 @@ export default function TrailsScreen() {
               key={trail.id}
               trail={trail}
               rank={placement?.ordinal}
-              score={placement ? formatRankScore(placement.score) : null}
+              score={
+                placement
+                  ? placementScoreLabel(
+                      placement.ranking.bucket,
+                      placement.count,
+                      placement.score,
+                    )
+                  : null
+              }
               onPress={() => router.push(`/trail/${trail.id}`)}
             />
           );

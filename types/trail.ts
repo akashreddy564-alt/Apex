@@ -61,6 +61,8 @@ export interface TrailRanking {
   bucket: Bucket;
   /** Fractional index. Lower sorts first inside the bucket. */
   position: string;
+  /** Stored 0–10 score. Present for every hike, including buckets of 1 or 2. */
+  score: number;
   comparison_count: number;
   updated_at: string;
 }
@@ -102,7 +104,7 @@ export interface ComparisonRound {
 export interface LeaderboardEntry {
   trail: Trail;
   ranking: TrailRanking;
-  /** Derived 0–10 score, one decimal when formatted. */
+  /** Stored 0–10 score. The row label may still show the bucket name. */
   score: number;
   /** 1-based rank inside the bucket. */
   ordinal: number;

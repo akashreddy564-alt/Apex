@@ -54,6 +54,11 @@ export interface StoredRanking {
   bucket: Bucket;
   /** Fractional index. Lower sorts first (better) inside the bucket. */
   position: string;
+  /**
+   * 0–10 band score. Always stored, including buckets of 1 or 2.
+   * Sorting and the Overall merge read this. The row label does not, until the bucket has 3 hikes.
+   */
+  score: number;
   comparison_count: number;
   updated_at: string;
 }
@@ -204,11 +209,100 @@ export function formatRankScore(score: number): string {
   return score.toFixed(1);
 }
 
+/**
+ * Row label, or the trail-detail line when `ordinal` is set.
+ * Buckets of 1 or 2 show the bucket name. From 3 up, the one-decimal score.
+ * With an ordinal, a small bucket is "#1 in Fine" and a bucket of 3 or more
+ * adds the score: "#1 in Fine · 5.5".
+ * `bandScore` is unchanged and still returns a number at every count.
+ */
+export function placementScoreLabel(
+  bucket: Bucket,
+  count: number,
+  score: number,
+  ordinal?: number,
+): string {
+  const name = BUCKET_BANDS[bucket].label;
+  if (ordinal == null) {
+    if (count < 3) return name;
+    return formatRankScore(score);
+  }
+  const place = `#${ordinal} in ${name}`;
+  if (count < 3) return place;
+  return `${place} · ${formatRankScore(score)}`;
+}
+
+function rankingKey(row: { user_id: string; hike_type: string; trail_id: string }): string {
+  return `${row.user_id}\0${row.hike_type}\0${row.trail_id}`;
+}
+
+/**
+ * Write a band score onto every row from its position in that hike type and bucket.
+ * One placement refreshes the whole bucket. The previous score is not reused.
+ */
+export function withStoredScores<T extends Omit<StoredRanking, 'score'> & { score?: number }>(
+  rows: T[],
+): (T & { score: number })[] {
+  const groups = new Map<string, T[]>();
+  for (const row of rows) {
+    const key = `${row.user_id}\0${row.hike_type}\0${row.bucket}`;
+    const list = groups.get(key);
+    if (list) list.push(row);
+    else groups.set(key, [row]);
+  }
+
+  const scores = new Map<string, number>();
+  for (const list of groups.values()) {
+    const sorted = sortByPosition(list);
+    sorted.forEach((row, index) => {
+      scores.set(rankingKey(row), bandScore(row.bucket, index, sorted.length));
+    });
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    score: scores.get(rankingKey(row)) ?? bandScore(row.bucket, 0, 1),
+  }));
+}
+
+/**
+ * Overall list across hike types. Order is the stored score, highest first.
+ * It does not recompute from position and it does not drop buckets of 1 or 2.
+ */
+export function overallByScore<T extends Pick<StoredRanking, 'score' | 'position' | 'trail_id'>>(
+  rows: T[],
+): T[] {
+  return [...rows].sort((a, b) => {
+    if (a.score !== b.score) return b.score - a.score;
+    if (a.position < b.position) return -1;
+    if (a.position > b.position) return 1;
+    if (a.trail_id < b.trail_id) return -1;
+    if (a.trail_id > b.trail_id) return 1;
+    return 0;
+  });
+}
+
 /** Key that sorts between the neighbors of an insertion index. One new row, no renumber. */
 export function positionForInsert(sortedPositions: string[], index: number): string {
   const before = index > 0 ? sortedPositions[index - 1] : null;
   const after = index < sortedPositions.length ? sortedPositions[index] : null;
   return generateKeyBetween(before, after);
+}
+
+/**
+ * Rows whose score, bucket, or position changed. A move between buckets
+ * includes the old bucket so those server scores are not left stale.
+ */
+export function rankingsToSync<T extends { user_id: string; hike_type: string; trail_id: string; score: number; bucket: string; position: string }>(
+  before: T[],
+  after: T[],
+): T[] {
+  const previous = new Map(before.map((row) => [rankingKey(row), row]));
+  return after.filter((row) => {
+    const old = previous.get(rankingKey(row));
+    if (!old) return true;
+    return old.score !== row.score || old.bucket !== row.bucket || old.position !== row.position;
+  });
 }
 
 export function sortByPosition<T extends { position: string }>(rows: T[]): T[] {
@@ -224,7 +318,7 @@ export function isBucket(value: string): value is Bucket {
  * Order is preserved (ordinal, else higher Elo first) and placed in Loved.
  */
 export function migrateLegacyRankings(rows: LegacyRanking[]): StoredRanking[] {
-  const current: StoredRanking[] = [];
+  const current: Omit<StoredRanking, 'score'>[] = [];
   const legacy: LegacyRanking[] = [];
 
   for (const row of rows) {
@@ -272,7 +366,7 @@ export function migrateLegacyRankings(rows: LegacyRanking[]): StoredRanking[] {
     };
   });
 
-  return [...current, ...converted];
+  return withStoredScores([...current, ...converted]);
 }
 
 export interface PlacementSummary {
@@ -293,14 +387,17 @@ export function describePlacement(
   if (!ranking) return null;
   const group = sortByPosition(
     rankings.filter(
-      (row) => row.bucket === ranking.bucket && row.hike_type === hikeType,
+      (row) =>
+        row.user_id === ranking.user_id &&
+        row.bucket === ranking.bucket &&
+        row.hike_type === hikeType,
     ),
   );
   const index = group.findIndex((row) => row.trail_id === trailId);
   if (index < 0) return null;
   return {
     ranking,
-    score: bandScore(ranking.bucket, index, group.length),
+    score: ranking.score,
     ordinal: index + 1,
     count: group.length,
   };
