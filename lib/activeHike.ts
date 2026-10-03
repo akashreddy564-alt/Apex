@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { activeAltitudeCorrector } from '@/lib/altitude';
 import { haversineMeters } from '@/lib/geo';
+import { applyAltitudeStep, applyRecordingEvent, splitClock } from '@/lib/hikeStats';
 
 const KEY = 'apex-active-hike';
 
@@ -8,7 +10,6 @@ const KEY = 'apex-active-hike';
 export const ACCURACY_MAX_M = 25;
 /** Smoothed climb must clear this before it counts as gain. */
 export const GAIN_THRESHOLD_M = 3;
-const ALT_BLEND = 0.3;
 
 export interface LocationFix {
   longitude: number;
@@ -28,6 +29,9 @@ export interface PersistedHike {
   pausedMs: number;
   distanceM: number;
   elevationGainM: number;
+  elevationLossM: number;
+  /** Wall clock of the last successful disk write. */
+  savedAt: number;
   smoothedAltitude: number | null;
   /** Valley the next climb is measured from. */
   gainBaseline: number | null;
@@ -88,29 +92,41 @@ export function hydrateHike(): Promise<PersistedHike | null> {
 }
 
 async function commit(hike: PersistedHike | null): Promise<PersistedHike | null> {
-  memory = hike;
-  await writeDisk(hike);
-  emit(hike);
-  return hike;
+  const next = hike ? { ...hike, savedAt: Date.now() } : null;
+  memory = next;
+  await writeDisk(next);
+  emit(next);
+  return next;
 }
 
-export function startHike(trailId: string): Promise<PersistedHike> {
+function freshHike(trailId: string, now: number): PersistedHike {
+  return {
+    trailId,
+    startedAt: now,
+    notes: '',
+    photos: [],
+    points: [],
+    pausedAt: null,
+    pausedMs: 0,
+    distanceM: 0,
+    elevationGainM: 0,
+    elevationLossM: 0,
+    savedAt: now,
+    smoothedAltitude: null,
+    gainBaseline: null,
+  };
+}
+
+export function startHike(trailId: string): Promise<PersistedHike | null> {
   return serialized(async () => {
-    const hike: PersistedHike = {
-      trailId,
-      startedAt: Date.now(),
-      notes: '',
-      photos: [],
-      points: [],
-      pausedAt: null,
-      pausedMs: 0,
-      distanceM: 0,
-      elevationGainM: 0,
-      smoothedAltitude: null,
-      gainBaseline: null,
-    };
-    await commit(hike);
-    return hike;
+    await ensureMemory();
+    const current = memory ?? null;
+    const now = Date.now();
+    const next = applyRecordingEvent(current, 'start', now, () => freshHike(trailId, now));
+    if (next === current) return current;
+    if (!next) return current;
+    await commit(next);
+    return next;
   });
 }
 
@@ -136,17 +152,20 @@ async function ensureMemory(): Promise<void> {
 export function pauseHike(): Promise<PersistedHike | null> {
   return serialized(async () => {
     await ensureMemory();
-    if (!memory || memory.pausedAt != null) return memory ?? null;
-    return commit({ ...memory, pausedAt: Date.now() });
+    const current = memory ?? null;
+    const next = applyRecordingEvent(current, 'pause', Date.now());
+    if (next === current || !next) return current;
+    return commit(next);
   });
 }
 
 export function resumeHike(): Promise<PersistedHike | null> {
   return serialized(async () => {
     await ensureMemory();
-    if (!memory || memory.pausedAt == null) return memory ?? null;
-    const pausedMs = memory.pausedMs + Math.max(0, Date.now() - memory.pausedAt);
-    return commit({ ...memory, pausedAt: null, pausedMs });
+    const current = memory ?? null;
+    const next = applyRecordingEvent(current, 'resume', Date.now());
+    if (next === current || !next) return current;
+    return commit(next);
   });
 }
 
@@ -171,31 +190,29 @@ export function applyFix(hike: PersistedHike, fix: LocationFix): PersistedHike {
   let distanceM = hike.distanceM;
   if (last) distanceM += haversineMeters(last, fix);
 
-  let smoothedAltitude = hike.smoothedAltitude;
-  let gainBaseline = hike.gainBaseline;
-  let elevationGainM = hike.elevationGainM;
-  if (fix.altitude != null) {
-    smoothedAltitude =
-      smoothedAltitude == null
-        ? fix.altitude
-        : smoothedAltitude + ALT_BLEND * (fix.altitude - smoothedAltitude);
-    if (gainBaseline == null) {
-      gainBaseline = smoothedAltitude;
-    } else if (smoothedAltitude - gainBaseline > GAIN_THRESHOLD_M) {
-      elevationGainM += smoothedAltitude - gainBaseline;
-      gainBaseline = smoothedAltitude;
-    } else if (gainBaseline - smoothedAltitude > GAIN_THRESHOLD_M) {
-      gainBaseline = smoothedAltitude;
-    }
-  }
+  const smoothedAltitude = activeAltitudeCorrector.correct(hike.smoothedAltitude, {
+    altitude: fix.altitude,
+    latitude: fix.latitude,
+    longitude: fix.longitude,
+  });
+  const climb = applyAltitudeStep(
+    {
+      elevationGainM: hike.elevationGainM,
+      elevationLossM: hike.elevationLossM ?? 0,
+      baseline: hike.gainBaseline,
+    },
+    smoothedAltitude,
+    GAIN_THRESHOLD_M,
+  );
 
   return {
     ...hike,
     points: [...hike.points, fix],
     distanceM,
-    elevationGainM,
+    elevationGainM: climb.elevationGainM,
+    elevationLossM: climb.elevationLossM,
     smoothedAltitude,
-    gainBaseline,
+    gainBaseline: climb.baseline,
   };
 }
 
@@ -211,6 +228,5 @@ export function appendFixes(fixes: LocationFix[]): Promise<PersistedHike | null>
 }
 
 export function elapsedSeconds(hike: PersistedHike, now = Date.now()): number {
-  const openPause = hike.pausedAt == null ? 0 : Math.max(0, now - hike.pausedAt);
-  return Math.max(0, Math.floor((now - hike.startedAt - hike.pausedMs - openPause) / 1000));
+  return splitClock(hike.startedAt, hike.pausedMs, hike.pausedAt, now).moving;
 }

@@ -2,13 +2,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
+  Modal,
+  PermissionsAndroid,
+  Platform,
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,45 +18,77 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddHikeSheet } from '@/components/log/AddHikeSheet';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
+import { RecordSession } from '@/components/log/RecordSession';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
-import { useHikePhotos } from '@/hooks/useHikePhotos';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
+import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
+import { recordingLinkPlan } from '@/lib/recordingLink';
+import {
+  LOCK_SCREEN_NOTIFICATION_NOTE,
+  notificationPermissionRequired,
+} from '@/lib/notificationPermission';
 import { useTrailCache } from '@/stores/trailCache';
-import { displayM } from '@/theme/tokens';
+import { colors, displayM, fonts, numericStyle } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 
+function hikeClock(totalSeconds: number): string {
+  const safe = Math.max(0, Math.floor(totalSeconds));
+  const hours = Math.floor(safe / 3600);
+  const minutes = Math.floor((safe % 3600) / 60);
+  const seconds = safe % 60;
+  return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<{
+    setOptions: (options: Record<string, unknown>) => void;
+    setParams: (params: { recording?: string }) => void;
+  }>();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
   const params = useLocalSearchParams<{ recording?: string }>();
   const [explainer, setExplainer] = useState(false);
-  const photos = useHikePhotos({
-    addPhoto: tracker.addPhoto,
-    replacePhoto: tracker.replacePhoto,
-  });
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
   const [pastOpen, setPastOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [finishOpen, setFinishOpen] = useState(false);
+  const [notificationNote, setNotificationNote] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tracker.isTracking || tracker.isPaused) return;
+    if (!tracker.isTracking) return;
     const id = setInterval(() => tracker.tick(), 1000);
     return () => clearInterval(id);
-  }, [tracker.isPaused, tracker.isTracking, tracker.tick]);
+  }, [tracker.isTracking, tracker.tick]);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerShown: !tracker.isTracking,
+      tabBarStyle: tracker.isTracking
+        ? { display: 'none' }
+        : {
+            backgroundColor: colors.bg,
+            borderTopColor: colors.raised,
+            borderTopWidth: 1,
+            height: 58,
+            paddingBottom: 6,
+            paddingTop: 6,
+          },
+    });
+  }, [navigation, tracker.isTracking]);
 
   const activeTrail = useMemo(
-    () => trails.find((t) => t.id === tracker.session?.trailId),
+    () => trails.find((t) => t.id === tracker.session?.trailId) ?? null,
     [trails, tracker.session?.trailId],
   );
 
@@ -63,10 +97,36 @@ export default function LogScreen() {
     const permission = await Location.requestForegroundPermissionsAsync();
     setExplainer(false);
     if (!permission.granted || !selectedTrailId) return;
+    if (shouldRequestNotificationPermission(Platform.OS, Platform.Version, permission.granted)) {
+      try {
+        await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      } catch {
+        // A declined or missing notification prompt does not block the hike.
+      }
+    }
     tracker.start(selectedTrailId);
   };
 
+  useEffect(() => {
+    if (!tracker.isTracking || !notificationPermissionRequired(Platform.OS, Platform.Version)) {
+      setNotificationNote(null);
+      return;
+    }
+    let cancelled = false;
+    void PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS)
+      .then((granted) => {
+        if (!cancelled) setNotificationNote(granted ? null : LOCK_SCREEN_NOTIFICATION_NOTE);
+      })
+      .catch(() => {
+        if (!cancelled) setNotificationNote(LOCK_SCREEN_NOTIFICATION_NOTE);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tracker.isTracking]);
+
   const finish = () => {
+    setFinishOpen(false);
     const log = tracker.complete();
     setRecording(false);
     if (!log) return;
@@ -76,18 +136,24 @@ export default function LogScreen() {
   };
 
   useEffect(() => {
-    const run = (value: string | undefined) => {
-      if (value === 'pause') tracker.pause();
-      if (value === 'finish') finish();
-    };
-    const fromParams = Array.isArray(params.recording) ? params.recording[0] : params.recording;
-    run(fromParams);
+    const raw = Array.isArray(params.recording) ? params.recording[0] : params.recording;
+    const plan = recordingLinkPlan({
+      param: raw,
+      hydrated: tracker.hydrated,
+      tracking: tracker.isTracking,
+    });
+    if (plan.action === 'pause') tracker.pause();
+    if (plan.action === 'finish') setFinishOpen(true);
+    if (plan.clear) navigation.setParams({ recording: undefined });
+
     const sub = Linking.addEventListener('url', (event) => {
       const query = Linking.parse(event.url).queryParams?.recording;
-      run(typeof query === 'string' ? query : undefined);
+      if (query === 'pause' || query === 'finish') {
+        navigation.setParams({ recording: query });
+      }
     });
     return () => sub.remove();
-  }, [params.recording, tracker.pause, tracker.complete]);
+  }, [navigation, params.recording, tracker.hydrated, tracker.isTracking, tracker.pause]);
 
   const savePast = (draft: {
     trailId: string;
@@ -109,6 +175,94 @@ export default function LogScreen() {
     setPastOpen(false);
     setModalOpen(true);
   };
+
+  if (tracker.isTracking) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <RecordSession
+          trailName={activeTrail?.name ?? 'Trail'}
+          trailPath={activeTrail?.path ?? null}
+          elevation={activeTrail?.elevation_profile ?? null}
+          peakElevationM={activeTrail?.peak_elevation_m ?? null}
+          paused={tracker.isPaused}
+          movingSeconds={tracker.elapsedSeconds}
+          totalSeconds={tracker.totalSeconds}
+          pausedSeconds={Math.max(0, tracker.totalSeconds - tracker.elapsedSeconds)}
+          distanceM={tracker.distanceM}
+          gainM={tracker.elevationGainM}
+          lossM={tracker.elevationLossM}
+          elevationM={tracker.currentElevationM}
+          savedAt={tracker.savedAt}
+          points={tracker.session?.points ?? []}
+          notice={location.message}
+          notificationNote={notificationNote}
+          finishSheetOpen={finishOpen}
+          onPause={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            tracker.dismissRecovery();
+            tracker.pause();
+          }}
+          onResume={() => {
+            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            tracker.dismissRecovery();
+            tracker.resume();
+          }}
+          onFinish={() => {
+            tracker.dismissRecovery();
+            setFinishOpen(true);
+          }}
+        />
+        <Modal visible={finishOpen} transparent animationType="fade" onRequestClose={() => setFinishOpen(false)}>
+          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}>
+            <View
+              style={{
+                backgroundColor: colors.bg,
+                borderTopWidth: 1,
+                borderTopColor: colors.border,
+                borderTopLeftRadius: 24,
+                borderTopRightRadius: 24,
+                padding: 20,
+                paddingBottom: 28,
+                gap: 16,
+              }}
+            >
+              <Text style={{ color: colors.fg, fontFamily: fonts.display, fontWeight: 'normal', fontSize: 22 }}>
+                Finish this hike?
+              </Text>
+              <Text style={{ color: colors.fg, fontSize: 16, ...numericStyle() }}>
+                {(tracker.distanceM / 1000).toFixed(1)} km · {hikeClock(tracker.elapsedSeconds)}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Finish"
+                onPress={finish}
+                style={{ backgroundColor: colors.sage, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+              >
+                <Text style={{ color: colors.onSage, fontSize: 16, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
+                  Finish
+                </Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Keep recording"
+                onPress={() => setFinishOpen(false)}
+                style={{ backgroundColor: colors.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+              >
+                <Text style={{ color: colors.fg, fontSize: 16, fontFamily: fonts.uiMedium, fontWeight: 'normal' }}>
+                  Keep recording
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+        <PairwiseModal
+          visible={modalOpen}
+          comparison={comparison}
+          onClose={() => setModalOpen(false)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
@@ -185,117 +339,6 @@ export default function LogScreen() {
                 Start tracking
               </Text>
             </Pressable>
-          </View>
-        ) : null}
-
-        {tracker.isTracking ? (
-          <View className="mt-6">
-            <View
-              className="border border-zinc-800 bg-zinc-900 p-4"
-              style={{ borderRadius: 12 }}
-            >
-              <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-                {tracker.isPaused ? 'Paused' : 'Active'}
-              </Text>
-              <Text className="mt-1 text-base text-zinc-50">
-                {activeTrail?.name ?? 'Trail'}
-              </Text>
-              <Text className="mt-4 font-mono text-3xl tracking-tight text-accent">
-                {formatDuration(tracker.elapsedSeconds)}
-              </Text>
-              <Text className="mt-3 font-mono text-[11px] text-zinc-400">
-                {(tracker.distanceM / 1000).toFixed(2)} km · ↑{' '}
-                {Math.round(tracker.elevationGainM)} m · {tracker.session?.points.length ?? 0}{' '}
-                pts
-              </Text>
-              {location.message ? (
-                <Text className="mt-2 font-mono text-[11px] leading-4 text-zinc-500">
-                  {location.message}
-                </Text>
-              ) : null}
-            </View>
-
-            <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-              Photos
-            </Text>
-            <View className="flex-row gap-2">
-              <Pressable
-                accessibilityLabel="Add photo from library"
-                disabled={photos.busy}
-                onPress={() => {
-                  void photos.pickFromLibrary();
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
-                style={{ borderRadius: 12, opacity: photos.busy ? 0.5 : 1 }}
-              >
-                <Text className="font-mono text-sm text-zinc-200">Library</Text>
-              </Pressable>
-              <Pressable
-                accessibilityLabel="Take a hike photo"
-                disabled={photos.busy}
-                onPress={() => {
-                  void photos.takePhoto();
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
-                style={{ borderRadius: 12, opacity: photos.busy ? 0.5 : 1 }}
-              >
-                <Text className="font-mono text-sm text-zinc-200">Camera</Text>
-              </Pressable>
-            </View>
-            {photos.message ? (
-              <Text className="mt-2 font-mono text-[11px] text-zinc-500">
-                {photos.message}
-              </Text>
-            ) : null}
-            <PhotoStrip photos={tracker.session?.photos ?? []} />
-
-            <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-              Notes
-            </Text>
-            <TextInput
-              value={tracker.session?.notes ?? ''}
-              onChangeText={tracker.setNotes}
-              placeholder="Conditions, pace, crowd…"
-              placeholderTextColor="#52525B"
-              multiline
-              className="min-h-[96px] border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
-              style={{ borderRadius: 12, textAlignVertical: 'top' }}
-            />
-
-            <View className="mt-4 flex-row gap-2">
-              <Pressable
-                accessibilityLabel={tracker.isPaused ? 'Resume hike' : 'Pause hike'}
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  if (tracker.isPaused) tracker.resume();
-                  else tracker.pause();
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="font-mono text-sm text-zinc-200">
-                  {tracker.isPaused ? 'Resume' : 'Pause'}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  tracker.discard();
-                  setRecording(false);
-                }}
-                className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="font-mono text-sm text-zinc-400">Discard</Text>
-              </Pressable>
-              <Pressable
-                onPress={finish}
-                className="flex-1 items-center border border-accent bg-accent/15 py-3.5 active:bg-accent/25"
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="font-mono text-sm text-accent">Finish & rank</Text>
-              </Pressable>
-            </View>
           </View>
         ) : null}
 

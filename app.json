@@ -19,7 +19,13 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.apex.trails"
+      "package": "com.apex.trails",
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -32,9 +38,10 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Apex records the path of a hike you start, including while the screen is locked.",
-          "locationAlwaysAndWhenInUsePermission": "Apex keeps recording the hike you started when the screen locks or you switch apps. Location is not used at any other time.",
-          "locationAlwaysPermission": "Apex keeps recording the hike you started when the screen locks or you switch apps. Location is not used at any other time.",
+          "locationWhenInUsePermission": "Apex records your hike's route while you're recording, including with the screen off. Your location isn't used at any other time.",
+          "locationAlwaysAndWhenInUsePermission": "Apex records your hike's route while you're recording, including with the screen off. Your location isn't used at any other time.",
+          "locationAlwaysPermission": "Apex records your hike's route while you're recording, including with the screen off. Your location isn't used at any other time.",
+          "motionUsagePermission": false,
           "isIosBackgroundLocationEnabled": true,
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": true

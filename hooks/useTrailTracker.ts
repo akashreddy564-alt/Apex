@@ -13,6 +13,7 @@ import {
   updateHike,
   type PersistedHike,
 } from '@/lib/activeHike';
+import { formatPace, paceSecondsPerKm, recordingPhase, totalSeconds } from '@/lib/hikeStats';
 import { newId } from '@/lib/geo';
 import { stopTracking } from '@/lib/locationTask';
 import { buildPastHikeLog, type PastHikeDraft } from '@/lib/pastHike';
@@ -28,6 +29,7 @@ export interface UseTrailTrackerResult {
   elapsedSeconds: number;
   isTracking: boolean;
   isPaused: boolean;
+  phase: 'idle' | 'recording' | 'paused';
   start: (trailId: string) => void;
   pause: () => void;
   resume: () => void;
@@ -36,6 +38,15 @@ export interface UseTrailTrackerResult {
   replacePhoto: (from: string, to: string) => void;
   distanceM: number;
   elevationGainM: number;
+  elevationLossM: number;
+  currentElevationM: number | null;
+  totalSeconds: number;
+  paceLabel: string;
+  savedAt: number | null;
+  recovered: boolean;
+  /** The saved hike, if any, has been read. False while that read is in flight. */
+  hydrated: boolean;
+  dismissRecovery: () => void;
   tick: () => void;
   complete: () => HikeLog | null;
   logPast: (draft: PastHikeDraft) => HikeLog | null;
@@ -49,13 +60,21 @@ export interface UseTrailTrackerResult {
 export function useTrailTracker(): UseTrailTrackerResult {
   const upsertLog = useTrailCache((s) => s.upsertLog);
   const [session, setSession] = useState<PersistedHike | null>(null);
+  const [recovered, setRecovered] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let alive = true;
-    void hydrateHike().then((hike) => {
-      if (alive) setSession(hike);
-    });
+    void hydrateHike()
+      .then((hike) => {
+        if (!alive) return;
+        setSession(hike);
+        if (hike) setRecovered(true);
+      })
+      .finally(() => {
+        if (alive) setHydrated(true);
+      });
     return subscribeHike((hike) => {
       if (alive) setSession(hike);
     });
@@ -63,6 +82,10 @@ export function useTrailTracker(): UseTrailTrackerResult {
 
   const tick = useCallback(() => {
     setNow(Date.now());
+  }, []);
+
+  const dismissRecovery = useCallback(() => {
+    setRecovered(false);
   }, []);
 
   const start = useCallback((trailId: string) => {
@@ -149,13 +172,15 @@ export function useTrailTracker(): UseTrailTrackerResult {
   }, [upsertLog]);
 
   const elapsed = session ? elapsedSeconds(session, now) : 0;
+  const phase = recordingPhase(session);
 
   return useMemo(
     () => ({
       session,
       elapsedSeconds: elapsed,
-      isTracking: session !== null,
-      isPaused: session?.pausedAt != null,
+      isTracking: phase !== 'idle',
+      isPaused: phase === 'paused',
+      phase,
       start,
       pause,
       resume,
@@ -164,6 +189,16 @@ export function useTrailTracker(): UseTrailTrackerResult {
       replacePhoto,
       distanceM: session?.distanceM ?? 0,
       elevationGainM: session?.elevationGainM ?? 0,
+      elevationLossM: session?.elevationLossM ?? 0,
+      currentElevationM: session?.smoothedAltitude ?? null,
+      totalSeconds: session ? totalSeconds(session.startedAt, now) : 0,
+      paceLabel: formatPace(
+        session ? paceSecondsPerKm(session.distanceM, elapsed) : null,
+      ),
+      savedAt: session?.savedAt ?? null,
+      recovered,
+      hydrated,
+      dismissRecovery,
       tick,
       complete,
       logPast,
@@ -172,6 +207,10 @@ export function useTrailTracker(): UseTrailTrackerResult {
     [
       session,
       elapsed,
+      phase,
+      recovered,
+      hydrated,
+      dismissRecovery,
       start,
       pause,
       resume,

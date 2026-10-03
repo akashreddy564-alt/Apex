@@ -4,6 +4,10 @@ import { Platform, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle as SvgCircle, Path } from 'react-native-svg';
 
+import {
+  notificationPermissionRequired,
+  RECORDING_NOTIFICATION_COPY,
+} from '@/lib/notificationPermission';
 import { colors, fonts } from '@/theme/tokens';
 
 function Row({
@@ -37,8 +41,7 @@ interface LocationExplainerProps {
 
 /**
  * Shown once, before any system location prompt.
- * Continue is what asks for While Using. A later Always prompt, if iOS shows
- * one for locked-screen recording, only happens after this screen.
+ * Continue asks for location while using Apex.
  * Not now returns to the log sheet.
  */
 export function LocationExplainer({ onContinue, onDismiss }: LocationExplainerProps) {
@@ -80,6 +83,11 @@ export function LocationExplainer({ onContinue, onDismiss }: LocationExplainerPr
           <Text style={{ color: colors.fg2, fontFamily: fonts.ui, fontSize: 15, lineHeight: 22, marginTop: 8 }}>
             While recording, Android shows a notification, Apex is recording your hike, with Pause
             and Finish. It disappears when the hike ends.
+          </Text>
+        ) : null}
+        {notificationPermissionRequired(Platform.OS, Platform.Version) ? (
+          <Text style={{ color: colors.fg2, fontFamily: fonts.ui, fontSize: 15, lineHeight: 22, marginTop: 8 }}>
+            {RECORDING_NOTIFICATION_COPY}
           </Text>
         ) : null}
         <View className="mt-3">
