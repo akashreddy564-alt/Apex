@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Modal,
@@ -46,12 +46,14 @@ function hikeClock(totalSeconds: number): string {
 
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<{
+    setOptions: (options: Record<string, unknown>) => void;
+    setParams: (params: { recording?: string }) => void;
+  }>();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
-  const router = useRouter();
   const params = useLocalSearchParams<{ recording?: string }>();
   const [explainer, setExplainer] = useState(false);
   const comparison = useTrailComparison();
@@ -142,16 +144,16 @@ export default function LogScreen() {
     });
     if (plan.action === 'pause') tracker.pause();
     if (plan.action === 'finish') setFinishOpen(true);
-    if (plan.clear) router.setParams({ recording: undefined });
+    if (plan.clear) navigation.setParams({ recording: undefined });
 
     const sub = Linking.addEventListener('url', (event) => {
       const query = Linking.parse(event.url).queryParams?.recording;
       if (query === 'pause' || query === 'finish') {
-        router.setParams({ recording: query });
+        navigation.setParams({ recording: query });
       }
     });
     return () => sub.remove();
-  }, [params.recording, router, tracker.hydrated, tracker.isTracking, tracker.pause]);
+  }, [navigation, params.recording, tracker.hydrated, tracker.isTracking, tracker.pause]);
 
   const savePast = (draft: {
     trailId: string;
