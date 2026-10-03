@@ -103,11 +103,12 @@ export function PastHikeSheet({
 
   useEffect(() => {
     if (!trail || distanceTouched) return;
-    setDistanceText(trail.distance_km.toFixed(1));
+    setDistanceText(trail.distance_km == null ? '' : trail.distance_km.toFixed(1));
   }, [distanceTouched, trail]);
 
   useEffect(() => {
     if (!trail || typeTouched) return;
+    if (trail.distance_km == null || trail.elevation_gain_m == null) return;
     setHikeType(suggestHikeType(trail.distance_km, trail.elevation_gain_m));
   }, [trail, typeTouched]);
 
@@ -244,7 +245,8 @@ export function PastHikeSheet({
                     </Text>
                     {trail ? (
                       <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
-                        {trail.region} · {trail.distance_km.toFixed(1)} km · {Math.round(trail.elevation_gain_m)} m gain
+                        {trail.region} · {trail.distance_km == null ? '\u2013' : `${trail.distance_km.toFixed(1)} km`} ·{' '}
+                        {trail.elevation_gain_m == null ? '\u2013' : `${Math.round(trail.elevation_gain_m)} m gain`}
                       </Text>
                     ) : null}
                   </View>
