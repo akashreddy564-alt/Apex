@@ -1,4 +1,4 @@
-import { buildPastHikeLog, durationFromParts, hikeTimestamp } from '@/lib/pastHike';
+import { buildPastHikeLog, durationFromParts, formatHikeDay, hikeTimestamp, suggestHikeType } from '@/lib/pastHike';
 
 describe('buildPastHikeLog', () => {
   const now = new Date(2026, 9, 2, 15, 0, 0);
@@ -71,5 +71,54 @@ describe('buildPastHikeLog', () => {
 
   it('ignores negative duration parts', () => {
     expect(durationFromParts(-2, -30)).toBe(0);
+  });
+
+  it('keeps a hike when only the trail and date are set', () => {
+    const log = buildPastHikeLog({
+      trailId: 'trail-mission',
+      hikedOn: new Date(2024, 0, 4),
+      now,
+    });
+    expect(log).toMatchObject({
+      trail_id: 'trail-mission',
+      duration_seconds: 0,
+      notes: null,
+      photos: [],
+      distance_km: null,
+      terrain: [],
+      conditions: [],
+      difficulty: null,
+      hike_type: null,
+    });
+  });
+
+  it('stores optional distance, terrain, conditions, effort, type, and photos', () => {
+    const log = buildPastHikeLog({
+      trailId: 'trail-mission',
+      hikedOn: new Date(2024, 0, 4),
+      distanceKm: 9.8,
+      terrain: ['rock'],
+      conditions: ['windy'],
+      difficulty: 'hard',
+      hikeType: 'hike',
+      photos: ['file://ridge.jpg'],
+      now,
+    });
+    expect(log).toMatchObject({
+      distance_km: 9.8,
+      terrain: ['rock'],
+      conditions: ['windy'],
+      difficulty: 'hard',
+      hike_type: 'hike',
+      photos: ['file://ridge.jpg'],
+    });
+  });
+
+  it('uses the ranking hike type and labels the day', () => {
+    expect(suggestHikeType(8.9, 520)).toBe('hike');
+    expect(suggestHikeType(23, 400)).toBe('hike');
+    expect(suggestHikeType(12, 1060)).toBe('hike');
+    expect(suggestHikeType(3, 80)).toBe('hike');
+    expect(formatHikeDay(new Date(2026, 8, 27))).toBe('Sun, Sep 27, 2026');
   });
 });
