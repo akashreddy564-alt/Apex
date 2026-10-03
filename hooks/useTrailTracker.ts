@@ -44,6 +44,8 @@ export interface UseTrailTrackerResult {
   paceLabel: string;
   savedAt: number | null;
   recovered: boolean;
+  /** The saved hike, if any, has been read. False while that read is in flight. */
+  hydrated: boolean;
   dismissRecovery: () => void;
   tick: () => void;
   complete: () => HikeLog | null;
@@ -59,15 +61,20 @@ export function useTrailTracker(): UseTrailTrackerResult {
   const upsertLog = useTrailCache((s) => s.upsertLog);
   const [session, setSession] = useState<PersistedHike | null>(null);
   const [recovered, setRecovered] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     let alive = true;
-    void hydrateHike().then((hike) => {
-      if (!alive) return;
-      setSession(hike);
-      if (hike) setRecovered(true);
-    });
+    void hydrateHike()
+      .then((hike) => {
+        if (!alive) return;
+        setSession(hike);
+        if (hike) setRecovered(true);
+      })
+      .finally(() => {
+        if (alive) setHydrated(true);
+      });
     return subscribeHike((hike) => {
       if (alive) setSession(hike);
     });
@@ -190,6 +197,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       ),
       savedAt: session?.savedAt ?? null,
       recovered,
+      hydrated,
       dismissRecovery,
       tick,
       complete,
@@ -201,6 +209,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       elapsed,
       phase,
       recovered,
+      hydrated,
       dismissRecovery,
       start,
       pause,

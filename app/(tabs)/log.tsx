@@ -2,8 +2,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Modal,
   PermissionsAndroid,
@@ -25,6 +25,8 @@ import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
+import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
+import { recordingLinkPlan } from '@/lib/recordingLink';
 import {
   LOCK_SCREEN_NOTIFICATION_NOTE,
   notificationPermissionRequired,
@@ -49,6 +51,7 @@ export default function LogScreen() {
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
+  const router = useRouter();
   const params = useLocalSearchParams<{ recording?: string }>();
   const [explainer, setExplainer] = useState(false);
   const comparison = useTrailComparison();
@@ -59,9 +62,6 @@ export default function LogScreen() {
   const [recording, setRecording] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [notificationNote, setNotificationNote] = useState<string | null>(null);
-  const trackingRef = useRef(false);
-  const pendingRecording = useRef<'pause' | 'finish' | null>(null);
-  trackingRef.current = tracker.isTracking;
 
   useEffect(() => {
     if (!tracker.isTracking) return;
@@ -93,15 +93,15 @@ export default function LogScreen() {
   const acceptLocation = async () => {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
-    if (notificationPermissionRequired(Platform.OS, Platform.Version)) {
+    setExplainer(false);
+    if (!permission.granted || !selectedTrailId) return;
+    if (shouldRequestNotificationPermission(Platform.OS, Platform.Version, permission.granted)) {
       try {
         await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
       } catch {
         // A declined or missing notification prompt does not block the hike.
       }
     }
-    setExplainer(false);
-    if (!permission.granted || !selectedTrailId) return;
     tracker.start(selectedTrailId);
   };
 
@@ -133,35 +133,25 @@ export default function LogScreen() {
     setModalOpen(true);
   };
 
-  const applyRecording = (value: string | undefined, loaded: boolean) => {
-    if (value !== 'pause' && value !== 'finish') return;
-    if (!loaded) {
-      pendingRecording.current = value;
-      return;
-    }
-    pendingRecording.current = null;
-    if (value === 'pause') tracker.pause();
-    if (value === 'finish') setFinishOpen(true);
-  };
-
   useEffect(() => {
-    const fromParams = Array.isArray(params.recording) ? params.recording[0] : params.recording;
-    applyRecording(fromParams, tracker.isTracking);
+    const raw = Array.isArray(params.recording) ? params.recording[0] : params.recording;
+    const plan = recordingLinkPlan({
+      param: raw,
+      hydrated: tracker.hydrated,
+      tracking: tracker.isTracking,
+    });
+    if (plan.action === 'pause') tracker.pause();
+    if (plan.action === 'finish') setFinishOpen(true);
+    if (plan.clear) router.setParams({ recording: undefined });
+
     const sub = Linking.addEventListener('url', (event) => {
       const query = Linking.parse(event.url).queryParams?.recording;
-      applyRecording(typeof query === 'string' ? query : undefined, trackingRef.current);
+      if (query === 'pause' || query === 'finish') {
+        router.setParams({ recording: query });
+      }
     });
     return () => sub.remove();
-  }, [params.recording, tracker.isTracking, tracker.pause]);
-
-  useEffect(() => {
-    if (!tracker.recovered || !tracker.isTracking) return;
-    const action = pendingRecording.current;
-    if (!action) return;
-    pendingRecording.current = null;
-    if (action === 'pause') tracker.pause();
-    if (action === 'finish') setFinishOpen(true);
-  }, [tracker.isTracking, tracker.pause, tracker.recovered]);
+  }, [params.recording, router, tracker.hydrated, tracker.isTracking, tracker.pause]);
 
   const savePast = (draft: {
     trailId: string;

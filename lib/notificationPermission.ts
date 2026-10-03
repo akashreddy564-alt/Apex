@@ -13,3 +13,12 @@ export const LOCK_SCREEN_NOTIFICATION_NOTE =
 export function notificationPermissionRequired(os: string, version: string | number): boolean {
   return os === 'android' && Number(version) >= 33;
 }
+
+/** Location has to be granted before Apex asks for the recording notification. */
+export function shouldRequestNotificationPermission(
+  os: string,
+  version: string | number,
+  locationGranted: boolean,
+): boolean {
+  return locationGranted && notificationPermissionRequired(os, version);
+}
