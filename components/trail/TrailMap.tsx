@@ -41,9 +41,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
       className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
     >
       <View className="border-b border-zinc-800 px-3 py-2">
-        <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-          Path
-        </Text>
+        <Text className="font-ui text-[13px] text-zinc-400">Path</Text>
       </View>
       <View
         onLayout={(event) => {
@@ -88,7 +86,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
           </Canvas>
         ) : (
           <View style={{ height: HEIGHT }} className="items-center justify-center">
-            <Text className="font-mono text-xs text-zinc-500">No path</Text>
+            <Text className="font-ui text-[13px] text-zinc-400">No path</Text>
           </View>
         )}
       </View>
@@ -96,7 +94,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
         <Text className="text-[11px] text-zinc-500">
           {canonical.coordinates.length >= 2 ? '© OpenStreetMap' : 'No route'}
         </Text>
-        <Text className="font-mono text-[10px] text-zinc-600">
+        <Text className="font-ui text-[13px] text-zinc-400">
           {recorded && recorded.coordinates.length >= 2
             ? `Recorded · ${recorded.coordinates.length}`
             : 'No recording'}

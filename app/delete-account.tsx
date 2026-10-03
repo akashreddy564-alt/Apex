@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 import { Image as ImageIcon, List, TrendingUp, User } from 'lucide-react-native';
 import { useMemo, useState, type ReactNode } from 'react';
 import {
@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/hooks/useAuth';
 import { hikesToCsv, hikesToGpx, photoLines } from '@/lib/exportData';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { useComparisonStore } from '@/stores/comparisonStore';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
@@ -68,6 +68,7 @@ export default function DeleteAccountScreen() {
   );
   const trailName = (id: string) => trails.find((trail) => trail.id === id)?.name ?? id;
   const confirmed = phrase === 'DELETE';
+  if (!isSupabaseConfigured) return <Redirect href="/" />;
 
   const exportData = async () => {
     const gpx = hikesToGpx(logs, trailName);

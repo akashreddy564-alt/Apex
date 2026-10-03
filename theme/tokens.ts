@@ -112,7 +112,7 @@ export const navTitle = {
 export const displayXL = {
   color: colors.fg,
   fontFamily: fonts.displayExtraBold,
-  fontSize: 34,
+  fontSize: typeScale.display,
   lineHeight: 36,
   fontWeight: 'normal' as const,
 } as const;
@@ -121,7 +121,7 @@ export const displayXL = {
 export const displayM = {
   color: colors.fg,
   fontFamily: fonts.display,
-  fontSize: 28,
+  fontSize: typeScale.titleLarge,
   lineHeight: 31,
   fontWeight: 'normal' as const,
 } as const;

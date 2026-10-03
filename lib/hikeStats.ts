@@ -40,8 +40,11 @@ export function paceSecondsPerKm(distanceM: number, movingSeconds: number): numb
   return (movingSeconds / distanceM) * 1000;
 }
 
+/** Same en dash as `MISSING_METRIC` in format.ts, with the pace unit attached. */
+const MISSING_PACE = '\u2013/km';
+
 export function formatPace(secondsPerKm: number | null): string {
-  if (secondsPerKm == null || !Number.isFinite(secondsPerKm)) return '—';
+  if (secondsPerKm == null || !Number.isFinite(secondsPerKm)) return MISSING_PACE;
   const total = Math.round(secondsPerKm);
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;

@@ -24,7 +24,7 @@ from (
       id,
       (row_number() over (
         partition by user_id, hike_type, bucket
-        order by position, id
+        order by position collate "C", id
       ) - 1)::numeric as idx,
       count(*) over (partition by user_id, hike_type, bucket)::numeric as cnt,
       case bucket

@@ -51,7 +51,7 @@ create index hike_logs_user_idx on public.hike_logs (user_id, created_at desc);
 create index hike_logs_trail_idx on public.hike_logs (trail_id);
 
 -- ---------------------------------------------------------------------------
--- trail_rankings (per-user Elo + ordinal rank)
+-- trail_rankings (per-user rank)
 -- ---------------------------------------------------------------------------
 create table public.trail_rankings (
   id uuid primary key default gen_random_uuid(),

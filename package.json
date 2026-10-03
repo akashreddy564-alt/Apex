@@ -55,7 +55,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts && jest --ci",
+    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/supabaseEnv.test.ts lib/recordingNotification.test.ts lib/projectPath.test.ts && jest --ci",
     "start": "expo start --port 43127",
     "android": "expo start --android",
     "ios": "expo start --ios",

@@ -35,6 +35,48 @@ function patchFailure(file, reason) {
   );
 }
 
+const LIBRARY_SERVICE_NAME = '.services.LocationTaskService';
+
+function splitTypes(value) {
+  return String(value || '')
+    .split('|')
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+/** Types on one `<service>` element. Ignores the same attribute on other services. */
+function readServiceTypes(xml, serviceName) {
+  if (!xml || !serviceName) return [];
+  const tags = xml.match(/<service\b[^>]*>/gi) || [];
+  for (const tag of tags) {
+    const name = tag.match(/\bandroid:name="([^"]*)"/);
+    if (!name || name[1] !== serviceName) continue;
+    const types = tag.match(/\bandroid:foregroundServiceType="([^"]*)"/);
+    return splitTypes(types ? types[1] : '');
+  }
+  return [];
+}
+
+/**
+ * The manifest merger joins both sides with `|`.
+ * Drop a value the library service already declares, including a repeated
+ * `location|location`, and keep every other value on this attribute.
+ * Location is written here only when the library service does not declare it.
+ * Undefined means this side has no remaining value to write.
+ */
+function mergeForegroundServiceType(appValue, libraryTypes) {
+  const library = new Set(libraryTypes);
+  const seen = new Set();
+  const next = [];
+  for (const type of splitTypes(appValue)) {
+    if (library.has(type) || seen.has(type)) continue;
+    seen.add(type);
+    next.push(type);
+  }
+  if (!library.has('location') && !seen.has('location')) next.push('location');
+  return next.length > 0 ? next.join('|') : undefined;
+}
+
 function withRecordingNotification(config) {
   config = withAndroidManifest(config, (config) => {
     AndroidConfig.Permissions.ensurePermissions(config.modResults, [
@@ -51,8 +93,8 @@ function withRecordingNotification(config) {
       application.service = services;
     }
     service.$['android:exported'] = 'false';
-    // expo-location's own manifest already sets foregroundServiceType="location".
-    // Writing it again makes the merger concatenate "location|location".
+    // Read only LocationTaskService. Another service's foregroundServiceType
+    // must not decide this attribute.
     const libraryManifest = path.join(
       config.modRequest.projectRoot,
       'node_modules',
@@ -65,20 +107,16 @@ function withRecordingNotification(config) {
     const libraryXml = fs.existsSync(libraryManifest)
       ? fs.readFileSync(libraryManifest, 'utf8')
       : '';
-    const libraryTypes = (libraryXml.match(/android:foregroundServiceType="([^"]*)"/) || [, ''])[1]
-      .split('|')
-      .map((part) => part.trim())
-      .filter(Boolean);
-    if (libraryTypes.includes('location')) {
-      delete service.$['android:foregroundServiceType'];
-    } else {
-      const current = String(service.$['android:foregroundServiceType'] || '')
-        .split('|')
-        .map((part) => part.trim())
-        .filter(Boolean);
-      if (!current.includes('location')) current.push('location');
-      service.$['android:foregroundServiceType'] = [...new Set(current)].join('|');
-    }
+    const libraryTypes = readServiceTypes(libraryXml, LIBRARY_SERVICE_NAME);
+    const merged = mergeForegroundServiceType(
+      service.$['android:foregroundServiceType'],
+      libraryTypes,
+    );
+    // Keep the attribute whenever any type remains. Drop it only when every
+    // token was a duplicate of the library service, so the merger does not
+    // emit location|location from an empty or repeated value.
+    if (merged) service.$['android:foregroundServiceType'] = merged;
+    else delete service.$['android:foregroundServiceType'];
     return config;
   });
 
@@ -107,3 +145,6 @@ function withRecordingNotification(config) {
 }
 
 module.exports = withRecordingNotification;
+module.exports.readServiceTypes = readServiceTypes;
+module.exports.mergeForegroundServiceType = mergeForegroundServiceType;
+module.exports.LIBRARY_SERVICE_NAME = LIBRARY_SERVICE_NAME;

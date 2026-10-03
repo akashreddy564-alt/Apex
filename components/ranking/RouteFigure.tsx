@@ -6,16 +6,26 @@ import type { RouteShape } from '@/lib/routeSource';
 import { colors, fonts } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
+function finiteSamples(samples: ElevationSample[] | null): ElevationSample[] {
+  if (!samples) return [];
+  return samples.filter(
+    (sample) => Number.isFinite(sample.distance_m) && Number.isFinite(sample.elevation_m),
+  );
+}
+
 function peakIndex(count: number, elevation: ElevationSample[] | null): number {
+  const usable = finiteSamples(elevation);
   if (count < 1) return 0;
-  if (!elevation || elevation.length < 2) return count - 1;
-  let best = elevation[0];
-  for (const sample of elevation) {
+  if (usable.length < 2) return count - 1;
+  let best = usable[0];
+  for (const sample of usable) {
     if (sample.elevation_m > best.elevation_m) best = sample;
   }
-  const total = elevation[elevation.length - 1]?.distance_m ?? 0;
-  if (total <= 0) return count - 1;
-  return Math.min(count - 1, Math.round((best.distance_m / total) * (count - 1)));
+  const total = usable[usable.length - 1]?.distance_m ?? 0;
+  if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(best.distance_m)) return count - 1;
+  const index = Math.round((best.distance_m / total) * (count - 1));
+  if (!Number.isFinite(index)) return count - 1;
+  return Math.min(count - 1, Math.max(0, index));
 }
 
 function pointsAttr(points: { x: number; y: number }[]): string {
@@ -24,7 +34,10 @@ function pointsAttr(points: { x: number; y: number }[]): string {
 
 /** This trail's own route. An empty shape draws the dashed placeholder, never a fake line. */
 export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: number }) {
-  if (shape.origin === 'none' || shape.coordinates.length < 2) {
+  const finiteCoords = shape.coordinates.filter(
+    (coord) => Number.isFinite(coord[0]) && Number.isFinite(coord[1]),
+  );
+  if (shape.origin === 'none' || finiteCoords.length < 2) {
     return (
       <View
         style={{
@@ -58,7 +71,25 @@ export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: nu
     );
   }
 
-  const projected = projectPoints(shape.coordinates, size, size, 10);
+  const projected = projectPoints(finiteCoords, size, size, 10);
+  if (projected.length < 2 || projected.some((point) => !Number.isFinite(point.x) || !Number.isFinite(point.y))) {
+    return (
+      <View
+        style={{
+          width: size,
+          height: size,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderStyle: 'dashed',
+          borderColor: colors.border,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Text style={{ fontSize: 12, color: colors.fgMuted, fontFamily: fonts.ui }}>No route</Text>
+      </View>
+    );
+  }
   const start = projected[0];
   const peak = projected[peakIndex(projected.length, shape.elevation)];
   const line = pointsAttr(projected);
@@ -100,7 +131,8 @@ export function ElevationStrip({
   caption?: string | null;
 }) {
   const height = 48;
-  if (!samples || samples.length < 2) {
+  const usable = finiteSamples(samples);
+  if (usable.length < 2) {
     return (
       <View
         style={{
@@ -119,15 +151,15 @@ export function ElevationStrip({
     );
   }
 
-  const maxDistance = Math.max(samples[samples.length - 1]?.distance_m ?? 0, 1);
-  let low = samples[0].elevation_m;
+  const maxDistance = Math.max(usable[usable.length - 1]?.distance_m ?? 0, 1);
+  let low = usable[0].elevation_m;
   let high = low;
-  for (const sample of samples) {
+  for (const sample of usable) {
     if (sample.elevation_m < low) low = sample.elevation_m;
     if (sample.elevation_m > high) high = sample.elevation_m;
   }
   const span = Math.max(high - low, 1);
-  const coords = samples.map((sample) => {
+  const coords = usable.map((sample) => {
     const x = (sample.distance_m / maxDistance) * width;
     const y = 4 + (1 - (sample.elevation_m - low) / span) * (height - 10);
     return { x, y };

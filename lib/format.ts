@@ -63,9 +63,19 @@ export function formatChartElevation({
 }
 
 /**
+ * Wagmi's datetime channel treats a timestamp of 0 as idle (`value || -1`).
+ * A real 0 m scrub has to stay truthy so the readout can be "0.0 km".
+ * 0.001 m still formats as 0.0 km and does not move the line.
+ */
+export function chartDistanceTimestamp(distanceM: number): number {
+  if (!Number.isFinite(distanceM) || distanceM === 0) return 0.001;
+  return distanceM;
+}
+
+/**
  * Wagmi date text. The chart stores distance in meters on this channel.
- * Idle, and a falsy 0 that wagmi turns into -1, pass `-1` and show the
- * trail's full distance. With no distance to fall back on, it is an en dash.
+ * Idle passes `-1` and shows the trail's full distance. With no distance
+ * to fall back on, it is an en dash. A real 0 m scrub is "0.0 km".
  */
 export function formatChartDistance({
   value,

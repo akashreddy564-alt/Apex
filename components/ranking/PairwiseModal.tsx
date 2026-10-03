@@ -140,7 +140,7 @@ function HikePanel({
               label="Gain"
               value={
                 missing || trail.elevation_gain_m == null
-                  ? MISSING_METRIC
+                  ? `↑ ${MISSING_METRIC}`
                   : String(Math.round(trail.elevation_gain_m))
               }
               unit={missing || trail.elevation_gain_m == null ? undefined : 'm'}

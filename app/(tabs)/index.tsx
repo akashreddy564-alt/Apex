@@ -19,14 +19,10 @@ export default function TrailsScreen() {
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="border-b border-zinc-800 px-4 pb-4 pt-2">
           <Text style={displayXL}>Apex</Text>
-          <Text className="mt-1 max-w-[28rem] text-[13px] leading-5 text-zinc-400">
-            Rank trails like a comparison engine. Log like telemetry. No feed
-            noise.
-          </Text>
         </View>
 
         <View className="flex-row border-b border-zinc-800 px-4 py-2">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+          <Text className="font-ui text-[13px] text-zinc-400">
             {trails.length} trails · {rankings.length} ranked
           </Text>
         </View>

@@ -47,7 +47,19 @@ function hikeClock(totalSeconds: number): string {
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
-    setOptions: (options: Record<string, unknown>) => void;
+    setOptions: (options: {
+      headerShown: boolean;
+      tabBarStyle:
+        | { display: 'none' }
+        | {
+            backgroundColor: string;
+            borderTopColor: string;
+            borderTopWidth: number;
+            height: number;
+            paddingBottom: number;
+            paddingTop: number;
+          };
+    }) => void;
     setParams: (params: { recording?: string }) => void;
   }>();
   const trails = useTrailCache((s) => s.trails);
@@ -268,7 +280,7 @@ export default function LogScreen() {
     <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
         <Text style={displayM}>Log a hike</Text>
-        <Text className="mt-1 font-mono text-[11px] text-zinc-500">
+        <Text className="mt-1 font-ui text-[13px] text-zinc-400">
           Duration · notes · then pairwise rank
         </Text>
 
@@ -296,9 +308,7 @@ export default function LogScreen() {
             >
               <Text className="text-[13px] text-zinc-400">Change</Text>
             </Pressable>
-            <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-              Select trail
-            </Text>
+            <Text className="mb-1 mt-4 font-ui text-[13px] text-zinc-400">Select trail</Text>
             {trails.map((trail) => {
               const selected = trail.id === selectedTrailId;
               return (
@@ -316,9 +326,7 @@ export default function LogScreen() {
                   style={{ borderRadius: 12 }}
                 >
                   <Text className="text-[14px] text-zinc-100">{trail.name}</Text>
-                  <Text className="mt-0.5 font-mono text-[11px] text-zinc-500">
-                    {trail.region}
-                  </Text>
+                  <Text className="mt-0.5 font-ui text-[13px] text-zinc-400">{trail.region}</Text>
                 </Pressable>
               );
             })}
@@ -335,21 +343,15 @@ export default function LogScreen() {
               className="mt-4 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
               style={{ borderRadius: 12 }}
             >
-              <Text className="font-mono text-sm font-medium text-zinc-950">
-                Start tracking
-              </Text>
+              <Text className="font-ui-medium text-sm text-zinc-950">Start tracking</Text>
             </Pressable>
           </View>
         ) : null}
 
         <View className="mt-8 border-t border-zinc-800 pt-4">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
-            Log history
-          </Text>
+          <Text className="font-ui text-[13px] text-zinc-400">Log history</Text>
           {logs.length === 0 ? (
-            <Text className="mt-3 font-mono text-[11px] text-zinc-600">
-              No hikes logged yet.
-            </Text>
+            <Text className="mt-3 font-ui text-[13px] text-zinc-400">No hikes logged yet.</Text>
           ) : (
             logs.map((log) => {
               const trail = trails.find((t) => t.id === log.trail_id);
@@ -359,12 +361,12 @@ export default function LogScreen() {
                     <Text className="flex-1 text-[14px] text-zinc-100" numberOfLines={1}>
                       {trail?.name ?? 'Trail'}
                     </Text>
-                    <Text className="font-mono text-[11px] text-zinc-400">
+                    <Text className="font-ui text-[13px] text-zinc-400">
                       {formatDuration(log.duration_seconds)}
                     </Text>
                   </View>
                   {log.notes ? (
-                    <Text className="mt-1 font-mono text-[11px] text-zinc-500" numberOfLines={2}>
+                    <Text className="mt-1 font-ui text-[13px] text-zinc-400" numberOfLines={2}>
                       {log.notes}
                     </Text>
                   ) : null}
