@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddHikeSheet } from '@/components/log/AddHikeSheet';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
@@ -43,6 +44,8 @@ export default function LogScreen() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
   const [pastOpen, setPastOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
 
   useEffect(() => {
     if (!tracker.isTracking || tracker.isPaused) return;
@@ -65,6 +68,7 @@ export default function LogScreen() {
 
   const finish = () => {
     const log = tracker.complete();
+    setRecording(false);
     if (!log) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     comparison.start(log.trail_id, log.id);
@@ -114,17 +118,30 @@ export default function LogScreen() {
           Duration · notes · then pairwise rank
         </Text>
 
-        {!tracker.isTracking ? (
+        {!tracker.isTracking && !recording ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Add a hike"
+            onPress={() => setAddOpen(true)}
+            className="mt-6 items-center border border-zinc-800 py-4 active:bg-zinc-900"
+            style={{ borderRadius: 12 }}
+          >
+            <Text className="text-[16px] text-zinc-50">+</Text>
+          </Pressable>
+        ) : null}
+
+        {!tracker.isTracking && recording ? (
           <View className="mt-6 gap-2">
             <Pressable
               accessibilityRole="button"
-              onPress={() => setPastOpen(true)}
-              className="items-center border border-zinc-800 py-4 active:bg-zinc-900"
-              style={{ borderRadius: 12 }}
+              accessibilityLabel="Change hike"
+              onPress={() => {
+                setRecording(false);
+                setAddOpen(true);
+              }}
             >
-              <Text className="text-[16px] text-zinc-50">Log a past hike</Text>
+              <Text className="text-[13px] text-zinc-400">Change</Text>
             </Pressable>
-
             <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
               Select trail
             </Text>
@@ -169,7 +186,9 @@ export default function LogScreen() {
               </Text>
             </Pressable>
           </View>
-        ) : (
+        ) : null}
+
+        {tracker.isTracking ? (
           <View className="mt-6">
             <View
               className="border border-zinc-800 bg-zinc-900 p-4"
@@ -262,6 +281,7 @@ export default function LogScreen() {
                 onPress={() => {
                   void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   tracker.discard();
+                  setRecording(false);
                 }}
                 className="flex-1 items-center border border-zinc-800 py-3.5 active:bg-zinc-900"
                 style={{ borderRadius: 12 }}
@@ -277,7 +297,7 @@ export default function LogScreen() {
               </Pressable>
             </View>
           </View>
-        )}
+        ) : null}
 
         <View className="mt-8 border-t border-zinc-800 pt-4">
           <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
@@ -313,6 +333,19 @@ export default function LogScreen() {
         </View>
       </ScrollView>
 
+      <AddHikeSheet
+        visible={addOpen}
+        onRecord={() => {
+          setAddOpen(false);
+          setRecording(true);
+        }}
+        onPast={() => {
+          setAddOpen(false);
+          setRecording(false);
+          setPastOpen(true);
+        }}
+        onClose={() => setAddOpen(false)}
+      />
       <PastHikeSheet
         visible={pastOpen}
         trails={trails}
