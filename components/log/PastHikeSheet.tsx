@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 import { HikeDateField } from '@/components/log/HikeDateField';
+import { MISSING_METRIC } from '@/lib/format';
 import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
 import { formatHikeDay, suggestHikeType } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
@@ -245,8 +246,8 @@ export function PastHikeSheet({
                     </Text>
                     {trail ? (
                       <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
-                        {trail.region} · {trail.distance_km == null ? '\u2013' : `${trail.distance_km.toFixed(1)} km`} ·{' '}
-                        {trail.elevation_gain_m == null ? '\u2013' : `${Math.round(trail.elevation_gain_m)} m gain`}
+                        {trail.region} · {trail.distance_km == null ? MISSING_METRIC : `${trail.distance_km.toFixed(1)} km`} ·{' '}
+                        {trail.elevation_gain_m == null ? MISSING_METRIC : `${Math.round(trail.elevation_gain_m)} m gain`}
                       </Text>
                     ) : null}
                   </View>
@@ -348,8 +349,10 @@ export function PastHikeSheet({
                         />
                       ) : (
                         <Text style={{ fontSize: 20, color: colors.fg, ...numericStyle('semibold') }}>
-                          {distanceText || '—'}
-                          <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}> km</Text>
+                          {distanceText || MISSING_METRIC}
+                          {distanceText ? (
+                            <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}> km</Text>
+                          ) : null}
                         </Text>
                       )}
                       <Pressable accessibilityLabel="Edit distance" onPress={() => setEditingDistance(true)}>
