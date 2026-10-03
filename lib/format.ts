@@ -64,11 +64,11 @@ export function formatChartElevation({
 
 /**
  * Wagmi's datetime channel treats a timestamp of 0 as idle (`value || -1`).
- * A real 0 m scrub has to stay truthy so the readout can be "0.0 km".
- * 0.001 m still formats as 0.0 km and does not move the line.
+ * `Date` also truncates a sub-millisecond timestamp to 0, which becomes idle.
+ * 1 m still formats as 0.0 km.
  */
 export function chartDistanceTimestamp(distanceM: number): number {
-  if (!Number.isFinite(distanceM) || distanceM === 0) return 0.001;
+  if (!Number.isFinite(distanceM) || distanceM === 0) return 1;
   return distanceM;
 }
 
