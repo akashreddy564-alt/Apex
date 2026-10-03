@@ -50,30 +50,33 @@ function Row({
     <Animated.View
       entering={FadeInDown.delay(index * 40).springify().damping(20)}
       style={style}
-      className={`flex-row items-center gap-3 border-b border-zinc-800 px-1 py-3 ${
-        entry.isNew ? 'bg-accent-faint' : ''
-      }`}
     >
-      <Text
-        className={`w-8 text-[15px] ${entry.isNew ? 'text-accent' : 'text-zinc-500'}`}
-        style={{ fontVariant: ['tabular-nums'] }}
-      >
-        {entry.ordinal}
-      </Text>
-      <Text
-        className={`flex-1 text-[15px] ${
-          entry.isNew ? 'font-medium text-zinc-50' : 'text-zinc-200'
+      <View
+        className={`flex-row items-center gap-3 border-b border-zinc-800 px-1 py-3 ${
+          entry.isNew ? 'bg-accent-faint' : ''
         }`}
-        numberOfLines={1}
       >
-        {entry.trail.name}
-      </Text>
-      <Text
-        className="text-[15px] text-zinc-100"
-        style={{ fontVariant: ['tabular-nums'] }}
-      >
-        {placementScoreLabel(entry.ranking.bucket, count, entry.score)}
-      </Text>
+        <Text
+          className={`w-8 text-[15px] ${entry.isNew ? 'text-accent' : 'text-zinc-500'}`}
+          style={{ fontVariant: ['tabular-nums'] }}
+        >
+          {entry.ordinal}
+        </Text>
+        <Text
+          className={`min-w-0 flex-1 text-[15px] ${
+            entry.isNew ? 'font-medium text-zinc-50' : 'text-zinc-200'
+          }`}
+          numberOfLines={1}
+        >
+          {entry.trail.name}
+        </Text>
+        <Text
+          className="text-right text-[15px] text-zinc-100"
+          style={{ fontVariant: ['tabular-nums'] }}
+        >
+          {placementScoreLabel(entry.ranking.bucket, count, entry.score)}
+        </Text>
+      </View>
     </Animated.View>
   );
 }
