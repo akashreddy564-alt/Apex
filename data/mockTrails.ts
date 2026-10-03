@@ -204,6 +204,22 @@ export const MOCK_TRAILS: Trail[] = [
     created_at: now,
     updated_at: now,
   },
+  {
+    id: 'trail-unmapped',
+    name: 'Unmapped Spur',
+    region: 'Range unknown',
+    distance_km: null,
+    elevation_gain_m: null,
+    peak_elevation_m: null,
+    avg_moving_time_seconds: null,
+    path: line([
+      [-122.4, 37.75],
+      [-122.39, 37.76],
+    ]),
+    elevation_profile: [],
+    created_at: now,
+    updated_at: now,
+  },
 ];
 
 export function getTrailById(id: string): Trail | undefined {

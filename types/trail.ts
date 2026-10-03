@@ -24,9 +24,10 @@ export interface Trail {
   id: string;
   name: string;
   region: string;
-  distance_km: number;
-  elevation_gain_m: number;
-  peak_elevation_m: number;
+  /** Null when the trail has no measured distance. Never store 0 for that. */
+  distance_km: number | null;
+  elevation_gain_m: number | null;
+  peak_elevation_m: number | null;
   /** Canonical trail path as GeoJSON LineString */
   path: GeoJSONLineString;
   elevation_profile: ElevationSample[];
@@ -72,9 +73,9 @@ export interface RankedTrail extends Trail {
 }
 
 export interface TrailTelemetry {
-  peak_elevation_m: number;
-  elevation_gain_m: number;
-  distance_km: number;
+  peak_elevation_m: number | null;
+  elevation_gain_m: number | null;
+  distance_km: number | null;
   avg_moving_time_seconds: number | null;
 }
 

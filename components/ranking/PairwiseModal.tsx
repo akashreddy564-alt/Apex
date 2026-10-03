@@ -12,7 +12,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
-import { formatDistanceKm, formatElevationM } from '@/lib/format';
+import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import type { UseTrailComparisonResult } from '@/hooks/useTrailComparison';
 import type { Trail } from '@/types/trail';
 
@@ -50,13 +50,13 @@ function TrailPickCard({
       <Text className="mt-1 font-mono text-[11px] text-zinc-500">{trail.region}</Text>
       <View className="mt-4 gap-1">
         <Text className="font-mono text-xs text-zinc-400">
-          {formatDistanceKm(trail.distance_km)}
+          {formatOptionalDistance(trail.distance_km)}
         </Text>
         <Text className="font-mono text-xs text-zinc-400">
-          ↑ {formatElevationM(trail.elevation_gain_m)}
+          ↑ {formatOptionalElevation(trail.elevation_gain_m)}
         </Text>
         <Text className="font-mono text-xs text-zinc-400">
-          peak {formatElevationM(trail.peak_elevation_m)}
+          peak {formatOptionalElevation(trail.peak_elevation_m)}
         </Text>
       </View>
     </View>
