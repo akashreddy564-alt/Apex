@@ -23,6 +23,7 @@ import {
   formatCompactDuration,
   formatDistanceKm,
   formatElevationM,
+  MISSING_METRIC,
 } from '@/lib/format';
 
 export type CountUpFormat = 'elevation' | 'distance' | 'duration';
@@ -30,7 +31,7 @@ export type CountUpFormat = 'elevation' | 'distance' | 'duration';
 interface CountUpTextProps {
   /** Count-up restarts when this changes, not when `value` does. */
   trailId: string;
-  /** Target metric. `null` shows an em dash (no animation). */
+  /** Target metric. `null` shows an en dash (no animation). */
   value: number | null;
   format: CountUpFormat;
   /** Stagger delay before the count starts. */
@@ -89,7 +90,7 @@ function formatProgress(kind: CountUpFormat, raw: number): string {
 }
 
 function finalLabel(kind: CountUpFormat, value: number | null): string {
-  if (value == null) return '—';
+  if (value == null) return MISSING_METRIC;
   return formatProgress(kind, value);
 }
 
@@ -184,7 +185,7 @@ export function CountUpText({
   }));
 
   const text = useDerivedValue(() => {
-    if (value == null) return '—';
+    if (value == null) return MISSING_METRIC;
     return formatProgress(format, value * progress.value);
   });
 
@@ -199,7 +200,7 @@ export function CountUpText({
         className="text-body text-fg"
         style={[numericStyle(), style]}
       >
-        —
+        {MISSING_METRIC}
       </Text>
     );
   }

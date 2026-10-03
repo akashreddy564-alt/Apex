@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
-import { formatDistanceKm, formatElevationM } from '@/lib/format';
+import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import type { Trail } from '@/types/trail';
 
 interface TrailCardProps {
@@ -24,8 +24,8 @@ export function TrailCard({ trail, rank, onPress }: TrailCardProps) {
       <View className="flex-1 gap-0.5">
         <Text className="text-[15px] font-medium text-zinc-100">{trail.name}</Text>
         <Text className="font-mono text-[11px] text-zinc-500">
-          {trail.region} · {formatDistanceKm(trail.distance_km)} · ↑
-          {formatElevationM(trail.elevation_gain_m)}
+          {trail.region} · {formatOptionalDistance(trail.distance_km)} · ↑
+          {formatOptionalElevation(trail.elevation_gain_m)}
         </Text>
       </View>
       <ChevronRight size={16} strokeWidth={1.5} color="#52525B" />

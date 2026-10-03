@@ -72,6 +72,25 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /**
+ * Sage fill under the stroke. Wagmi's gradient lives in an SVG that does not
+ * receive the chart width, so on web it stops short of the line. This path is
+ * the chart's own area, in an SVG of the same width and height as the stroke.
+ */
+function AreaFill() {
+  const { area, width, height } = useContext(LineChartDimensionsContext);
+  if (!area || width <= 0 || height <= 0) return null;
+  return (
+    <Svg
+      width={width}
+      height={height}
+      style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
+    >
+      <Path d={area} fill={FILL_COLOR} />
+    </Svg>
+  );
+}
+
+/**
  * Short zinc segment that crawls the sage stroke while the profile is
  * mapping out. It is tied to the reveal clock, so it stops when the wipe
  * finishes. Solid dash, no blur. Hidden while the scrub cursor is active.
@@ -299,11 +318,14 @@ export function ElevationSparkline({
           }
         }}
       >
-        <View className="flex-row items-end justify-between border-b border-border px-3 py-2">
-          <Text className="font-ui text-caption uppercase tracking-widest text-fg-muted">
+        <View className="flex-row items-start gap-3 border-b border-border px-3 py-2">
+          <Text
+            numberOfLines={1}
+            className="shrink font-ui text-caption uppercase tracking-widest text-fg-muted"
+          >
             Elevation profile
           </Text>
-          <View className="items-end">
+          <View className="ml-auto items-end">
             <LineChart.PriceText
               format={({ value }) => {
                 'worklet';
@@ -352,18 +374,18 @@ export function ElevationSparkline({
                   ]}
                 >
                   <View style={{ width: chartWidth, height, pointerEvents: 'none' }}>
+                    <AreaFill />
                     <LineChart.Path
                       color={LINE_COLOR}
                       width={1.75}
+                      widthOffset={0}
                       showInactivePath={false}
                       pathProps={{
                         strokeLinecap: 'round',
                         strokeLinejoin: 'round',
-                        isTransitionEnabled: false,
+                        ...(Platform.OS === 'web' ? {} : { isTransitionEnabled: false }),
                       }}
-                    >
-                      <LineChart.Gradient fill={FILL_COLOR} />
-                    </LineChart.Path>
+                    />
                     {showTrace ? <FlowingTrace reveal={reveal} /> : null}
                     <RevealHead reveal={reveal} />
                   </View>
@@ -372,27 +394,7 @@ export function ElevationSparkline({
                   color={colors.highlight}
                   outerSize={14}
                   size={6}
-                >
-                  <LineChart.Tooltip
-                    format={({ value }) => {
-                      'worklet';
-                      return formatChartElevation({ value, atRestMeters: peakM });
-                    }}
-                    cursorGutter={12}
-                    textStyle={{
-                      ...digits,
-                      color: colors.fg,
-                      fontSize: typeScale.caption,
-                      backgroundColor: colors.surface,
-                      borderColor: colors.border,
-                      borderWidth: 1,
-                      overflow: 'hidden',
-                      paddingHorizontal: 8,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                    }}
-                  />
-                </LineChart.CursorCrosshair>
+                />
                 {Platform.OS === 'web' ? <LineChart.HoverTrap /> : null}
               </LineChart>
             ) : (

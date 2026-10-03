@@ -1,3 +1,6 @@
+/** Missing metrics. Same en dash the elevation chart uses at rest. */
+export const MISSING_METRIC = '\u2013';
+
 /** Deterministic thousands grouping. No locale APIs — same string on web and native. */
 function groupInteger(value: number): string {
   'worklet';
@@ -18,12 +21,25 @@ export function formatDistanceKm(km: number): string {
   return `${km.toFixed(1)} km`;
 }
 
+/** A missing distance is an en dash. Zero is only shown for a real zero. */
+export function formatOptionalDistance(km: number | null): string {
+  'worklet';
+  if (km == null || Number.isNaN(km)) return MISSING_METRIC;
+  return formatDistanceKm(km);
+}
+
 export function formatElevationM(m: number): string {
   'worklet';
   return `${groupInteger(m)} m`;
 }
 
-const NO_CHART_VALUE = '\u2013';
+export function formatOptionalElevation(m: number | null): string {
+  'worklet';
+  if (m == null || Number.isNaN(m)) return MISSING_METRIC;
+  return formatElevationM(m);
+}
+
+const NO_CHART_VALUE = MISSING_METRIC;
 
 /**
  * Wagmi price text. Idle passes `''`. That shows the trail's high point.
@@ -79,7 +95,7 @@ export function formatDuration(totalSeconds: number): string {
 
 export function formatCompactDuration(totalSeconds: number | null): string {
   'worklet';
-  if (totalSeconds == null) return '—';
+  if (totalSeconds == null) return MISSING_METRIC;
   const safe = Math.max(0, Math.round(totalSeconds));
   const h = Math.floor(safe / 3600);
   const m = Math.floor((safe % 3600) / 60);
