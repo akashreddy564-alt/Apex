@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
-import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
+import { formatOptionalDistance, formatOptionalElevation, MISSING_METRIC } from '@/lib/format';
 import type { Trail } from '@/types/trail';
 
 interface TrailCardProps {
@@ -18,18 +18,16 @@ export function TrailCard({ trail, rank, score, onPress }: TrailCardProps) {
       onPress={onPress}
       className="active:bg-zinc-900/80 flex-row items-center gap-3 border-b border-zinc-800 px-4 py-3.5"
     >
-      {rank != null ? (
-        <Text
-          className="w-8 text-[15px] text-zinc-500"
-          style={{ fontVariant: ['tabular-nums'] }}
-        >
-          {rank}
-        </Text>
-      ) : null}
-      <View className="flex-1 gap-0.5">
+      <Text
+        className="w-8 text-[15px] text-zinc-500"
+        style={{ fontVariant: ['tabular-nums'] }}
+      >
+        {rank != null ? rank : MISSING_METRIC}
+      </Text>
+      <View className="min-w-0 flex-1 gap-0.5">
         <Text className="text-[15px] font-medium text-zinc-100">{trail.name}</Text>
-        <Text className="font-mono text-[11px] text-zinc-500">
-          {trail.region} · {formatOptionalDistance(trail.distance_km)} · ↑
+        <Text className="font-ui text-[13px] text-zinc-400">
+          {trail.region} · {formatOptionalDistance(trail.distance_km)} · ↑{' '}
           {formatOptionalElevation(trail.elevation_gain_m)}
         </Text>
       </View>

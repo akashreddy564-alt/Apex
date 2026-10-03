@@ -52,22 +52,22 @@ export default function TrailDetailScreen() {
   if (!trail) {
     return (
       <View className="flex-1 items-center justify-center bg-bg">
-        <Text className="font-ui text-caption text-fg-faint">Trail not found</Text>
+        <Text className="font-ui text-[13px] text-zinc-400">Trail not found</Text>
       </View>
     );
   }
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ padding: 16 }}>
-      <Animated.View style={entranceStyle} className="gap-5">
+      <Animated.View style={entranceStyle}>
         <TrailMap canonical={trail.path} recorded={recorded} />
-        <View>
+        <View className="mt-3">
           <Text style={displayM} numberOfLines={2}>
             {trail.name}
           </Text>
-          <Text className="mt-1 font-ui text-caption text-fg-2">{trail.region}</Text>
+          <Text className="mt-1 font-ui text-[13px] text-zinc-400">{trail.region}</Text>
           {placement ? (
-            <Text className="mt-3 text-caption text-fg-2" style={numericStyle()}>
+            <Text className="mt-3 text-[13px] text-zinc-400" style={numericStyle()}>
               {placementScoreLabel(
                 placement.ranking.bucket,
                 placement.count,
@@ -76,26 +76,30 @@ export default function TrailDetailScreen() {
               )}
             </Text>
           ) : (
-            <Text className="mt-3 font-ui text-caption text-fg-faint">
-              Unranked — log this trail to place it
+            <Text className="mt-3 font-ui text-[13px] text-zinc-400">
+              Unranked. Log this trail to place it.
             </Text>
           )}
         </View>
 
-        <TelemetryRow
-          trailId={trail.id}
-          telemetry={{
-            peak_elevation_m: trail.peak_elevation_m,
-            elevation_gain_m: trail.elevation_gain_m,
-            distance_km: trail.distance_km,
-            avg_moving_time_seconds: trail.avg_moving_time_seconds,
-          }}
-        />
+        <View className="mt-2">
+          <TelemetryRow
+            trailId={trail.id}
+            telemetry={{
+              peak_elevation_m: trail.peak_elevation_m,
+              elevation_gain_m: trail.elevation_gain_m,
+              distance_km: trail.distance_km,
+              avg_moving_time_seconds: trail.avg_moving_time_seconds,
+            }}
+          />
+        </View>
 
-        <ElevationSparkline
-          trailId={trail.id}
-          samples={trail.elevation_profile}
-        />
+        <View className="mt-3">
+          <ElevationSparkline
+            trailId={trail.id}
+            samples={trail.elevation_profile}
+          />
+        </View>
       </Animated.View>
     </ScrollView>
   );

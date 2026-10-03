@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Check, ChevronRight, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AccessibilityInfo,
   Image,
   Modal,
   Pressable,
@@ -132,7 +133,9 @@ export function PastHikeSheet({
           });
           setPhotos((current) => [...current, stored]);
         } catch {
-          setPhotoError('Could not add that photo.');
+          const message = 'Could not add that photo.';
+          setPhotoError(message);
+          AccessibilityInfo.announceForAccessibility(message);
         }
       },
     );
@@ -501,7 +504,10 @@ export function PastHikeSheet({
                     </Pressable>
                   </View>
                   {photoError ? (
-                    <Text style={{ marginTop: 8, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                    <Text
+                      accessibilityLiveRegion="polite"
+                      style={{ marginTop: 8, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}
+                    >
                       {photoError}
                     </Text>
                   ) : null}
@@ -596,6 +602,15 @@ function PastPhoto({ stored }: { stored: string }) {
       cancelled = true;
     };
   }, [stored]);
+
+  if (!uri) {
+    return (
+      <View
+        accessibilityLabel="Hike photo"
+        style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.raised }}
+      />
+    );
+  }
 
   return (
     <Image

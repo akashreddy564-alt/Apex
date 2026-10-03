@@ -15,14 +15,7 @@ export default function AccountScreen() {
   const [busy, setBusy] = useState(false);
 
   if (!configured || !supabase) {
-    return (
-      <View className="flex-1 bg-zinc-950 px-4 pt-6">
-        <Text className="text-lg font-medium text-zinc-50">Local mode</Text>
-        <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-500">
-          No Supabase env. Trails, logs, and rankings stay on this device.
-        </Text>
-      </View>
-    );
+    return <View className="flex-1 bg-zinc-950" />;
   }
 
   const client = supabase;
@@ -56,7 +49,7 @@ export default function AccountScreen() {
   return (
     <View className="flex-1 bg-zinc-950 px-4 pt-6">
       <Text className="text-lg font-medium text-zinc-50">Account</Text>
-      <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-500">
+      <Text className="mt-2 font-ui text-[13px] leading-5 text-zinc-400">
         {email ? `Signed in as ${email}` : 'Magic link. Rankings stay private to this account.'}
       </Text>
 
@@ -69,7 +62,7 @@ export default function AccountScreen() {
           className="mt-6 items-center border border-zinc-800 py-3 active:bg-zinc-900"
           style={{ borderRadius: 12 }}
         >
-          <Text className="font-mono text-sm text-zinc-300">Sign out</Text>
+          <Text className="font-ui text-sm text-zinc-300">Sign out</Text>
         </Pressable>
       ) : (
         <>
@@ -82,7 +75,7 @@ export default function AccountScreen() {
             placeholder="email"
             placeholderTextColor="#52525B"
             accessibilityLabel="Email"
-            className="mt-6 border border-zinc-800 bg-zinc-900 px-3 py-3 font-mono text-sm text-zinc-100"
+            className="mt-6 border border-zinc-800 bg-zinc-900 px-3 py-3 font-ui text-sm text-zinc-100"
             style={{ borderRadius: 12 }}
           />
           <Pressable
@@ -94,7 +87,7 @@ export default function AccountScreen() {
             className="mt-3 items-center border border-accent bg-accent/15 py-3 active:bg-accent/25"
             style={{ borderRadius: 12, opacity: busy ? 0.5 : 1 }}
           >
-            <Text className="font-mono text-sm text-accent">Send magic link</Text>
+            <Text className="font-ui text-sm text-accent">Send magic link</Text>
           </Pressable>
         </>
       )}
@@ -108,11 +101,11 @@ export default function AccountScreen() {
         className="mt-3 items-center border border-zinc-800 py-3 active:bg-zinc-900"
         style={{ borderRadius: 12, opacity: busy || !session ? 0.5 : 1 }}
       >
-        <Text className="font-mono text-sm text-zinc-300">Sync now</Text>
+        <Text className="font-ui text-sm text-zinc-300">Sync now</Text>
       </Pressable>
 
       {status ? (
-        <Text className="mt-4 font-mono text-[11px] leading-5 text-zinc-400">{status}</Text>
+        <Text className="mt-4 font-ui text-[13px] leading-5 text-zinc-400">{status}</Text>
       ) : null}
 
       {session ? (

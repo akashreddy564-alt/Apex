@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
 import {
+  chartDistanceTimestamp,
   formatChartDistance,
   formatChartElevation,
   formatCompactDuration,
@@ -31,6 +32,9 @@ describe('chart formatters', () => {
     assert.equal(formatChartDistance({ value: -1, atRestMeters: 12_400 }), '12.4 km');
     assert.equal(formatChartDistance({ value: -1 }), '\u2013');
     assert.equal(formatChartDistance({ value: -1, atRestMeters: null }), '\u2013');
+    assert.equal(formatChartDistance({ value: chartDistanceTimestamp(0) }), '0.0 km');
+    assert.notEqual(chartDistanceTimestamp(0), 0);
+    assert.equal(formatChartDistance({ value: chartDistanceTimestamp(12_400) }), '12.4 km');
   });
 
   it('writes elevation in whole meters with a thousands comma', () => {

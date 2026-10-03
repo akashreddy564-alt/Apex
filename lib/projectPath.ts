@@ -18,8 +18,11 @@ export interface MapBounds {
 
 const PAD = 16;
 
-/** [longitude, latitude] or [longitude, latitude, altitude]. */
-export type MapCoordinate = [number, number] | [number, number, number];
+type MapCoordinate = [number, number] | [number, number, number];
+
+function isFiniteCoordinate(coord: MapCoordinate): boolean {
+  return Number.isFinite(coord[0]) && Number.isFinite(coord[1]);
+}
 
 /** One lat/lon projection for the trail map, compare cards, and the live track. */
 export function projectPoints(
@@ -29,13 +32,14 @@ export function projectPoints(
   pad: number,
   bounds?: MapBounds,
 ): MapPoint[] {
-  if (coordinates.length === 0 || width <= 0 || height <= 0) return [];
+  const finite = coordinates.filter(isFiniteCoordinate) as typeof coordinates;
+  if (finite.length === 0 || width <= 0 || height <= 0) return [];
   const box =
     bounds ??
     lineBounds([
       {
         type: 'LineString',
-        coordinates,
+        coordinates: finite,
       },
     ]);
   const spanLon = Math.max(box.maxLon - box.minLon, 0.00001);
@@ -50,7 +54,7 @@ export function projectPoints(
   const usedH = spanLat * scale;
   const originX = pad + (innerW - usedW) / 2;
   const originY = pad + (innerH - usedH) / 2;
-  return coordinates.map(([lon, lat]) => ({
+  return finite.map(([lon, lat]) => ({
     x: originX + (lon - box.minLon) * cosLat * scale,
     y: originY + (1 - (lat - box.minLat) / spanLat) * usedH,
   }));
@@ -99,6 +103,7 @@ export function lineBounds(lines: GeoJSONLineString[]) {
   let maxLat = -Infinity;
   for (const line of lines) {
     for (const [lon, lat] of line.coordinates) {
+      if (!Number.isFinite(lon) || !Number.isFinite(lat)) continue;
       minLon = Math.min(minLon, lon);
       maxLon = Math.max(maxLon, lon);
       minLat = Math.min(minLat, lat);

@@ -31,6 +31,13 @@ function num(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+/** A missing distance, gain, or peak stays null so the UI can show a dash. */
+function optionalNum(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
 function mapTrail(row: Record<string, unknown>): Trail | null {
   const path = asLineString(row.path);
   if (!path || typeof row.id !== 'string' || typeof row.name !== 'string') return null;
@@ -39,9 +46,9 @@ function mapTrail(row: Record<string, unknown>): Trail | null {
     id: row.id,
     name: row.name,
     region: typeof row.region === 'string' ? row.region : '',
-    distance_km: num(row.distance_km),
-    elevation_gain_m: num(row.elevation_gain_m),
-    peak_elevation_m: num(row.peak_elevation_m),
+    distance_km: optionalNum(row.distance_km),
+    elevation_gain_m: optionalNum(row.elevation_gain_m),
+    peak_elevation_m: optionalNum(row.peak_elevation_m),
     path,
     elevation_profile: profile
       .map((sample) => {

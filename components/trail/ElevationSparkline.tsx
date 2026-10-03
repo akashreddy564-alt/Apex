@@ -28,7 +28,13 @@ import {
   SHAPE_EASE_MS,
   shapeEase,
 } from '@/lib/elevationMotion';
-import { formatChartDistance, formatChartElevation, formatDistanceKm } from '@/lib/format';
+import {
+  chartDistanceTimestamp,
+  formatChartDistance,
+  formatChartElevation,
+  formatDistanceKm,
+  MISSING_METRIC,
+} from '@/lib/format';
 import { colors, numericStyle, typeScale } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
@@ -237,7 +243,7 @@ export function ElevationSparkline({
   const data = useMemo(
     () =>
       plotted.map((s) => ({
-        timestamp: s.distance_m,
+        timestamp: chartDistanceTimestamp(s.distance_m),
         value: s.elevation_m,
       })),
     [plotted],
@@ -330,16 +336,18 @@ export function ElevationSparkline({
   if (data.length < 2) {
     return (
       <View className="items-center justify-center rounded-xl border border-border bg-surface px-4 py-10">
-        <Text className="font-ui text-caption text-fg-faint">No elevation data</Text>
+        <Text className="font-ui text-[13px] text-zinc-400">No elevation data</Text>
       </View>
     );
   }
 
-  let peakM = plotted[0]?.elevation_m ?? 0;
+  let peakM: number | null = null;
   for (const sample of plotted) {
-    if (sample.elevation_m > peakM) peakM = sample.elevation_m;
+    if (!Number.isFinite(sample.elevation_m)) continue;
+    if (peakM == null || sample.elevation_m > peakM) peakM = sample.elevation_m;
   }
-  const totalM = plotted[plotted.length - 1]?.distance_m ?? 0;
+  const lastDistance = plotted[plotted.length - 1]?.distance_m;
+  const totalM = lastDistance != null && Number.isFinite(lastDistance) ? lastDistance : null;
   const digits = numericStyle();
   const showTrace = !reducedMotion;
   const readoutStyle = {
@@ -370,7 +378,7 @@ export function ElevationSparkline({
       >
         <View className="flex-row items-center justify-between border-b border-border px-3 py-2">
           <Text
-            className="font-ui text-caption uppercase tracking-widest text-fg-muted"
+            className="font-ui text-[13px] text-zinc-400"
             style={{ flexShrink: 0 }}
           >
             Elevation profile
@@ -459,7 +467,7 @@ export function ElevationSparkline({
             {formatDistanceKm(0)}
           </Text>
           <Text className="text-caption text-fg-faint" style={digits}>
-            {formatDistanceKm(plotted[plotted.length - 1].distance_m / 1000)}
+            {totalM == null ? MISSING_METRIC : formatDistanceKm(totalM / 1000)}
           </Text>
         </View>
       </LineChart.Provider>

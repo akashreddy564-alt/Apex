@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
 import { LiveTrackMap } from '@/components/log/LiveTrackMap';
+import { MISSING_METRIC } from '@/lib/format';
 import { paceSecondsPerKm } from '@/lib/hikeStats';
 import { colors, fonts, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
@@ -57,9 +58,9 @@ function pausedClock(totalSeconds: number): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
-function paceValue(distanceM: number, movingSeconds: number): string {
+function paceValue(distanceM: number, movingSeconds: number): string | null {
   const pace = paceSecondsPerKm(distanceM, movingSeconds);
-  if (pace == null) return '—';
+  if (pace == null) return null;
   const total = Math.round(pace);
   const minutes = Math.floor(total / 60);
   const seconds = total % 60;
@@ -305,9 +306,10 @@ export function RecordSession({
   const accuracy = [...points].reverse().find((point) => point.accuracy != null)?.accuracy ?? null;
   const gps =
     accuracy == null ? 'GPS' : `GPS ±${Math.max(1, Math.round(accuracy))} m`;
+  const pace = paceValue(distanceM, movingSeconds);
   const toSummit =
     peakElevationM == null || elevationM == null
-      ? '—'
+      ? MISSING_METRIC
       : String(Math.max(0, Math.round(peakElevationM - elevationM)));
   const distance = (distanceM / 1000).toFixed(1);
 
@@ -431,7 +433,12 @@ export function RecordSession({
         <View style={{ marginTop: paused ? 12 : 18 }}>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
             <StatCell label="Distance" value={distance} unit="km" />
-            <StatCell label="Pace" value={paceValue(distanceM, movingSeconds)} unit="/km" edge />
+            <StatCell
+              label="Pace"
+              value={pace ?? `${MISSING_METRIC}/km`}
+              unit={pace == null ? '' : '/km'}
+              edge
+            />
           </View>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
             <StatCell label="Gained" value={`↑ ${Math.round(gainM)}`} unit="m" />
@@ -440,10 +447,15 @@ export function RecordSession({
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
             <StatCell
               label="Elevation"
-              value={elevationM == null ? '—' : String(Math.round(elevationM))}
+              value={elevationM == null ? MISSING_METRIC : String(Math.round(elevationM))}
               unit={elevationM == null ? '' : 'm'}
             />
-            <StatCell label="To summit" value={toSummit} unit={toSummit === '—' ? '' : 'm'} edge />
+            <StatCell
+              label="To summit"
+              value={toSummit}
+              unit={toSummit === MISSING_METRIC ? '' : 'm'}
+              edge
+            />
           </View>
         </View>
         {notice ? (

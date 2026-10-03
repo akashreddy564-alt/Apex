@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
+import { MISSING_METRIC } from './format.ts';
 import { gpsBlendCorrector, openTopoDataCorrector } from './altitude.ts';
 import {
   applyAltitudeStep,
@@ -32,6 +33,8 @@ test('smoothed altitude ignores jitter inside the threshold and counts loss', ()
 test('pace and total time ignore a pause that moving time already excluded', () => {
   assert.equal(paceSecondsPerKm(0, 60), null);
   assert.equal(paceSecondsPerKm(1000, 600), 600);
+  assert.equal(formatPace(null), `${MISSING_METRIC}/km`);
+  assert.equal(formatPace(Number.NaN), `${MISSING_METRIC}/km`);
   assert.equal(formatPace(600), '10:00 /km');
   assert.equal(totalSeconds(1_000, 11_000), 10);
 });
