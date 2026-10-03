@@ -14,7 +14,7 @@ import Animated, {
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
-import { Circle, Path, Svg } from 'react-native-svg';
+import { Circle, Line, Path, Svg } from 'react-native-svg';
 import {
   LineChart,
   LineChartDimensionsContext,
@@ -70,6 +70,7 @@ interface ElevationSparklineProps {
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedLine = Animated.createAnimatedComponent(Line);
 
 /**
  * Sage fill under the stroke. Wagmi's gradient lives in an SVG that does not
@@ -125,6 +126,44 @@ function FlowingTrace({ reveal }: { reveal: SharedValue<number> }) {
         strokeLinejoin="round"
         strokeDasharray={`${TRACE_DASH} ${TRACE_GAP}`}
         animatedProps={animatedProps}
+      />
+    </Svg>
+  );
+}
+
+/**
+ * Vertical scrub guide. Wagmi's CursorLine draws its stroke on x = 0 of an
+ * SVG that clips anything left of that edge, so on web the line vanishes.
+ * This stroke is centered on the scrub point inside an SVG the size of the
+ * chart, thin zinc, with the crosshair dot on top.
+ */
+function ScrubGuide() {
+  const { currentX, isActive } = useLineChart();
+  const { width, height } = useContext(LineChartDimensionsContext);
+  const animatedProps = useAnimatedProps(() => {
+    // Center a 1px stroke on a pixel so it isn't split into two faint columns.
+    const x = Math.round(currentX.value) + 0.5;
+    return {
+      x1: x,
+      x2: x,
+      opacity: isActive.value ? 1 : 0,
+    };
+  });
+
+  if (width <= 0 || height <= 0) return null;
+
+  return (
+    <Svg
+      width={width}
+      height={height}
+      style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
+    >
+      <AnimatedLine
+        animatedProps={animatedProps}
+        y1={0}
+        y2={height}
+        stroke={colors.fgMuted}
+        strokeWidth={1.25}
       />
     </Svg>
   );
@@ -303,6 +342,17 @@ export function ElevationSparkline({
   const totalM = plotted[plotted.length - 1]?.distance_m ?? 0;
   const digits = numericStyle();
   const showTrace = !reducedMotion;
+  const readoutStyle = {
+    ...digits,
+    fontSize: typeScale.caption,
+    lineHeight: 16,
+    height: 16,
+    textAlign: 'right' as const,
+    width: 96,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    margin: 0,
+  };
 
   return (
     <View
@@ -318,27 +368,27 @@ export function ElevationSparkline({
           }
         }}
       >
-        <View className="flex-row items-start gap-3 border-b border-border px-3 py-2">
+        <View className="flex-row items-center justify-between border-b border-border px-3 py-2">
           <Text
-            numberOfLines={1}
-            className="shrink font-ui text-caption uppercase tracking-widest text-fg-muted"
+            className="font-ui text-caption uppercase tracking-widest text-fg-muted"
+            style={{ flexShrink: 0 }}
           >
             Elevation profile
           </Text>
-          <View className="ml-auto items-end">
+          <View className="items-end" style={{ flexShrink: 0 }}>
             <LineChart.PriceText
               format={({ value }) => {
                 'worklet';
                 return formatChartElevation({ value, atRestMeters: peakM });
               }}
-              style={{ ...digits, color: colors.fgMuted, fontSize: typeScale.caption }}
+              style={{ ...readoutStyle, color: colors.fgMuted }}
             />
             <LineChart.DatetimeText
               format={({ value }) => {
                 'worklet';
                 return formatChartDistance({ value, atRestMeters: totalM });
               }}
-              style={{ ...digits, color: colors.fgFaint, fontSize: typeScale.caption }}
+              style={{ ...readoutStyle, color: colors.fgFaint }}
             />
           </View>
         </View>
@@ -390,6 +440,7 @@ export function ElevationSparkline({
                     <RevealHead reveal={reveal} />
                   </View>
                 </Animated.View>
+                <ScrubGuide />
                 <LineChart.CursorCrosshair
                   color={colors.highlight}
                   outerSize={14}
