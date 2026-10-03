@@ -1,8 +1,15 @@
+import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs/types';
+import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
 import { Tabs, useRouter } from 'expo-router';
 import { Footprints, ListOrdered, Mountain } from 'lucide-react-native';
-import { Pressable, Text } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { colors, fonts, navTitle } from '@/theme/tokens';
+
+/** Fills the tab slot. minHeight is the touch target; icon and label styles stay put. */
+function TabButton(props: BottomTabBarButtonProps) {
+  return <PlatformPressable {...props} style={[props.style, styles.tabHit]} />;
+}
 
 function AccountButton() {
   const router = useRouter();
@@ -42,6 +49,7 @@ export default function TabsLayout() {
           fontSize: 12,
           fontFamily: fonts.uiMedium,
         },
+        tabBarButton: (props) => <TabButton {...props} />,
         sceneStyle: { backgroundColor: colors.bg },
       }}
     >
@@ -75,3 +83,10 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabHit: {
+    minHeight: 48,
+    width: '100%',
+  },
+});
