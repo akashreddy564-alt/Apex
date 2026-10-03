@@ -17,6 +17,7 @@ Early prototype. Mock trail data runs locally without a backend.
 | Personal top ranking list | Done |
 | Supabase / PostGIS schema | Ready (not wired) |
 | Live GPS tracking | Done (background on native; browser watch on web) |
+| Trail map (canonical + recorded) | Done |
 | Photos on logs | Done |
 | Auth + sync | Done when env is set; local otherwise |
 

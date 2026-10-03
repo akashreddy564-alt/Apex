@@ -9,6 +9,7 @@ import Animated, {
 
 import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
 import { TelemetryRow } from '@/components/trail/TelemetryRow';
+import { TrailMap } from '@/components/trail/TrailMap';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { displayM, numericStyle } from '@/theme/tokens';
@@ -18,6 +19,12 @@ const ENTRANCE = { damping: 20, stiffness: 240, mass: 0.85 };
 export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trail = useTrailCache((s) => s.getTrail(String(id)));
+  const recorded = useTrailCache((s) => {
+    const log = s.logs.find(
+      (entry) => entry.trail_id === String(id) && entry.recorded_path,
+    );
+    return log?.recorded_path ?? null;
+  });
   const ranking = useRankingStore((s) => s.getRanking(String(id)));
 
   const progress = useSharedValue(0);
@@ -43,6 +50,7 @@ export default function TrailDetailScreen() {
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ padding: 16 }}>
       <Animated.View style={entranceStyle} className="gap-5">
+        <TrailMap canonical={trail.path} recorded={recorded} />
         <View>
           <Text style={displayM} numberOfLines={2}>
             {trail.name}
@@ -74,16 +82,6 @@ export default function TrailDetailScreen() {
           trailId={trail.id}
           samples={trail.elevation_profile}
         />
-
-        <View className="rounded-xl border border-border bg-surface p-3">
-          <Text className="font-ui text-caption uppercase tracking-widest text-fg-muted">
-            Path
-          </Text>
-          <Text className="mt-2 text-caption text-fg-2" style={numericStyle()}>
-            GeoJSON LineString · {trail.path.coordinates.length} vertices · PostGIS
-            geography ready
-          </Text>
-        </View>
       </Animated.View>
     </ScrollView>
   );
