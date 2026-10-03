@@ -13,7 +13,7 @@ Early prototype. Mock trail data runs locally without a backend.
 | Trail list + detail | Done |
 | Elevation profile (scrubbable, moving stroke) | Done |
 | Log a hike | Done |
-| Pairwise ranking + Elo | Done |
+| Bucket placement ranking | Done |
 | Personal top ranking list | Done |
 | Supabase / PostGIS schema | Ready (not wired) |
 | Live GPS tracking | Done (background on native; browser watch on web) |
@@ -71,7 +71,7 @@ ARCHITECTURE.md      # folder map + ranking flow
 
 ## Ranking
 
-After you finish logging a hike, Apex asks which trail was better—new one vs one you already ranked. It binary-searches your list and updates Elo scores (`hooks/useTrailComparison.ts`, `lib/elo.ts`), then shows where the trail landed in your ranking.
+After you finish logging a hike, you pick a bucket (Loved, Fine, or Didn't like). Apex binary-searches that bucket's frozen order and writes one fractional position when you tap Place. The 0–10 score is the hike's place inside the bucket band (`lib/ranking.ts`). Comparisons are saved only then.
 
 ## License
 

@@ -1,10 +1,22 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { applyElo, DEFAULT_ELO } from '@/lib/elo';
-import { newId } from '@/lib/geo';
-import { pushAllRankings, pushComparison } from '@/lib/remoteSync';
-import { useComparisonStore } from '@/stores/comparisonStore';
 import { MOCK_USER_ID } from '@/data/mockTrails';
+import { newId } from '@/lib/geo';
+import { pushComparison, pushRanking } from '@/lib/remoteSync';
+import {
+  answer,
+  bandScore,
+  currentProbe,
+  DEFAULT_HIKE_TYPE,
+  expectedComparisons,
+  positionForInsert,
+  sortByPosition,
+  startSession,
+  undo as undoSession,
+  type Bucket,
+  type PlacementAnswer,
+  type PlacementSession,
+} from '@/lib/ranking';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type {
@@ -12,224 +24,292 @@ import type {
   ComparisonRound,
   LeaderboardEntry,
   PairwiseComparison,
-  Trail,
   TrailRanking,
 } from '@/types/trail';
 
 export interface ComparisonSessionResult {
   insertedTrailId: string;
+  bucket: Bucket;
   leaderboard: LeaderboardEntry[];
   ordinalRank: number;
+  score: number;
 }
 
 export interface UseTrailComparisonResult {
-  isActive: boolean;
+  phase: 'idle' | 'bucket' | 'compare' | 'preview';
   round: ComparisonRound | null;
-  isComplete: boolean;
-  result: ComparisonSessionResult | null;
+  preview: ComparisonSessionResult | null;
+  progress: { step: number; estimate: number } | null;
+  canUndo: boolean;
   start: (challengerTrailId: string, contextLogId?: string | null) => void;
+  pickBucket: (bucket: Bucket) => void;
   choose: (choice: ComparisonChoice) => void;
+  undo: () => void;
+  /** Persist the single ranking row and the session's comparisons. */
+  place: () => void;
   reset: () => void;
 }
 
+const CHOICE_TO_ANSWER: Record<ComparisonChoice, PlacementAnswer> = {
+  challenger: 'new',
+  opponent: 'opponent',
+  too_close: 'too_close',
+  skip: 'skip',
+};
+
+interface FrozenOpponent {
+  id: string;
+  position: string;
+}
+
 /**
- * Binary-insertion ranking via pairwise comparisons, with Elo updates.
- * Opponent list is snapshotted at session start so mid-search Elo churn
- * does not invalidate binary-search indices.
+ * Bucket, then binary insert over a snapshot frozen at session start.
+ * The store is unchanged until `place`.
  */
 export function useTrailComparison(): UseTrailComparisonResult {
   const trails = useTrailCache((s) => s.trails);
-  const ensureRanking = useRankingStore((s) => s.ensureRanking);
-  const upsertRanking = useRankingStore((s) => s.upsertRanking);
+  const placeRanking = useRankingStore((s) => s.place);
 
-  const opponentsRef = useRef<Trail[]>([]);
+  const orderRef = useRef<FrozenOpponent[]>([]);
+  const sessionRef = useRef<PlacementSession | null>(null);
+  const pendingRef = useRef<PairwiseComparison[]>([]);
+  const placedRef = useRef(false);
   const contextLogIdRef = useRef<string | null>(null);
-  const [challengerId, setChallengerId] = useState<string | null>(null);
-  const [low, setLow] = useState(0);
-  const [high, setHigh] = useState(-1);
-  const [isComplete, setIsComplete] = useState(false);
-  const [result, setResult] = useState<ComparisonSessionResult | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+
+  const [trailId, setTrailId] = useState<string | null>(null);
+  const [bucket, setBucket] = useState<Bucket | null>(null);
+  const [phase, setPhase] = useState<UseTrailComparisonResult['phase']>('idle');
+  const [preview, setPreview] = useState<ComparisonSessionResult | null>(null);
   const [tick, setTick] = useState(0);
 
   const challenger = useMemo(
-    () => trails.find((t) => t.id === challengerId) ?? null,
-    [trails, challengerId],
+    () => trails.find((trail) => trail.id === trailId) ?? null,
+    [trails, trailId],
   );
 
-  const finalize = useCallback(
-    (trailId: string, insertAt: number) => {
-      const ranking = ensureRanking(trailId);
-      const neighbors = useRankingStore
-        .getState()
-        .rankings.filter((r) => r.trail_id !== trailId)
-        .sort((a, b) => b.rank_score - a.rank_score);
-
-      let nextScore = ranking.rank_score;
-      if (neighbors.length === 0) {
-        nextScore = DEFAULT_ELO;
-      } else if (insertAt <= 0) {
-        nextScore = neighbors[0].rank_score + 16;
-      } else if (insertAt >= neighbors.length) {
-        nextScore = neighbors[neighbors.length - 1].rank_score - 16;
-      } else {
-        const above = neighbors[insertAt - 1].rank_score;
-        const below = neighbors[insertAt].rank_score;
-        nextScore = (above + below) / 2;
-      }
-
-      const updated: TrailRanking = {
-        ...ranking,
-        rank_score: nextScore,
-        updated_at: new Date().toISOString(),
-      };
-      upsertRanking(updated);
-
+  const buildPreview = useCallback(
+    (session: PlacementSession, selected: Bucket): ComparisonSessionResult | null => {
+      if (!trailId || session.done == null) return null;
+      const insertAt = session.done;
+      const ids = orderRef.current.map((row) => row.id);
+      ids.splice(insertAt, 0, trailId);
       const allTrails = useTrailCache.getState().trails;
-      const leaderboard: LeaderboardEntry[] = useRankingStore
-        .getState()
-        .rankings.filter((r) => allTrails.some((t) => t.id === r.trail_id))
-        .sort((a, b) => b.rank_score - a.rank_score)
-        .slice(0, 10)
-        .map((r) => ({
-          trail: allTrails.find((t) => t.id === r.trail_id)!,
-          ranking: r,
-          isNew: r.trail_id === trailId,
-        }));
-
-      const ordinal =
-        leaderboard.find((e) => e.trail.id === trailId)?.ranking.ordinal_rank ??
-        insertAt + 1;
-
-      setIsComplete(true);
-      setResult({
-        insertedTrailId: trailId,
-        leaderboard,
-        ordinalRank: ordinal,
+      const shown: LeaderboardEntry[] = [];
+      ids.forEach((id, index) => {
+        const trail = allTrails.find((item) => item.id === id);
+        if (!trail) return;
+        const existing = orderRef.current.find((row) => row.id === id);
+        const ranking: TrailRanking = {
+          id: `rank-${id}`,
+          user_id: MOCK_USER_ID,
+          trail_id: id,
+          hike_type: DEFAULT_HIKE_TYPE,
+          bucket: selected,
+          position: existing?.position ?? '',
+          comparison_count: existing ? 0 : pendingRef.current.length,
+          updated_at: '',
+        };
+        shown.push({
+          trail,
+          ranking,
+          score: bandScore(selected, index, ids.length),
+          ordinal: index + 1,
+          isNew: id === trailId,
+        });
       });
-      void pushAllRankings();
+
+      const visible =
+        shown.length <= 10
+          ? shown
+          : shown.filter((entry, index) => index < 9 || entry.isNew).slice(0, 10);
+      const placed = shown.find((entry) => entry.isNew);
+
+      return {
+        insertedTrailId: trailId,
+        bucket: selected,
+        leaderboard: visible,
+        ordinalRank: placed?.ordinal ?? insertAt + 1,
+        score: placed?.score ?? bandScore(selected, insertAt, ids.length),
+      };
     },
-    [ensureRanking, upsertRanking],
+    [trailId],
   );
 
-  const start = useCallback(
-    (challengerTrailId: string, contextLogId?: string | null) => {
-      contextLogIdRef.current = contextLogId ?? null;
-      ensureRanking(challengerTrailId);
+  const start = useCallback((challengerTrailId: string, contextLogId?: string | null) => {
+    orderRef.current = [];
+    sessionRef.current = null;
+    pendingRef.current = [];
+    placedRef.current = false;
+    contextLogIdRef.current = contextLogId ?? null;
+    sessionIdRef.current = newId();
+    setTrailId(challengerTrailId);
+    setBucket(null);
+    setPreview(null);
+    setPhase('bucket');
+    setTick((value) => value + 1);
+  }, []);
 
-      const ranked = useRankingStore
-        .getState()
-        .rankings.filter((r) => r.trail_id !== challengerTrailId)
-        .sort((a, b) => b.rank_score - a.rank_score);
-
-      const snapshot = ranked
-        .map((r) => useTrailCache.getState().trails.find((t) => t.id === r.trail_id))
-        .filter((t): t is Trail => Boolean(t));
-
-      opponentsRef.current = snapshot;
-      setChallengerId(challengerTrailId);
-      setIsComplete(false);
-      setResult(null);
-      setLow(0);
-      setHigh(snapshot.length - 1);
-      setTick((n) => n + 1);
-
-      if (snapshot.length === 0) {
-        finalize(challengerTrailId, 0);
+  const pickBucket = useCallback(
+    (selected: Bucket) => {
+      if (!trailId) return;
+      const snapshot = sortByPosition(
+        useRankingStore
+          .getState()
+          .rankings.filter(
+            (row) =>
+              row.bucket === selected &&
+              row.hike_type === DEFAULT_HIKE_TYPE &&
+              row.trail_id !== trailId,
+          ),
+      );
+      orderRef.current = snapshot.map((row) => ({
+        id: row.trail_id,
+        position: row.position,
+      }));
+      pendingRef.current = [];
+      const session = startSession(orderRef.current.map((row) => row.id));
+      sessionRef.current = session;
+      setBucket(selected);
+      if (session.done != null) {
+        setPreview(buildPreview(session, selected));
+        setPhase('preview');
+      } else {
+        setPreview(null);
+        setPhase('compare');
       }
+      setTick((value) => value + 1);
     },
-    [ensureRanking, finalize],
+    [buildPreview, trailId],
   );
-
-  const round: ComparisonRound | null = useMemo(() => {
-    void tick;
-    if (!challenger || isComplete || high < low) return null;
-    const mid = Math.floor((low + high) / 2);
-    const opponent = opponentsRef.current[mid];
-    if (!opponent) return null;
-    return { challenger, opponent, low, high };
-  }, [challenger, high, isComplete, low, tick]);
 
   const choose = useCallback(
     (choice: ComparisonChoice) => {
-      if (!challenger || !round) return;
-
-      const mid = Math.floor((low + high) / 2);
-      const opponent = opponentsRef.current[mid];
-      if (!opponent) return;
-
-      const challengerRank = ensureRanking(challenger.id);
-      const opponentRank = ensureRanking(opponent.id);
-      const challengerWins = choice === 'challenger';
-
-      const { winnerElo, loserElo } = applyElo(
-        challengerWins ? challengerRank.elo_rating : opponentRank.elo_rating,
-        challengerWins ? opponentRank.elo_rating : challengerRank.elo_rating,
-      );
-
-      const now = new Date().toISOString();
-      const record: PairwiseComparison = {
-        id: newId(),
-        user_id: MOCK_USER_ID,
-        winner_trail_id: challengerWins ? challenger.id : opponent.id,
-        loser_trail_id: challengerWins ? opponent.id : challenger.id,
-        context_log_id: contextLogIdRef.current,
-        created_at: now,
-      };
-      useComparisonStore.getState().add(record);
-      void pushComparison(record);
-
-      upsertRanking({
-        ...challengerRank,
-        elo_rating: challengerWins ? winnerElo : loserElo,
-        rank_score: challengerWins ? winnerElo : loserElo,
-        comparison_count: challengerRank.comparison_count + 1,
-        updated_at: now,
-      });
-      upsertRanking({
-        ...opponentRank,
-        elo_rating: challengerWins ? loserElo : winnerElo,
-        rank_score: challengerWins ? loserElo : winnerElo,
-        comparison_count: opponentRank.comparison_count + 1,
-        updated_at: now,
-      });
-
-      let nextLow = low;
-      let nextHigh = high;
-      if (challengerWins) {
-        nextHigh = mid - 1;
-      } else {
-        nextLow = mid + 1;
+      const session = sessionRef.current;
+      if (!session || !bucket || !trailId || session.done != null) return;
+      const probe = currentProbe(session);
+      const opponentId = session.order[probe];
+      const next = answer(session, CHOICE_TO_ANSWER[choice]);
+      sessionRef.current = next;
+      if (opponentId && sessionIdRef.current) {
+        pendingRef.current = [
+          ...pendingRef.current,
+          {
+            id: newId(),
+            user_id: MOCK_USER_ID,
+            session_id: sessionIdRef.current,
+            hike_type: DEFAULT_HIKE_TYPE,
+            challenger_trail_id: trailId,
+            opponent_trail_id: opponentId,
+            result: CHOICE_TO_ANSWER[choice],
+            context_log_id: contextLogIdRef.current,
+            created_at: new Date().toISOString(),
+          },
+        ];
       }
-
-      setLow(nextLow);
-      setHigh(nextHigh);
-
-      if (nextLow > nextHigh) {
-        finalize(challenger.id, nextLow);
-      } else {
-        void pushAllRankings();
+      if (next.done != null) {
+        setPreview(buildPreview(next, bucket));
+        setPhase('preview');
       }
+      setTick((value) => value + 1);
     },
-    [challenger, ensureRanking, finalize, high, low, round, upsertRanking],
+    [bucket, buildPreview, trailId],
   );
 
+  const undo = useCallback(() => {
+    const session = sessionRef.current;
+    if (!session || session.history.length === 0) {
+      sessionRef.current = null;
+      pendingRef.current = [];
+      setPreview(null);
+      setBucket(null);
+      setPhase('bucket');
+      setTick((value) => value + 1);
+      return;
+    }
+    const next = undoSession(session);
+    sessionRef.current = next;
+    pendingRef.current = pendingRef.current.slice(0, -1);
+    if (next.done != null && bucket) {
+      setPreview(buildPreview(next, bucket));
+      setPhase('preview');
+    } else {
+      setPreview(null);
+      setPhase('compare');
+    }
+    setTick((value) => value + 1);
+  }, [bucket, buildPreview]);
+
+  const place = useCallback(() => {
+    const session = sessionRef.current;
+    if (placedRef.current || !trailId || !bucket || session?.done == null) return;
+    placedRef.current = true;
+    const existing = useRankingStore.getState().getRanking(trailId, DEFAULT_HIKE_TYPE);
+    const ranking: TrailRanking = {
+      id: existing?.id ?? newId(),
+      user_id: MOCK_USER_ID,
+      trail_id: trailId,
+      hike_type: DEFAULT_HIKE_TYPE,
+      bucket,
+      position: positionForInsert(
+        orderRef.current.map((row) => row.position),
+        session.done,
+      ),
+      comparison_count: (existing?.comparison_count ?? 0) + pendingRef.current.length,
+      updated_at: new Date().toISOString(),
+    };
+    const comparisons = pendingRef.current;
+    placeRanking(ranking, comparisons);
+    void pushRanking(ranking);
+    for (const comparison of comparisons) void pushComparison(comparison);
+  }, [bucket, placeRanking, trailId]);
+
   const reset = useCallback(() => {
-    opponentsRef.current = [];
+    orderRef.current = [];
+    sessionRef.current = null;
+    pendingRef.current = [];
+    placedRef.current = false;
     contextLogIdRef.current = null;
-    setChallengerId(null);
-    setLow(0);
-    setHigh(-1);
-    setIsComplete(false);
-    setResult(null);
+    sessionIdRef.current = null;
+    setTrailId(null);
+    setBucket(null);
+    setPreview(null);
+    setPhase('idle');
   }, []);
 
+  const round: ComparisonRound | null = useMemo(() => {
+    void tick;
+    const session = sessionRef.current;
+    if (!challenger || phase !== 'compare' || !session || session.done != null) return null;
+    const probe = currentProbe(session);
+    const opponent = trails.find((trail) => trail.id === session.order[probe]);
+    if (!opponent) return null;
+    return { challenger, opponent, low: session.low, high: session.high };
+  }, [challenger, phase, tick, trails]);
+
+  const progress = useMemo(() => {
+    void tick;
+    const session = sessionRef.current;
+    if (phase !== 'compare' || !session) return null;
+    return {
+      step: session.history.length + 1,
+      estimate: expectedComparisons(session.order.length),
+    };
+  }, [phase, tick]);
+
+  const canUndo = phase === 'compare' || phase === 'preview';
+
   return {
-    isActive: challengerId !== null && !isComplete,
+    phase,
     round,
-    isComplete,
-    result,
+    preview,
+    progress,
+    canUndo,
     start,
+    pickBucket,
     choose,
+    undo,
+    place,
     reset,
   };
 }

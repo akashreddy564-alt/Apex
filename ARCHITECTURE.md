@@ -16,13 +16,15 @@
 │   └── migrations/
 │       ├── 001_initial_schema.sql      # trails, hike_logs, trail_rankings, pairwise
 │       ├── 002_hike_photos_storage.sql # private hike-photos bucket
-│       └── 003_geojson_views.sql       # trails_api / hike_logs_api
+│       ├── 003_geojson_views.sql       # trails_api / hike_logs_api
+│       ├── 004_delete_own_account.sql  # immediate account removal
+│       └── 005_bucket_ranking.sql      # drop Elo; bucket + fractional position
 │
 ├── types/
 │   └── trail.ts                        # Trail, HikeLog, TrailRanking, ComparisonRound…
 │
 ├── lib/
-│   ├── elo.ts                          # Elo update + expected score
+│   ├── ranking.ts                      # bucket insert, score, undo, fractional keys
 │   ├── format.ts                       # duration / elevation / distance formatters
 │   ├── geo.ts                          # uuid, EWKT, haversine
 │   ├── hikePhotos.ts                   # stripped JPEG file URI or hike-photos bucket ref
@@ -36,7 +38,7 @@
 │
 ├── stores/
 │   ├── trailCache.ts                   # Zustand offline trail + log cache
-│   ├── rankingStore.ts                 # personal Elo / ordinal rankings
+│   ├── rankingStore.ts                 # bucket order + comparison log
 │   └── comparisonStore.ts              # pairwise comparison history
 │
 ├── hooks/
@@ -46,7 +48,7 @@
 │   ├── useRemoteSync.ts                # hydrate caches when signed in
 │   ├── useLiveLocation.ts              # foreground watch or background task
 │   ├── useRankings.ts                  # ranked list + optimistic mutations
-│   └── useTrailComparison.ts           # binary-insertion pairwise + Elo
+│   └── useTrailComparison.ts           # bucket, then binary insert; save on Place
 │
 ├── components/
 │   ├── trail/
@@ -77,6 +79,6 @@
 
 1. User finishes a hike on `log` → `useTrailTracker.complete()` writes `hike_logs` (optimistic).
 2. `PairwiseModal` opens with the new trail as challenger.
-3. `useTrailComparison` binary-searches the sorted ranking list via pairwise choices.
-4. Each choice updates Elo (`lib/elo.ts`) optimistically in Zustand + React Query.
-5. When `low > high`, insertion index is final → `LeaderboardReveal` + haptic.
+3. The user picks Loved, Fine, or Didn't like. `useTrailComparison` binary-searches that bucket's order, frozen at the start.
+4. Undo walks a history stack. Too close inserts beside the current hike and stops. Nothing is written yet.
+5. Place saves one ranking row (fractional `position`) and the session's `pairwise_comparisons`. The 0–10 score is derived from that position.

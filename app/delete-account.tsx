@@ -81,7 +81,7 @@ export default function DeleteAccountScreen() {
 
   const wipeLocal = () => {
     useTrailCache.setState({ logs: [] });
-    useRankingStore.getState().setRankings([]);
+    useRankingStore.setState({ rankings: [], comparisons: [] });
     useComparisonStore.getState().setAll([]);
   };
 

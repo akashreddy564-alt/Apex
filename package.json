@@ -25,6 +25,7 @@
     "expo-symbols": "~57.0.3",
     "expo-task-manager": "~57.0.21",
     "expo-web-browser": "~57.0.3",
+    "fractional-indexing": "^3.2.0",
     "lucide-react-native": "^1.45.0",
     "nativewind": "^4.2.6",
     "react": "19.2.3",
@@ -50,7 +51,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts",
+    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts",
     "start": "expo start --port 43127",
     "android": "expo start --android",
     "ios": "expo start --ios",

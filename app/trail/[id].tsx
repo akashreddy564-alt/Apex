@@ -10,6 +10,7 @@ import Animated, {
 import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
 import { TelemetryRow } from '@/components/trail/TelemetryRow';
 import { TrailMap } from '@/components/trail/TrailMap';
+import { BUCKET_BANDS, describePlacement, formatRankScore } from '@/lib/ranking';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { displayM, numericStyle } from '@/theme/tokens';
@@ -20,12 +21,13 @@ export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trail = useTrailCache((s) => s.getTrail(String(id)));
   const recorded = useTrailCache((s) => {
-    const log = s.logs.find(
+    const matches = s.logs.filter(
       (entry) => entry.trail_id === String(id) && entry.recorded_path,
     );
-    return log?.recorded_path ?? null;
+    return matches[matches.length - 1]?.recorded_path ?? null;
   });
-  const ranking = useRankingStore((s) => s.getRanking(String(id)));
+  const rankings = useRankingStore((s) => s.rankings);
+  const placement = describePlacement(rankings, String(id));
 
   const progress = useSharedValue(0);
 
@@ -56,10 +58,10 @@ export default function TrailDetailScreen() {
             {trail.name}
           </Text>
           <Text className="mt-1 font-ui text-caption text-fg-2">{trail.region}</Text>
-          {ranking?.ordinal_rank != null ? (
-            <Text className="mt-3 text-caption text-sage" style={numericStyle()}>
-              Personal rank #{ranking.ordinal_rank} · Elo{' '}
-              {Math.round(ranking.elo_rating)}
+          {placement ? (
+            <Text className="mt-3 text-caption text-fg-2" style={numericStyle()}>
+              #{placement.ordinal} in {BUCKET_BANDS[placement.ranking.bucket].label} ·{' '}
+              {formatRankScore(placement.score)}
             </Text>
           ) : (
             <Text className="mt-3 font-ui text-caption text-fg-faint">
