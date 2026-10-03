@@ -154,6 +154,17 @@ function unscored(
   };
 }
 
+test('trail detail shows rank and bucket until the bucket has 3 hikes', () => {
+  assert.equal(placementScoreLabel('fine', 1, bandScore('fine', 0, 1), 1), '#1 in Fine');
+  assert.equal(placementScoreLabel('fine', 2, bandScore('fine', 0, 2), 1), '#1 in Fine');
+  assert.equal(placementScoreLabel('fine', 2, bandScore('fine', 1, 2), 2), '#2 in Fine');
+  const score = bandScore('fine', 0, 3);
+  assert.equal(
+    placementScoreLabel('fine', 3, score, 1),
+    `#1 in Fine · ${formatRankScore(score)}`,
+  );
+});
+
 test('rows show the bucket name until that bucket reaches 3 hikes', () => {
   for (const bucket of BUCKETS) {
     const two = withStoredScores(

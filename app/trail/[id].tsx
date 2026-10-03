@@ -64,6 +64,7 @@ export default function TrailDetailScreen() {
                 placement.ranking.bucket,
                 placement.count,
                 placement.score,
+                placement.ordinal,
               )}
             </Text>
           ) : (

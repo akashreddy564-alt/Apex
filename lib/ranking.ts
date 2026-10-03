@@ -210,13 +210,26 @@ export function formatRankScore(score: number): string {
 }
 
 /**
- * Row label only. Buckets of 1 or 2 show the bucket name.
- * From 3 up, every row in that bucket shows the one-decimal score.
+ * Row label, or the trail-detail line when `ordinal` is set.
+ * Buckets of 1 or 2 show the bucket name. From 3 up, the one-decimal score.
+ * With an ordinal, a small bucket is "#1 in Fine" and a bucket of 3 or more
+ * adds the score: "#1 in Fine · 5.5".
  * `bandScore` is unchanged and still returns a number at every count.
  */
-export function placementScoreLabel(bucket: Bucket, count: number, score: number): string {
-  if (count < 3) return BUCKET_BANDS[bucket].label;
-  return formatRankScore(score);
+export function placementScoreLabel(
+  bucket: Bucket,
+  count: number,
+  score: number,
+  ordinal?: number,
+): string {
+  const name = BUCKET_BANDS[bucket].label;
+  if (ordinal == null) {
+    if (count < 3) return name;
+    return formatRankScore(score);
+  }
+  const place = `#${ordinal} in ${name}`;
+  if (count < 3) return place;
+  return `${place} · ${formatRankScore(score)}`;
 }
 
 function rankingKey(row: { user_id: string; hike_type: string; trail_id: string }): string {

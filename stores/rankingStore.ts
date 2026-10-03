@@ -8,29 +8,35 @@ import {
   DEFAULT_HIKE_TYPE,
   migrateLegacyRankings,
   withStoredScores,
+  type Bucket,
   type LegacyRanking,
 } from '@/lib/ranking';
 import type { PairwiseComparison, TrailRanking } from '@/types/trail';
 
-const SEED_KEYS = generateNKeysBetween(null, null, 5);
+const SEED_KEYS = generateNKeysBetween(null, null, 6);
 
 /** Seed a few ranked trails so placement is immediately demoable. Best first. */
-const SEED_RANKINGS: TrailRanking[] = withStoredScores([
-  ['trail-halfdome', 4],
-  ['trail-diablo', 3],
-  ['trail-tam', 3],
-  ['trail-raineer', 2],
-  ['trail-mission', 2],
-].map(([trailId, comparisons], index) => ({
-  id: `rank-${trailId}`,
-  user_id: MOCK_USER_ID,
-  trail_id: String(trailId),
-  hike_type: DEFAULT_HIKE_TYPE,
-  bucket: 'loved' as const,
-  position: SEED_KEYS[index] ?? `a${index}`,
-  comparison_count: Number(comparisons),
-  updated_at: new Date().toISOString(),
-})));
+const SEED_ROWS: { trailId: string; comparisons: number; bucket: Bucket }[] = [
+  { trailId: 'trail-halfdome', comparisons: 4, bucket: 'loved' },
+  { trailId: 'trail-diablo', comparisons: 3, bucket: 'loved' },
+  { trailId: 'trail-tam', comparisons: 3, bucket: 'loved' },
+  { trailId: 'trail-raineer', comparisons: 2, bucket: 'loved' },
+  { trailId: 'trail-mission', comparisons: 2, bucket: 'loved' },
+  { trailId: 'trail-lands', comparisons: 1, bucket: 'fine' },
+];
+
+const SEED_RANKINGS: TrailRanking[] = withStoredScores(
+  SEED_ROWS.map((row, index) => ({
+    id: `rank-${row.trailId}`,
+    user_id: MOCK_USER_ID,
+    trail_id: row.trailId,
+    hike_type: DEFAULT_HIKE_TYPE,
+    bucket: row.bucket,
+    position: SEED_KEYS[index] ?? `a${index}`,
+    comparison_count: row.comparisons,
+    updated_at: new Date().toISOString(),
+  })),
+);
 
 interface RankingState {
   rankings: TrailRanking[];
