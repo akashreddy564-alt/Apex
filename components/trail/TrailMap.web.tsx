@@ -92,8 +92,8 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
         )}
       </View>
       <View className="flex-row justify-between px-3 pb-2">
-        <Text className="font-mono text-[10px] text-zinc-600">
-          Canonical · {canonical.coordinates.length}
+        <Text className="text-[11px] text-zinc-500">
+          {canonical.coordinates.length >= 2 ? '© OpenStreetMap' : 'No route'}
         </Text>
         <Text className="font-mono text-[10px] text-zinc-600">
           {recorded && recorded.coordinates.length >= 2
