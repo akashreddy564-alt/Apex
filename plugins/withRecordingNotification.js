@@ -51,7 +51,34 @@ function withRecordingNotification(config) {
       application.service = services;
     }
     service.$['android:exported'] = 'false';
-    service.$['android:foregroundServiceType'] = 'location';
+    // expo-location's own manifest already sets foregroundServiceType="location".
+    // Writing it again makes the merger concatenate "location|location".
+    const libraryManifest = path.join(
+      config.modRequest.projectRoot,
+      'node_modules',
+      'expo-location',
+      'android',
+      'src',
+      'main',
+      'AndroidManifest.xml',
+    );
+    const libraryXml = fs.existsSync(libraryManifest)
+      ? fs.readFileSync(libraryManifest, 'utf8')
+      : '';
+    const libraryTypes = (libraryXml.match(/android:foregroundServiceType="([^"]*)"/) || [, ''])[1]
+      .split('|')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    if (libraryTypes.includes('location')) {
+      delete service.$['android:foregroundServiceType'];
+    } else {
+      const current = String(service.$['android:foregroundServiceType'] || '')
+        .split('|')
+        .map((part) => part.trim())
+        .filter(Boolean);
+      if (!current.includes('location')) current.push('location');
+      service.$['android:foregroundServiceType'] = [...new Set(current)].join('|');
+    }
     return config;
   });
 
