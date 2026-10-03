@@ -19,6 +19,8 @@ import { useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useRemoteSync } from '@/hooks/useRemoteSync';
+import { hydrateHike } from '@/lib/activeHike';
+import { reconcileTracking } from '@/lib/locationTask';
 import { colors, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -33,6 +35,12 @@ export default function RootLayout() {
     [fonts.uiSemibold]: Inter_600SemiBold,
   });
   useRemoteSync();
+
+  useEffect(() => {
+    void hydrateHike().then((hike) => {
+      void reconcileTracking(Boolean(hike && hike.pausedAt == null));
+    });
+  }, []);
 
   const [queryClient] = useState(
     () =>
