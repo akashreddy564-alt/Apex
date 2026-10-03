@@ -10,6 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
+import { PhotoStrip } from '@/components/trail/PhotoStrip';
+import { useHikePhotos } from '@/hooks/useHikePhotos';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDuration } from '@/lib/format';
@@ -19,7 +21,12 @@ import { displayM } from '@/theme/tokens';
 export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const trails = useTrailCache((s) => s.trails);
+  const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
+  const photos = useHikePhotos({
+    addPhoto: tracker.addPhoto,
+    replacePhoto: tracker.replacePhoto,
+  });
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
@@ -28,7 +35,7 @@ export default function LogScreen() {
     if (!tracker.isTracking) return;
     const id = setInterval(() => tracker.tick(), 1000);
     return () => clearInterval(id);
-  }, [tracker]);
+  }, [tracker.isTracking, tracker.tick]);
 
   const activeTrail = useMemo(
     () => trails.find((t) => t.id === tracker.session?.trailId),
@@ -112,6 +119,40 @@ export default function LogScreen() {
             </View>
 
             <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+              Photos
+            </Text>
+            <View className="flex-row gap-2">
+              <Pressable
+                accessibilityLabel="Add photo from library"
+                disabled={photos.busy}
+                onPress={() => {
+                  void photos.pickFromLibrary();
+                }}
+                className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
+                style={{ borderRadius: 12, opacity: photos.busy ? 0.5 : 1 }}
+              >
+                <Text className="font-mono text-sm text-zinc-200">Library</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel="Take a hike photo"
+                disabled={photos.busy}
+                onPress={() => {
+                  void photos.takePhoto();
+                }}
+                className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
+                style={{ borderRadius: 12, opacity: photos.busy ? 0.5 : 1 }}
+              >
+                <Text className="font-mono text-sm text-zinc-200">Camera</Text>
+              </Pressable>
+            </View>
+            {photos.message ? (
+              <Text className="mt-2 font-mono text-[11px] text-zinc-500">
+                {photos.message}
+              </Text>
+            ) : null}
+            <PhotoStrip photos={tracker.session?.photos ?? []} />
+
+            <Text className="mb-2 mt-5 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
               Notes
             </Text>
             <TextInput
@@ -145,6 +186,39 @@ export default function LogScreen() {
             </View>
           </View>
         )}
+
+        <View className="mt-8 border-t border-zinc-800 pt-4">
+          <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+            Log history
+          </Text>
+          {logs.length === 0 ? (
+            <Text className="mt-3 font-mono text-[11px] text-zinc-600">
+              No hikes logged yet.
+            </Text>
+          ) : (
+            logs.map((log) => {
+              const trail = trails.find((t) => t.id === log.trail_id);
+              return (
+                <View key={log.id} className="mt-3 border-b border-zinc-800 pb-3">
+                  <View className="flex-row items-baseline justify-between gap-3">
+                    <Text className="flex-1 text-[14px] text-zinc-100" numberOfLines={1}>
+                      {trail?.name ?? 'Trail'}
+                    </Text>
+                    <Text className="font-mono text-[11px] text-zinc-400">
+                      {formatDuration(log.duration_seconds)}
+                    </Text>
+                  </View>
+                  {log.notes ? (
+                    <Text className="mt-1 font-mono text-[11px] text-zinc-500" numberOfLines={2}>
+                      {log.notes}
+                    </Text>
+                  ) : null}
+                  <PhotoStrip photos={log.photos} />
+                </View>
+              );
+            })
+          )}
+        </View>
       </ScrollView>
 
       <PairwiseModal

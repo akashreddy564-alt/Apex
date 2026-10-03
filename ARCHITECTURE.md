@@ -22,6 +22,8 @@
 ├── lib/
 │   ├── elo.ts                          # Elo update + expected score
 │   ├── format.ts                       # duration / elevation / distance formatters
+│   ├── hikePhotos.ts                   # stripped JPEG file URI or hike-photos bucket ref
+│   ├── photoEncode.ts                  # re-encode via ImageManipulator, reject EXIF
 │   └── supabase.ts                     # client (env + local mock fallback)
 │
 ├── data/
@@ -33,6 +35,7 @@
 │
 ├── hooks/
 │   ├── useTrailTracker.ts              # active hike session (duration, notes, photos)
+│   ├── useHikePhotos.ts                # library / camera → log photo refs
 │   ├── useRankings.ts                  # ranked list + optimistic mutations
 │   └── useTrailComparison.ts           # binary-insertion pairwise + Elo
 │
@@ -41,7 +44,8 @@
 │   │   ├── ElevationSparkline.tsx      # wagmi LineChart, scrub + moving stroke
 │   │   ├── CountUpText.tsx             # UI-thread count-up for telemetry
 │   │   ├── TelemetryRow.tsx            # dense mono telemetry grid
-│   │   └── TrailCard.tsx               # list row (no card chrome bloat)
+│   │   ├── TrailCard.tsx               # list row (no card chrome bloat)
+│   │   └── PhotoStrip.tsx              # hike photo thumbnails
 │   └── ranking/
 │       ├── PairwiseModal.tsx           # swipeable “which was better?”
 │       └── LeaderboardReveal.tsx       # animated top-10 slot-in
