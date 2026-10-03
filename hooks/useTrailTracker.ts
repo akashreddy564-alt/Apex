@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { MOCK_USER_ID } from '@/data/mockTrails';
+import { newId } from '@/lib/geo';
+import { pushLog } from '@/lib/remoteSync';
 import { useTrailCache } from '@/stores/trailCache';
 import type { HikeLog } from '@/types/trail';
 
@@ -71,6 +73,8 @@ export function useTrailTracker(): UseTrailTrackerResult {
     );
     if (logs.some((log, i) => log !== useTrailCache.getState().logs[i])) {
       useTrailCache.setState({ logs });
+      const updated = logs.find((log) => log.photos.includes(to));
+      if (updated) void pushLog(updated);
     }
   }, []);
 
@@ -87,7 +91,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       Math.floor((Date.now() - startedAtRef.current) / 1000),
     );
     const log: HikeLog = {
-      id: `log-${Date.now()}`,
+      id: newId(),
       user_id: MOCK_USER_ID,
       trail_id: session.trailId,
       duration_seconds: duration,
@@ -97,6 +101,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       created_at: new Date().toISOString(),
     };
     upsertLog(log);
+    void pushLog(log);
     discard();
     return log;
   }, [discard, session, upsertLog]);

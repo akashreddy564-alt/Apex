@@ -1,12 +1,17 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { applyElo, DEFAULT_ELO } from '@/lib/elo';
+import { newId } from '@/lib/geo';
+import { pushAllRankings, pushComparison } from '@/lib/remoteSync';
+import { useComparisonStore } from '@/stores/comparisonStore';
+import { MOCK_USER_ID } from '@/data/mockTrails';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
 import type {
   ComparisonChoice,
   ComparisonRound,
   LeaderboardEntry,
+  PairwiseComparison,
   Trail,
   TrailRanking,
 } from '@/types/trail';
@@ -22,7 +27,7 @@ export interface UseTrailComparisonResult {
   round: ComparisonRound | null;
   isComplete: boolean;
   result: ComparisonSessionResult | null;
-  start: (challengerTrailId: string) => void;
+  start: (challengerTrailId: string, contextLogId?: string | null) => void;
   choose: (choice: ComparisonChoice) => void;
   reset: () => void;
 }
@@ -38,6 +43,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
   const upsertRanking = useRankingStore((s) => s.upsertRanking);
 
   const opponentsRef = useRef<Trail[]>([]);
+  const contextLogIdRef = useRef<string | null>(null);
   const [challengerId, setChallengerId] = useState<string | null>(null);
   const [low, setLow] = useState(0);
   const [high, setHigh] = useState(-1);
@@ -100,12 +106,14 @@ export function useTrailComparison(): UseTrailComparisonResult {
         leaderboard,
         ordinalRank: ordinal,
       });
+      void pushAllRankings();
     },
     [ensureRanking, upsertRanking],
   );
 
   const start = useCallback(
-    (challengerTrailId: string) => {
+    (challengerTrailId: string, contextLogId?: string | null) => {
+      contextLogIdRef.current = contextLogId ?? null;
       ensureRanking(challengerTrailId);
 
       const ranked = useRankingStore
@@ -159,6 +167,17 @@ export function useTrailComparison(): UseTrailComparisonResult {
       );
 
       const now = new Date().toISOString();
+      const record: PairwiseComparison = {
+        id: newId(),
+        user_id: MOCK_USER_ID,
+        winner_trail_id: challengerWins ? challenger.id : opponent.id,
+        loser_trail_id: challengerWins ? opponent.id : challenger.id,
+        context_log_id: contextLogIdRef.current,
+        created_at: now,
+      };
+      useComparisonStore.getState().add(record);
+      void pushComparison(record);
+
       upsertRanking({
         ...challengerRank,
         elo_rating: challengerWins ? winnerElo : loserElo,
@@ -187,6 +206,8 @@ export function useTrailComparison(): UseTrailComparisonResult {
 
       if (nextLow > nextHigh) {
         finalize(challenger.id, nextLow);
+      } else {
+        void pushAllRankings();
       }
     },
     [challenger, ensureRanking, finalize, high, low, round, upsertRanking],
@@ -194,6 +215,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
 
   const reset = useCallback(() => {
     opponentsRef.current = [];
+    contextLogIdRef.current = null;
     setChallengerId(null);
     setLow(0);
     setHigh(-1);

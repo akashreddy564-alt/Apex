@@ -1,7 +1,23 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useRouter } from 'expo-router';
 import { Footprints, ListOrdered, Mountain } from 'lucide-react-native';
+import { Pressable, Text } from 'react-native';
 
 import { colors, fonts, navTitle } from '@/theme/tokens';
+
+function AccountButton() {
+  const router = useRouter();
+  return (
+    <Pressable
+      accessibilityLabel="Settings"
+      onPress={() => router.push('/account')}
+      className="mr-3 px-2 py-1 active:opacity-70"
+    >
+      <Text className="font-mono text-[11px] uppercase tracking-widest text-zinc-400">
+        Settings
+      </Text>
+    </Pressable>
+  );
+}
 
 export default function TabsLayout() {
   return (
@@ -21,6 +37,7 @@ export default function TabsLayout() {
         },
         tabBarActiveTintColor: colors.sage,
         tabBarInactiveTintColor: colors.fgFaint,
+        headerRight: () => <AccountButton />,
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: fonts.uiMedium,

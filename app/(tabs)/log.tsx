@@ -46,7 +46,7 @@ export default function LogScreen() {
     const log = tracker.complete();
     if (!log) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    comparison.start(log.trail_id);
+    comparison.start(log.trail_id, log.id);
     setModalOpen(true);
   };
 
