@@ -1,4 +1,4 @@
-import { Image, type ImageSource } from 'expo-image';
+import { Image, type ImageProps } from 'expo-image';
 import { useCallback, useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -31,7 +31,7 @@ const KIND_LABEL: Record<HeroPlace['kind'], string> = {
 
 type OpeningScreenProps = {
   place: HeroPlace;
-  photo: ImageSource;
+  photo: ImageProps['source'];
   /** Called once, when the photo is on screen or has failed to load. */
   onReady: () => void;
   /** Called once, after the fade-out. */

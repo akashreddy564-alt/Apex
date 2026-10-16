@@ -12,5 +12,6 @@ export type HeroPlace = {
   /** At most 140 characters, checked against `factSource`. */
   fact: string;
   factSource: string;
-  photoCredit: { author: string; license: 'Unsplash' | 'CC BY' | 'CC BY-SA'; url: string };
+  /** `license` is the short name shown on the source page, e.g. `CC BY-SA 4.0`. */
+  photoCredit: { author: string; license: string; url: string };
 };

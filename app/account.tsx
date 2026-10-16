@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
+import { PhotoCreditsLink } from '@/components/opening/PhotoCreditsLink';
 import { useAuth } from '@/hooks/useAuth';
 import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
@@ -21,6 +22,7 @@ export default function AccountScreen() {
         <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-500">
           No Supabase env. Trails, logs, and rankings stay on this device.
         </Text>
+        <PhotoCreditsLink />
       </View>
     );
   }
@@ -124,6 +126,8 @@ export default function AccountScreen() {
           <Text className="text-[15px] text-zinc-300">Delete account</Text>
         </Pressable>
       ) : null}
+
+      <PhotoCreditsLink />
     </View>
   );
 }
