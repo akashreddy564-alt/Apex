@@ -16,27 +16,60 @@ function groupInteger(value: number): string {
   return `${negative ? '-' : ''}${grouped}`;
 }
 
-export function formatDistanceKm(km: number): string {
+const FEET_PER_METRE = 3.28084;
+const KM_PER_MILE = 1.609344;
+
+/** Data stays metric; the US launch displays miles and feet. */
+export const DISTANCE_UNIT = 'mi';
+export const ELEVATION_UNIT = 'ft';
+
+export function toMiles(km: number): number {
   'worklet';
-  return `${km.toFixed(1)} km`;
+  return km / KM_PER_MILE;
+}
+
+/** For distances the user types in miles. */
+export function milesToKm(miles: number): number {
+  return miles * KM_PER_MILE;
+}
+
+export function paceSecondsPerMile(secondsPerKm: number | null): number | null {
+  return secondsPerKm == null ? null : secondsPerKm * KM_PER_MILE;
+}
+
+export function toFeet(m: number): number {
+  'worklet';
+  return m * FEET_PER_METRE;
+}
+
+/** Takes kilometres, shows miles: `7.7 mi`. */
+export function formatDistance(km: number): string {
+  'worklet';
+  return `${toMiles(km).toFixed(1)} ${DISTANCE_UNIT}`;
 }
 
 /** A missing distance is an en dash. Zero is only shown for a real zero. */
 export function formatOptionalDistance(km: number | null): string {
   'worklet';
   if (km == null || Number.isNaN(km)) return MISSING_METRIC;
-  return formatDistanceKm(km);
+  return formatDistance(km);
 }
 
-export function formatElevationM(m: number): string {
+/** Takes metres, shows whole feet: `4,068 ft`. */
+export function formatElevation(m: number): string {
   'worklet';
-  return `${groupInteger(m)} m`;
+  return `${groupInteger(toFeet(m))} ${ELEVATION_UNIT}`;
 }
 
 export function formatOptionalElevation(m: number | null): string {
   'worklet';
   if (m == null || Number.isNaN(m)) return MISSING_METRIC;
-  return formatElevationM(m);
+  return formatElevation(m);
+}
+
+/** Low and high in metres, one unit at the end: `4,003–8,839 ft`. */
+export function formatElevationRange(lowM: number, highM: number): string {
+  return `${groupInteger(toFeet(lowM))}–${groupInteger(toFeet(highM))} ${ELEVATION_UNIT}`;
 }
 
 const NO_CHART_VALUE = MISSING_METRIC;
@@ -55,11 +88,11 @@ export function formatChartElevation({
   'worklet';
   if (value === '') {
     if (atRestMeters == null || Number.isNaN(atRestMeters)) return NO_CHART_VALUE;
-    return formatElevationM(atRestMeters);
+    return formatElevation(atRestMeters);
   }
   const meters = Number(value);
   if (Number.isNaN(meters)) return NO_CHART_VALUE;
-  return formatElevationM(meters);
+  return formatElevation(meters);
 }
 
 /**
@@ -78,9 +111,9 @@ export function formatChartDistance({
   const meters = typeof value === 'string' ? Number(value) : value;
   if (Number.isNaN(meters) || meters < 0) {
     if (atRestMeters == null || Number.isNaN(atRestMeters)) return NO_CHART_VALUE;
-    return formatDistanceKm(atRestMeters / 1000);
+    return formatDistance(atRestMeters / 1000);
   }
-  return formatDistanceKm(meters / 1000);
+  return formatDistance(meters / 1000);
 }
 
 export function formatDuration(totalSeconds: number): string {
@@ -105,8 +138,6 @@ export function formatCompactDuration(totalSeconds: number | null): string {
   }
   return `${m}m`;
 }
-
-const FEET_PER_METRE = 3.28084;
 
 /** Opening-screen elevation in feet, e.g. `22,349 FT`. */
 export function formatHeroElevation(elevationM: number): string {

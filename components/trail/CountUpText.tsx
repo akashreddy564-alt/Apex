@@ -21,8 +21,8 @@ import { planCountUp, type CountState } from '@/lib/elevationMotion';
 import { numericStyle } from '@/theme/tokens';
 import {
   formatCompactDuration,
-  formatDistanceKm,
-  formatElevationM,
+  formatDistance,
+  formatElevation,
   MISSING_METRIC,
 } from '@/lib/format';
 
@@ -84,8 +84,8 @@ cssInterop(CountUpFace, { className: 'style' });
 
 function formatProgress(kind: CountUpFormat, raw: number): string {
   'worklet';
-  if (kind === 'elevation') return formatElevationM(raw);
-  if (kind === 'distance') return formatDistanceKm(raw);
+  if (kind === 'elevation') return formatElevation(raw);
+  if (kind === 'distance') return formatDistance(raw);
   return formatCompactDuration(raw);
 }
 

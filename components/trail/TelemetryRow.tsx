@@ -4,8 +4,8 @@ import { Text, View } from 'react-native';
 import { CountUpText } from '@/components/trail/CountUpText';
 import {
   formatCompactDuration,
-  formatDistanceKm,
-  formatElevationM,
+  formatDistance,
+  formatElevation,
   MISSING_METRIC,
 } from '@/lib/format';
 import type { TrailTelemetry } from '@/types/trail';
@@ -50,7 +50,7 @@ export function TelemetryRow({ trailId, telemetry }: TelemetryRowProps) {
           spoken={
             telemetry.peak_elevation_m == null
               ? `Peak elevation, ${MISSING_METRIC}`
-              : `Peak elevation, ${formatElevationM(telemetry.peak_elevation_m)}`
+              : `Peak elevation, ${formatElevation(telemetry.peak_elevation_m)}`
           }
         >
           <CountUpText
@@ -65,7 +65,7 @@ export function TelemetryRow({ trailId, telemetry }: TelemetryRowProps) {
           spoken={
             telemetry.elevation_gain_m == null
               ? `Total gain, ${MISSING_METRIC}`
-              : `Total gain, ${formatElevationM(telemetry.elevation_gain_m)}`
+              : `Total gain, ${formatElevation(telemetry.elevation_gain_m)}`
           }
         >
           <CountUpText
@@ -82,7 +82,7 @@ export function TelemetryRow({ trailId, telemetry }: TelemetryRowProps) {
           spoken={
             telemetry.distance_km == null
               ? `Distance, ${MISSING_METRIC}`
-              : `Distance, ${formatDistanceKm(telemetry.distance_km)}`
+              : `Distance, ${formatDistance(telemetry.distance_km)}`
           }
         >
           <CountUpText

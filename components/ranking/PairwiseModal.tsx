@@ -7,7 +7,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
 import { ElevationStrip, RouteThumb } from '@/components/ranking/RouteFigure';
 import type { UseTrailComparisonResult } from '@/hooks/useTrailComparison';
-import { formatDuration, formatElevationM, MISSING_METRIC } from '@/lib/format';
+import {
+  DISTANCE_UNIT,
+  ELEVATION_UNIT,
+  formatDuration,
+  formatElevationRange,
+  MISSING_METRIC,
+  toFeet,
+  toMiles,
+} from '@/lib/format';
 import { BUCKET_BANDS, BUCKETS, DEFAULT_HIKE_TYPE } from '@/lib/ranking';
 import { resolveRoute, routeSourceLabel } from '@/lib/routeSource';
 import { useTrailCache } from '@/stores/trailCache';
@@ -37,9 +45,7 @@ function hikeWhen(iso: string | null): string {
 function rangeLabel(samples: ElevationSample[] | null): string {
   if (!samples || samples.length < 2) return 'No elevation data';
   const values = samples.map((sample) => sample.elevation_m);
-  const low = formatElevationM(Math.min(...values)).replace(/ m$/, '');
-  const high = formatElevationM(Math.max(...values)).replace(/ m$/, '');
-  return `${low}–${high} m`;
+  return formatElevationRange(Math.min(...values), Math.max(...values));
 }
 
 function latestLog(logs: HikeLog[], trailId: string, recordedOnly = false): HikeLog | null {
@@ -133,17 +139,19 @@ function HikePanel({
           <View style={{ flexDirection: 'row', gap: 14, marginTop: 12 }}>
             <Stat
               label="Distance"
-              value={trail.distance_km == null ? MISSING_METRIC : trail.distance_km.toFixed(1)}
-              unit={trail.distance_km == null ? undefined : 'km'}
+              value={
+                trail.distance_km == null ? MISSING_METRIC : toMiles(trail.distance_km).toFixed(1)
+              }
+              unit={trail.distance_km == null ? undefined : DISTANCE_UNIT}
             />
             <Stat
               label="Gain"
               value={
                 missing || trail.elevation_gain_m == null
                   ? MISSING_METRIC
-                  : String(Math.round(trail.elevation_gain_m))
+                  : String(Math.round(toFeet(trail.elevation_gain_m)))
               }
-              unit={missing || trail.elevation_gain_m == null ? undefined : 'm'}
+              unit={missing || trail.elevation_gain_m == null ? undefined : ELEVATION_UNIT}
             />
             <Stat label="Time" value={duration} />
           </View>

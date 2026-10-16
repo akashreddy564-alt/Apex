@@ -5,55 +5,79 @@ import {
   formatChartDistance,
   formatChartElevation,
   formatCompactDuration,
-  formatDistanceKm,
+  formatDistance,
   formatDuration,
-  formatElevationM,
+  formatElevation,
+  formatElevationRange,
   formatOptionalDistance,
+  formatOptionalElevation,
   MISSING_METRIC,
+  milesToKm,
+  paceSecondsPerMile,
+  toFeet,
+  toMiles,
 } from './format.ts';
 
 describe('chart formatters', () => {
-  it('writes distance with one decimal and a space before km', () => {
-    assert.equal(formatDistanceKm(0), '0.0 km');
-    assert.equal(formatDistanceKm(9.6), '9.6 km');
-    assert.equal(formatDistanceKm(9.99), '10.0 km');
-    assert.equal(formatDistanceKm(10), '10.0 km');
-    assert.equal(formatDistanceKm(12.4), '12.4 km');
-    assert.equal(formatDistanceKm(12.44), '12.4 km');
-    assert.equal(formatDistanceKm(14.14), '14.1 km');
-    assert.equal(formatDistanceKm(1000), '1000.0 km');
+  it('writes distance in miles with one decimal and a space before mi', () => {
+    assert.equal(formatDistance(0), '0.0 mi');
+    assert.equal(formatDistance(9.6), '6.0 mi');
+    assert.equal(formatDistance(10), '6.2 mi');
+    assert.equal(formatDistance(12.4), '7.7 mi');
+    assert.equal(formatDistance(23.2), '14.4 mi');
+    assert.equal(formatDistance(1000), '621.4 mi');
     assert.equal(formatOptionalDistance(null), MISSING_METRIC);
-    assert.equal(formatOptionalDistance(9.6), '9.6 km');
-    assert.equal(formatChartDistance({ value: 0 }), '0.0 km');
-    assert.equal(formatChartDistance({ value: 12_400 }), '12.4 km');
-    assert.equal(formatChartDistance({ value: '12400' }), '12.4 km');
-    assert.equal(formatChartDistance({ value: 1_000_000 }), '1000.0 km');
-    assert.equal(formatChartDistance({ value: -1, atRestMeters: 12_400 }), '12.4 km');
+    assert.equal(formatOptionalDistance(Number.NaN), MISSING_METRIC);
+    assert.equal(formatOptionalDistance(9.6), '6.0 mi');
+    assert.equal(formatChartDistance({ value: 0 }), '0.0 mi');
+    assert.equal(formatChartDistance({ value: 12_400 }), '7.7 mi');
+    assert.equal(formatChartDistance({ value: '12400' }), '7.7 mi');
+    assert.equal(formatChartDistance({ value: 1_000_000 }), '621.4 mi');
+    assert.equal(formatChartDistance({ value: -1, atRestMeters: 12_400 }), '7.7 mi');
     assert.equal(formatChartDistance({ value: -1 }), '\u2013');
     assert.equal(formatChartDistance({ value: -1, atRestMeters: null }), '\u2013');
   });
 
-  it('writes elevation in whole meters with a thousands comma', () => {
-    assert.equal(formatElevationM(0), '0 m');
-    assert.equal(formatElevationM(240), '240 m');
-    assert.equal(formatElevationM(999), '999 m');
-    assert.equal(formatElevationM(1000), '1,000 m');
-    assert.equal(formatElevationM(1240), '1,240 m');
-    assert.equal(formatElevationM(12400), '12,400 m');
-    assert.equal(formatChartElevation({ value: '0' }), '0 m');
-    assert.equal(formatChartElevation({ value: '240' }), '240 m');
-    assert.equal(formatChartElevation({ value: '1240' }), '1,240 m');
-    assert.equal(formatChartElevation({ value: '12400.4' }), '12,400 m');
-    assert.equal(formatChartElevation({ value: '', atRestMeters: 1240 }), '1,240 m');
+  it('writes elevation in whole feet with a thousands comma', () => {
+    assert.equal(formatElevation(0), '0 ft');
+    assert.equal(formatElevation(240), '787 ft');
+    assert.equal(formatElevation(999), '3,278 ft');
+    assert.equal(formatElevation(1000), '3,281 ft');
+    assert.equal(formatElevation(1240), '4,068 ft');
+    assert.equal(formatOptionalElevation(null), MISSING_METRIC);
+    assert.equal(formatOptionalElevation(1240), '4,068 ft');
+    assert.equal(formatChartElevation({ value: '0' }), '0 ft');
+    assert.equal(formatChartElevation({ value: '240' }), '787 ft');
+    assert.equal(formatChartElevation({ value: '12400.4' }), '40,684 ft');
+    assert.equal(formatChartElevation({ value: '', atRestMeters: 1240 }), '4,068 ft');
     assert.equal(formatChartElevation({ value: '' }), '\u2013');
     assert.equal(formatChartElevation({ value: '', atRestMeters: null }), '\u2013');
   });
 
   it('groups elevation thousands without using locale', () => {
-    assert.equal(formatElevationM(310), '310 m');
-    assert.equal(formatElevationM(2073), '2,073 m');
-    assert.equal(formatElevationM(1000000), '1,000,000 m');
-    assert.equal(formatElevationM(-1200.4), '-1,200 m');
+    assert.equal(formatElevation(310), '1,017 ft');
+    assert.equal(formatElevation(2073), '6,801 ft');
+    assert.equal(formatElevation(1000000), '3,280,840 ft');
+    assert.equal(formatElevation(-1200.4), '-3,938 ft');
+  });
+
+  it('writes an elevation range with one unit at the end', () => {
+    assert.equal(formatElevationRange(1220, 2694), '4,003–8,839 ft');
+  });
+
+  it('turns typed miles back into stored kilometres', () => {
+    assert.equal(milesToKm(1), 1.609344);
+    assert.equal(milesToKm(0), 0);
+  });
+
+  it('converts pace per kilometre to pace per mile', () => {
+    assert.equal(Math.round(paceSecondsPerMile(600)!), 966);
+    assert.equal(paceSecondsPerMile(null), null);
+  });
+
+  it('converts metric values for split value and unit displays', () => {
+    assert.equal(toMiles(1.609344), 1);
+    assert.equal(Math.round(toFeet(1000)), 3281);
   });
 
   it('uses hours once the clock passes an hour', () => {

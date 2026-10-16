@@ -14,7 +14,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 import { HikeDateField } from '@/components/log/HikeDateField';
-import { MISSING_METRIC } from '@/lib/format';
+import {
+  DISTANCE_UNIT,
+  formatElevation,
+  formatOptionalDistance,
+  milesToKm,
+  MISSING_METRIC,
+  toMiles,
+} from '@/lib/format';
 import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
 import { formatHikeDay, suggestHikeType } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
@@ -104,7 +111,7 @@ export function PastHikeSheet({
 
   useEffect(() => {
     if (!trail || distanceTouched) return;
-    setDistanceText(trail.distance_km == null ? '' : trail.distance_km.toFixed(1));
+    setDistanceText(trail.distance_km == null ? '' : toMiles(trail.distance_km).toFixed(1));
   }, [distanceTouched, trail]);
 
   useEffect(() => {
@@ -113,7 +120,8 @@ export function PastHikeSheet({
     setHikeType(suggestHikeType(trail.distance_km, trail.elevation_gain_m));
   }, [trail, typeTouched]);
 
-  const distanceKm = distanceText.trim() === '' ? null : Number(distanceText);
+  // The field is in miles; storage stays in kilometres.
+  const distanceKm = distanceText.trim() === '' ? null : milesToKm(Number(distanceText));
   const terrain = selectedChips.filter((chip) => TERRAIN.has(chip));
   const conditions = selectedChips.filter((chip) => !TERRAIN.has(chip));
 
@@ -246,8 +254,8 @@ export function PastHikeSheet({
                     </Text>
                     {trail ? (
                       <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
-                        {trail.region} · {trail.distance_km == null ? MISSING_METRIC : `${trail.distance_km.toFixed(1)} km`} ·{' '}
-                        {trail.elevation_gain_m == null ? MISSING_METRIC : `${Math.round(trail.elevation_gain_m)} m gain`}
+                        {trail.region} · {formatOptionalDistance(trail.distance_km)} ·{' '}
+                        {trail.elevation_gain_m == null ? MISSING_METRIC : `${formatElevation(trail.elevation_gain_m)} gain`}
                       </Text>
                     ) : null}
                   </View>
@@ -344,14 +352,14 @@ export function PastHikeSheet({
                           onBlur={() => setEditingDistance(false)}
                           autoFocus
                           keyboardType="decimal-pad"
-                          accessibilityLabel="Distance in kilometres"
+                          accessibilityLabel="Distance in miles"
                           style={{ flex: 1, fontSize: 20, color: colors.fg, ...numericStyle('semibold') }}
                         />
                       ) : (
                         <Text style={{ fontSize: 20, color: colors.fg, ...numericStyle('semibold') }}>
                           {distanceText || MISSING_METRIC}
                           {distanceText ? (
-                            <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}> km</Text>
+                            <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}> {DISTANCE_UNIT}</Text>
                           ) : null}
                         </Text>
                       )}
