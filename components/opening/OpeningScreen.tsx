@@ -108,13 +108,14 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             transition={0}
+            priority="high"
             onDisplay={clock.ready}
             onError={clock.ready}
             accessible={false}
           />
         </Animated.View>
 
-        <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
           <Defs>
             <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={colors.bg} stopOpacity={0.3} />
@@ -211,11 +212,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.mono,
     fontSize: 11,
     lineHeight: 15,
-    letterSpacing: 1.2,
+    letterSpacing: 0.6,
   },
   elevation: {
-    marginHorizontal: 10,
-    paddingHorizontal: 10,
+    marginHorizontal: 8,
+    paddingHorizontal: 8,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',

@@ -71,6 +71,16 @@ describe('shouldShowOpening', () => {
     );
   });
 
+  it('treats a web visit to the root page as a plain launch', () => {
+    assert.equal(shouldShowOpening({ initialUrl: 'http://localhost:43127/', hasActiveHike: false }), true);
+    assert.equal(shouldShowOpening({ initialUrl: 'https://apex.app', hasActiveHike: false }), true);
+    assert.equal(shouldShowOpening({ initialUrl: 'http://localhost:43127/log', hasActiveHike: false }), false);
+    assert.equal(
+      shouldShowOpening({ initialUrl: 'http://localhost:43127/?recording=finish', hasActiveHike: false }),
+      false,
+    );
+  });
+
   it('skips while a hike is still recording', () => {
     assert.equal(shouldShowOpening({ initialUrl: null, hasActiveHike: true }), false);
   });

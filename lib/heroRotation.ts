@@ -40,7 +40,10 @@ export function shouldShowOpening(input: {
   if (!match) return false;
   const [, host = '', path = '', query = ''] = match;
   if (host === DEV_CLIENT_HOST) return true;
-  return host === '' && (path === '' || path === '/') && query === '';
+  const isRoot = (path === '' || path === '/') && query === '';
+  // A web page always launches with its own URL; its root is a plain launch.
+  if (/^https?:/i.test(url)) return isRoot;
+  return host === '' && isRoot;
 }
 
 export type OpeningDecision = { status: 'skip' } | { status: 'show'; id: string };
