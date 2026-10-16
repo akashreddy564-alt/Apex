@@ -28,6 +28,8 @@ export const colors = {
   highlight: '#E4E4E7',
   onSage: '#09090B',
   danger: '#9F3A38',
+  /** Opening-screen elevation only. */
+  heroAccent: '#FF8A4C',
 } as const;
 
 export type ColorToken = keyof typeof colors;
@@ -56,6 +58,10 @@ export const fonts = {
   ui: 'Inter_400Regular',
   uiMedium: 'Inter_500Medium',
   uiSemibold: 'Inter_600SemiBold',
+  /** Anton 400. Opening-screen place name only. */
+  poster: 'Anton_400Regular',
+  /** SpaceMono, registered in `app/_layout.tsx`. */
+  mono: 'SpaceMono',
 } as const;
 
 export type FontToken = keyof typeof fonts;

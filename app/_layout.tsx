@@ -1,5 +1,6 @@
 import '../global.css';
 
+import { Anton_400Regular } from '@expo-google-fonts/anton';
 import {
   BricolageGrotesque_700Bold,
   BricolageGrotesque_800ExtraBold,
@@ -33,6 +34,7 @@ export default function RootLayout() {
     [fonts.ui]: Inter_400Regular,
     [fonts.uiMedium]: Inter_500Medium,
     [fonts.uiSemibold]: Inter_600SemiBold,
+    [fonts.poster]: Anton_400Regular,
   });
   useRemoteSync();
 
