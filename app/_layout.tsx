@@ -28,9 +28,6 @@ import { colors, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
-/** Longest the native splash waits for the opening photo to appear. */
-const PHOTO_WAIT_MS = 1500;
-
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -55,12 +52,6 @@ export default function RootLayout() {
       void reconcileTracking(Boolean(hike && hike.pausedAt == null));
     });
   }, [hikeReady]);
-
-  useEffect(() => {
-    if (opening.status !== 'show') return;
-    const timer = setTimeout(onPhotoShown, PHOTO_WAIT_MS);
-    return () => clearTimeout(timer);
-  }, [opening.status, onPhotoShown]);
 
   const [queryClient] = useState(
     () =>

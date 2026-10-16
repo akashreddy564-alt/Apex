@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { HERO_PHOTOS } from '@/data/heroPhotos';
 import { HERO_PLACES } from '@/data/heroPlaces';
-import { nextFromBag, shouldShowOpening } from '@/lib/heroRotation';
+import { decideOpening } from '@/lib/heroRotation';
 import { loadHeroState, saveHeroState } from '@/lib/heroState';
 import type { HeroPlace } from '@/types/hero';
 
@@ -15,6 +15,9 @@ export type OpeningPlace =
 
 const ALL_IDS = HERO_PLACES.map((place) => place.id);
 
+/** Longest the native splash waits on this decision before skipping. */
+const DECIDE_TIMEOUT_MS = 2_000;
+
 /**
  * Decides once per cold launch whether to show the opening screen, and which
  * place. `hikeReady` is the saved-hike read the root layout already started.
@@ -24,22 +27,22 @@ export function useOpeningPlace(hikeReady: Promise<unknown>): OpeningPlace {
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      const [initialUrl, hike] = await Promise.all([
-        Linking.getInitialURL().catch(() => null),
-        hikeReady.catch(() => null),
-      ]);
-      if (!shouldShowOpening({ initialUrl, hasActiveHike: hike != null }) || ALL_IDS.length === 0) {
-        if (!cancelled) setState({ status: 'skip' });
-        return;
-      }
-      const saved = await loadHeroState();
-      const { id, bag } = nextFromBag(ALL_IDS, saved.bag, saved.lastId, Math.random);
-      void saveHeroState({ bag, lastId: id });
-      const place = HERO_PLACES.find((p) => p.id === id);
+    void decideOpening({
+      allIds: ALL_IDS,
+      getInitialUrl: () => Linking.getInitialURL(),
+      hikeReady,
+      loadState: loadHeroState,
+      saveState: saveHeroState,
+      random: Math.random,
+      timeoutMs: DECIDE_TIMEOUT_MS,
+    }).then((decision) => {
       if (cancelled) return;
-      setState(place ? { status: 'show', place, photo: HERO_PHOTOS[id] } : { status: 'skip' });
-    })();
+      const place =
+        decision.status === 'show' ? HERO_PLACES.find((p) => p.id === decision.id) : undefined;
+      setState(
+        place ? { status: 'show', place, photo: HERO_PHOTOS[place.id] } : { status: 'skip' },
+      );
+    });
     return () => {
       cancelled = true;
     };

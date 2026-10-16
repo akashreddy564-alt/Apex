@@ -22,7 +22,7 @@ test('every place has a photo and every photo has a place', () => {
 test('facts fit the screen and cite https sources', () => {
   for (const p of HERO_PLACES) {
     expect(p.fact.length).toBeGreaterThanOrEqual(20);
-    expect(p.fact.length).toBeLessThanOrEqual(140);
+    expect(p.fact.length).toBeLessThanOrEqual(84);
     expect(p.factSource).toMatch(/^https:\/\//);
     expect(p.photoCredit.url).toMatch(/^https:\/\//);
     expect(p.photoCredit.author.trim()).not.toBe('');
@@ -39,4 +39,10 @@ test('elevations are positive numbers', () => {
 test('covers the US launch market and every kind', () => {
   expect(HERO_PLACES.filter((p) => p.country === 'USA').length).toBeGreaterThanOrEqual(6);
   for (const kind of KINDS) expect(HERO_PLACES.some((p) => p.kind === kind)).toBe(true);
+});
+
+test('stat labels fit their column on a small iPhone', () => {
+  for (const p of HERO_PLACES) {
+    for (const label of [p.region, p.country, p.grade]) expect(label.length).toBeLessThanOrEqual(12);
+  }
 });

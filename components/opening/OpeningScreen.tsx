@@ -1,6 +1,6 @@
 import { Image, type ImageProps } from 'expo-image';
-import { useCallback, useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -15,12 +15,17 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { formatHeroElevation } from '@/lib/format';
+import { createOpeningClock } from '@/lib/openingClock';
+import { posterLayout } from '@/lib/posterFit';
 import { colors, fonts } from '@/theme/tokens';
 import type { HeroPlace } from '@/types/hero';
 
 const DRIFT_MS = 18_000;
 const AUTO_CONTINUE_MS = 4_500;
+/** Longest the screen waits for the photo before treating it as shown. */
+const READY_FALLBACK_MS = 1_500;
 const FADE_MS = 400;
+const SIDE_PADDING = 24;
 
 const KIND_LABEL: Record<HeroPlace['kind'], string> = {
   peak: 'PEAK',
@@ -32,7 +37,7 @@ const KIND_LABEL: Record<HeroPlace['kind'], string> = {
 type OpeningScreenProps = {
   place: HeroPlace;
   photo: ImageProps['source'];
-  /** Called once, when the photo is on screen or has failed to load. */
+  /** Called once: photo on screen, photo failed, or 1.5 s passed. */
   onReady: () => void;
   /** Called once, after the fade-out. */
   onDone: () => void;
@@ -40,11 +45,15 @@ type OpeningScreenProps = {
 
 export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenProps) {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
   const drift = useSharedValue(0);
   const opacity = useSharedValue(1);
-  const ready = useRef(false);
-  const leaving = useRef(false);
+
+  const poster = useMemo(
+    () => posterLayout(place.name.toUpperCase(), width - SIDE_PADDING * 2),
+    [place.name, width],
+  );
 
   useEffect(() => {
     if (reduceMotion) return;
@@ -56,29 +65,23 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
     return () => cancelAnimation(drift);
   }, [drift, reduceMotion]);
 
-  const leave = useCallback(() => {
-    if (leaving.current) return;
-    leaving.current = true;
-    opacity.value = withTiming(0, { duration: FADE_MS }, (finished) => {
-      if (finished) runOnJS(onDone)();
+  // The clock lives for the whole screen; it reads the latest callbacks.
+  const latest = useRef({ onReady, onDone });
+  latest.current = { onReady, onDone };
+  const [clock] = useState(() => {
+    const finish = () => latest.current.onDone();
+    return createOpeningClock({
+      readyFallbackMs: READY_FALLBACK_MS,
+      autoContinueMs: AUTO_CONTINUE_MS,
+      onReady: () => latest.current.onReady(),
+      onLeave: () => {
+        opacity.value = withTiming(0, { duration: FADE_MS }, (finished) => {
+          if (finished) runOnJS(finish)();
+        });
+      },
     });
-  }, [onDone, opacity]);
-
-  const autoContinue = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const markReady = useCallback(() => {
-    if (ready.current) return;
-    ready.current = true;
-    onReady();
-    autoContinue.current = setTimeout(leave, AUTO_CONTINUE_MS);
-  }, [leave, onReady]);
-
-  useEffect(
-    () => () => {
-      if (autoContinue.current) clearTimeout(autoContinue.current);
-    },
-    [],
-  );
+  });
+  useEffect(() => () => clock.dispose(), [clock]);
 
   const photoStyle = useAnimatedStyle(() => ({
     transform: [
@@ -89,14 +92,15 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
   }));
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  const lineHeight = Math.round(poster.fontSize * 0.92);
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]}>
       <Pressable
         style={StyleSheet.absoluteFill}
-        onPress={leave}
+        onPress={clock.tap}
         accessibilityRole="button"
-        accessibilityLabel={`${place.name}. ${place.fact}. Double tap to continue.`}
+        accessibilityLabel={`${place.name}. ${place.fact} Double tap to continue.`}
       >
         <Animated.View style={[styles.photoFrame, photoStyle]}>
           <Image
@@ -104,8 +108,8 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
             style={StyleSheet.absoluteFill}
             contentFit="cover"
             transition={0}
-            onDisplay={markReady}
-            onError={markReady}
+            onDisplay={clock.ready}
+            onError={clock.ready}
             accessible={false}
           />
         </Animated.View>
@@ -125,23 +129,34 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
         <Text style={[styles.wordmark, { top: insets.top + 12 }]}>APEX</Text>
 
         <View style={[styles.lower, { paddingBottom: insets.bottom + 28 }]} pointerEvents="none">
-          <Text
-            style={styles.name}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {place.name.toUpperCase()}
-          </Text>
+          {poster.lines.map((line) => (
+            <Text
+              key={line}
+              style={[styles.name, { fontSize: poster.fontSize, lineHeight }]}
+              numberOfLines={1}
+            >
+              {line}
+            </Text>
+          ))}
 
           <View style={styles.stats}>
-            <Text style={[styles.side, styles.sideLeft]} numberOfLines={2}>
-              {`${place.region.toUpperCase()}\n${place.country.toUpperCase()}`}
-            </Text>
+            <View style={[styles.side, styles.sideLeft]}>
+              <Text style={styles.sideText} numberOfLines={1}>
+                {place.region.toUpperCase()}
+              </Text>
+              <Text style={styles.sideText} numberOfLines={1}>
+                {place.country.toUpperCase()}
+              </Text>
+            </View>
             <Text style={styles.elevation}>{formatHeroElevation(place.elevationM)}</Text>
-            <Text style={[styles.side, styles.sideRight]} numberOfLines={2}>
-              {`${place.grade.toUpperCase()}\n${KIND_LABEL[place.kind]}`}
-            </Text>
+            <View style={[styles.side, styles.sideRight]}>
+              <Text style={styles.sideText} numberOfLines={1}>
+                {place.grade.toUpperCase()}
+              </Text>
+              <Text style={styles.sideText} numberOfLines={1}>
+                {KIND_LABEL[place.kind]}
+              </Text>
+            </View>
           </View>
 
           <View style={styles.fact}>
@@ -175,14 +190,12 @@ const styles = StyleSheet.create({
     letterSpacing: 5.6,
     paddingLeft: 5.6,
   },
-  lower: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 24 },
+  lower: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: SIDE_PADDING },
   name: {
     color: colors.fg,
     fontFamily: fonts.poster,
-    fontSize: 84,
-    lineHeight: 76,
-    paddingTop: 8,
     textAlign: 'center',
+    includeFontPadding: false,
   },
   stats: {
     marginTop: 18,
@@ -190,27 +203,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  side: {
-    flex: 1,
+  side: { flex: 1, opacity: 0.75 },
+  sideLeft: { alignItems: 'flex-end' },
+  sideRight: { alignItems: 'flex-start' },
+  sideText: {
     color: colors.fg,
-    opacity: 0.75,
     fontFamily: fonts.mono,
     fontSize: 11,
     lineHeight: 15,
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
   },
-  sideLeft: { textAlign: 'right' },
-  sideRight: { textAlign: 'left' },
   elevation: {
-    marginHorizontal: 14,
-    paddingHorizontal: 14,
+    marginHorizontal: 10,
+    paddingHorizontal: 10,
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
     color: colors.heroAccent,
     fontFamily: fonts.mono,
-    fontSize: 20,
-    letterSpacing: 1,
+    fontSize: 17,
+    letterSpacing: 0.5,
     fontVariant: ['tabular-nums'],
   },
   fact: { marginTop: 44, alignItems: 'center', paddingHorizontal: 12 },
@@ -227,8 +239,8 @@ const styles = StyleSheet.create({
   factText: {
     color: colors.fg,
     fontFamily: fonts.uiMedium,
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 14,
+    lineHeight: 20,
     textAlign: 'center',
     ...TEXT_SHADOW,
   },

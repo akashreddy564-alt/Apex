@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { nextFromBag, shouldShowOpening } from './heroRotation.ts';
+import { decideOpening, nextFromBag, shouldShowOpening } from './heroRotation.ts';
 
 const ALL = ['a', 'b', 'c', 'd'] as const;
 
@@ -73,5 +73,44 @@ describe('shouldShowOpening', () => {
 
   it('skips while a hike is still recording', () => {
     assert.equal(shouldShowOpening({ initialUrl: null, hasActiveHike: true }), false);
+  });
+});
+
+describe('decideOpening', () => {
+  const base = {
+    allIds: ['a', 'b'],
+    getInitialUrl: async () => null,
+    hikeReady: Promise.resolve(null),
+    loadState: async () => ({ bag: [], lastId: null }),
+    saveState: async () => undefined,
+    random: () => 0,
+    timeoutMs: 50,
+  };
+
+  it('picks a place on a plain launch', async () => {
+    assert.deepEqual(await decideOpening(base), { status: 'show', id: 'a' });
+  });
+
+  it('skips for the real notification link form', async () => {
+    const result = await decideOpening({
+      ...base,
+      getInitialUrl: async () => 'apex://log?recording=pause',
+    });
+    assert.deepEqual(result, { status: 'skip' });
+  });
+
+  it('skips when storage hangs instead of holding the splash', async () => {
+    const result = await decideOpening({ ...base, loadState: () => new Promise(() => {}) });
+    assert.deepEqual(result, { status: 'skip' });
+  });
+
+  it('skips when a step throws', async () => {
+    const result = await decideOpening({
+      ...base,
+      getInitialUrl: async () => {
+        throw new Error('boom');
+      },
+    });
+    assert.deepEqual(result, { status: 'skip' });
   });
 });
