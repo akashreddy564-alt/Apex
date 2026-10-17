@@ -105,3 +105,11 @@ export function formatCompactDuration(totalSeconds: number | null): string {
   }
   return `${m}m`;
 }
+
+const FEET_PER_METRE = 3.28084;
+
+/** Opening-screen elevation in feet, e.g. `22,349 FT`. */
+export function formatHeroElevation(elevationM: number): string {
+  if (!Number.isFinite(elevationM)) return MISSING_METRIC;
+  return `${Math.round(elevationM * FEET_PER_METRE).toLocaleString('en-US')} FT`;
+}

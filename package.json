@@ -3,6 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
+    "@expo-google-fonts/anton": "^0.4.2",
     "@expo-google-fonts/bricolage-grotesque": "^0.4.1",
     "@expo-google-fonts/inter": "^0.4.2",
     "@expo/ui": "~57.0.21",
@@ -16,6 +17,7 @@
     "expo-dev-client": "~57.0.19",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
+    "expo-image": "~57.0.5",
     "expo-image-manipulator": "~57.0.20",
     "expo-image-picker": "~57.0.17",
     "expo-linking": "~57.0.10",
@@ -55,10 +57,10 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts && jest --ci",
+    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts && jest --ci",
     "start": "expo start --port 43127",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web --port 43127",
     "build:dev": "eas build --profile development",
     "build:preview": "eas build --profile preview",

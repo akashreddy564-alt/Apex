@@ -1,5 +1,6 @@
 import '../global.css';
 
+import { Anton_400Regular } from '@expo-google-fonts/anton';
 import {
   BricolageGrotesque_700Bold,
   BricolageGrotesque_800ExtraBold,
@@ -15,9 +16,11 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { OpeningScreen } from '@/components/opening/OpeningScreen';
+import { useOpeningPlace } from '@/hooks/useOpeningPlace';
 import { useRemoteSync } from '@/hooks/useRemoteSync';
 import { hydrateHike } from '@/lib/activeHike';
 import { reconcileTracking } from '@/lib/locationTask';
@@ -33,14 +36,22 @@ export default function RootLayout() {
     [fonts.ui]: Inter_400Regular,
     [fonts.uiMedium]: Inter_500Medium,
     [fonts.uiSemibold]: Inter_600SemiBold,
+    [fonts.poster]: Anton_400Regular,
   });
   useRemoteSync();
 
+  const [hikeReady] = useState(() => hydrateHike());
+  const opening = useOpeningPlace(hikeReady);
+  const [photoShown, setPhotoShown] = useState(false);
+  const [openingDone, setOpeningDone] = useState(false);
+  const onPhotoShown = useCallback(() => setPhotoShown(true), []);
+  const onOpeningDone = useCallback(() => setOpeningDone(true), []);
+
   useEffect(() => {
-    void hydrateHike().then((hike) => {
+    void hikeReady.then((hike) => {
       void reconcileTracking(Boolean(hike && hike.pausedAt == null));
     });
-  }, []);
+  }, [hikeReady]);
 
   const [queryClient] = useState(
     () =>
@@ -54,13 +65,17 @@ export default function RootLayout() {
       }),
   );
 
+  const fontsSettled = fontsLoaded || Boolean(fontError);
+  const openingSettled =
+    opening.status === 'skip' || (opening.status === 'show' && photoShown);
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    if (fontsSettled && openingSettled) {
       SplashScreen.hideAsync().catch(() => undefined);
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsSettled, openingSettled]);
 
-  if (!fontsLoaded && !fontError) {
+  if (!fontsSettled || opening.status === 'deciding') {
     return null;
   }
 
@@ -89,10 +104,22 @@ export default function RootLayout() {
             />
             <Stack.Screen name="account" options={{ title: 'Settings' }} />
             <Stack.Screen
+              name="credits"
+              options={{ title: 'Photo credits', headerBackTitle: 'Settings' }}
+            />
+            <Stack.Screen
               name="delete-account"
               options={{ title: 'Delete account', headerBackTitle: 'Settings' }}
             />
           </Stack>
+          {opening.status === 'show' && !openingDone ? (
+            <OpeningScreen
+              place={opening.place}
+              photo={opening.photo}
+              onReady={onPhotoShown}
+              onDone={onOpeningDone}
+            />
+          ) : null}
         </BottomSheetModalProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
