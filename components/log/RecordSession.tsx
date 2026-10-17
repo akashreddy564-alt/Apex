@@ -5,6 +5,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
 import { LiveTrackMap } from '@/components/log/LiveTrackMap';
+import {
+  DISTANCE_UNIT,
+  ELEVATION_UNIT,
+  paceSecondsPerMile,
+  toFeet,
+  toMiles,
+} from '@/lib/format';
 import { paceSecondsPerKm } from '@/lib/hikeStats';
 import { colors, fonts, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
@@ -58,7 +65,7 @@ function pausedClock(totalSeconds: number): string {
 }
 
 function paceValue(distanceM: number, movingSeconds: number): string {
-  const pace = paceSecondsPerKm(distanceM, movingSeconds);
+  const pace = paceSecondsPerMile(paceSecondsPerKm(distanceM, movingSeconds));
   if (pace == null) return '—';
   const total = Math.round(pace);
   const minutes = Math.floor(total / 60);
@@ -304,12 +311,12 @@ export function RecordSession({
   const now = Date.now();
   const accuracy = [...points].reverse().find((point) => point.accuracy != null)?.accuracy ?? null;
   const gps =
-    accuracy == null ? 'GPS' : `GPS ±${Math.max(1, Math.round(accuracy))} m`;
+    accuracy == null ? 'GPS' : `GPS ±${Math.max(1, Math.round(toFeet(accuracy)))} ft`;
   const toSummit =
     peakElevationM == null || elevationM == null
       ? '—'
-      : String(Math.max(0, Math.round(peakElevationM - elevationM)));
-  const distance = (distanceM / 1000).toFixed(1);
+      : String(Math.max(0, Math.round(toFeet(peakElevationM - elevationM))));
+  const distance = toMiles(distanceM / 1000).toFixed(1);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: insets.bottom }}>
@@ -430,20 +437,20 @@ export function RecordSession({
         ) : null}
         <View style={{ marginTop: paused ? 12 : 18 }}>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
-            <StatCell label="Distance" value={distance} unit="km" />
-            <StatCell label="Pace" value={paceValue(distanceM, movingSeconds)} unit="/km" edge />
+            <StatCell label="Distance" value={distance} unit={DISTANCE_UNIT} />
+            <StatCell label="Pace" value={paceValue(distanceM, movingSeconds)} unit={`/${DISTANCE_UNIT}`} edge />
           </View>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
-            <StatCell label="Gained" value={`↑ ${Math.round(gainM)}`} unit="m" />
-            <StatCell label="Lost" value={`↓ ${Math.round(lossM)}`} unit="m" edge />
+            <StatCell label="Gained" value={`↑ ${Math.round(toFeet(gainM))}`} unit={ELEVATION_UNIT} />
+            <StatCell label="Lost" value={`↓ ${Math.round(toFeet(lossM))}`} unit={ELEVATION_UNIT} edge />
           </View>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
             <StatCell
               label="Elevation"
-              value={elevationM == null ? '—' : String(Math.round(elevationM))}
-              unit={elevationM == null ? '' : 'm'}
+              value={elevationM == null ? '—' : String(Math.round(toFeet(elevationM)))}
+              unit={elevationM == null ? '' : ELEVATION_UNIT}
             />
-            <StatCell label="To summit" value={toSummit} unit={toSummit === '—' ? '' : 'm'} edge />
+            <StatCell label="To summit" value={toSummit} unit={toSummit === '—' ? '' : ELEVATION_UNIT} edge />
           </View>
         </View>
         {notice ? (

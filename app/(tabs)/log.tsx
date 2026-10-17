@@ -24,7 +24,7 @@ import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
-import { formatDuration } from '@/lib/format';
+import { formatDistance, formatDuration } from '@/lib/format';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
 import {
@@ -230,7 +230,7 @@ export default function LogScreen() {
                 Finish this hike?
               </Text>
               <Text style={{ color: colors.fg, fontSize: 16, ...numericStyle() }}>
-                {(tracker.distanceM / 1000).toFixed(1)} km · {hikeClock(tracker.elapsedSeconds)}
+                {formatDistance(tracker.distanceM / 1000)} · {hikeClock(tracker.elapsedSeconds)}
               </Text>
               <Pressable
                 accessibilityRole="button"

@@ -28,7 +28,7 @@ import {
   SHAPE_EASE_MS,
   shapeEase,
 } from '@/lib/elevationMotion';
-import { formatChartDistance, formatChartElevation, formatDistanceKm } from '@/lib/format';
+import { formatChartDistance, formatChartElevation, formatDistance } from '@/lib/format';
 import { colors, numericStyle, typeScale } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
@@ -456,10 +456,10 @@ export function ElevationSparkline({
 
         <View className="flex-row justify-between px-3 pb-2">
           <Text className="text-caption text-fg-faint" style={digits}>
-            {formatDistanceKm(0)}
+            {formatDistance(0)}
           </Text>
           <Text className="text-caption text-fg-faint" style={digits}>
-            {formatDistanceKm(plotted[plotted.length - 1].distance_m / 1000)}
+            {formatDistance(plotted[plotted.length - 1].distance_m / 1000)}
           </Text>
         </View>
       </LineChart.Provider>
