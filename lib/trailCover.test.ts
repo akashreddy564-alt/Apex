@@ -28,6 +28,11 @@ describe('mapCoverUrl', () => {
     assert.ok(url.includes('access_token=pk.test'));
   });
 
+  it('can ask for a taller hero-sized image', () => {
+    const url = mapCoverUrl(path, 'pk.test', { width: 400, height: 520 });
+    assert.ok(url?.includes('/auto/400x520@2x?'));
+  });
+
   it('gives no image without a token or a drawable route', () => {
     assert.equal(mapCoverUrl(path, undefined), null);
     assert.equal(mapCoverUrl(path, ''), null);
@@ -56,6 +61,11 @@ describe('trailCover', () => {
   it('skips cloud-only photo refs it cannot show directly', () => {
     const cover = trailCover('t1', path, [log(['sb:u/1.jpg'], '2026-10-01T00:00:00Z')], 'pk.test');
     assert.equal(cover?.kind, 'map');
+  });
+
+  it('passes the image size through to the satellite fallback', () => {
+    const cover = trailCover('t1', path, [], 'pk.test', { width: 400, height: 520 });
+    assert.ok(cover?.uri.includes('/auto/400x520@2x?'));
   });
 
   it('falls back to the satellite route image, then to nothing', () => {

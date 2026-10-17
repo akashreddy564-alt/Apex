@@ -16,6 +16,10 @@ export type TrailCover = { kind: 'photo'; uri: string } | { kind: 'map'; uri: st
 const ROUTE_COLOR = 'C9D4B0';
 const MAX_POINTS = 300;
 
+/** Logical pixels; Mapbox serves @2x. Its static API caps each side at 1280. */
+export type CoverSize = { width: number; height: number };
+const CARD_SIZE: CoverSize = { width: 600, height: 340 };
+
 /** Google encoded polyline, precision 5. Input is [lng, lat]. */
 export function encodePolyline(coordinates: Coordinate[]): string {
   let out = '';
@@ -46,12 +50,16 @@ function thin(coordinates: Coordinate[]): Coordinate[] {
   return Array.from({ length: MAX_POINTS }, (_, i) => coordinates[Math.round(i * step)]);
 }
 
-export function mapCoverUrl(path: LineString, token: string | undefined): string | null {
+export function mapCoverUrl(
+  path: LineString,
+  token: string | undefined,
+  size: CoverSize = CARD_SIZE,
+): string | null {
   if (!token || path.coordinates.length < 2) return null;
   const line = encodeURIComponent(encodePolyline(thin(path.coordinates)));
   return (
     'https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/' +
-    `path-4+${ROUTE_COLOR}-0.9(${line})/auto/600x340@2x` +
+    `path-4+${ROUTE_COLOR}-0.9(${line})/auto/${size.width}x${size.height}@2x` +
     `?padding=60&access_token=${token}`
   );
 }
@@ -61,6 +69,7 @@ export function trailCover(
   path: LineString,
   logs: CoverLog[],
   token: string | undefined,
+  size: CoverSize = CARD_SIZE,
 ): TrailCover | null {
   let newest: CoverLog | null = null;
   for (const log of logs) {
@@ -70,6 +79,6 @@ export function trailCover(
   }
   const photo = newest?.photos.find((p) => !p.startsWith('sb:'));
   if (photo) return { kind: 'photo', uri: photo };
-  const map = mapCoverUrl(path, token);
+  const map = mapCoverUrl(path, token, size);
   return map ? { kind: 'map', uri: map } : null;
 }
