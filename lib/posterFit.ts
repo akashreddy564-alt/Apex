@@ -38,3 +38,28 @@ export function posterLayout(name: string, maxWidth: number): { lines: string[];
   }
   return best;
 }
+
+/**
+ * Trail-card title: one line up to `max` pt, shrinking to `min`; below that,
+ * two lines split between words, capped a little smaller.
+ */
+export function cardTitleLayout(
+  name: string,
+  maxWidth: number,
+  max = 30,
+  min = 22,
+): { lines: string[]; fontSize: number } {
+  const fit = (lines: string[]) =>
+    Math.floor((maxWidth * SAFETY) / Math.max(...lines.map(posterLineEm)));
+  const single = name.trim().replace(/\s+/g, ' ');
+  const oneLine = Math.min(max, fit([single]));
+  if (oneLine >= min) return { lines: [single], fontSize: oneLine };
+  const words = single.split(' ');
+  let best = { lines: [single], fontSize: oneLine };
+  for (let i = 1; i < words.length; i += 1) {
+    const lines = [words.slice(0, i).join(' '), words.slice(i).join(' ')];
+    const size = Math.min(max - 4, fit(lines));
+    if (size > best.fontSize) best = { lines, fontSize: size };
+  }
+  return best;
+}
