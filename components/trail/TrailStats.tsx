@@ -9,14 +9,16 @@ import { climbRateFtPerMile, difficultyRating, paceLabel } from '@/lib/trailDiff
 import { colors, fonts } from '@/theme/tokens';
 import type { TrailTelemetry } from '@/types/trail';
 
-/** Same deliberate count and stagger as the rest of the trail screen. */
-const COUNT_MS = 8000;
-const STAGGER_MS = 400;
+/** Quick count with a short stagger; the elevation chart starts after the third. */
+export const COUNT_MS = 1000;
+export const STAGGER_MS = 120;
+
+const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
 /** Difficulty meter, easiest → very strenuous. */
 const LEVEL_COLORS = [colors.sage, colors.sage500, colors.sage200, '#F2B66D', colors.heroAccent];
 
-/** Linear 0→target count that restarts per trail and freezes while unfocused. */
+/** Eased 0→target count that restarts per trail and freezes while unfocused. */
 function useCountUp(key: string, target: number | null, delayMs: number): number | null {
   const reduceMotion = useReducedMotion();
   const focused = useIsFocused();
@@ -35,7 +37,7 @@ function useCountUp(key: string, target: number | null, delayMs: number): number
       return;
     }
     if (!focused || progress.current >= 1) {
-      setValue(target * progress.current);
+      setValue(target * easeOutCubic(progress.current));
       return;
     }
     let frame = 0;
@@ -46,7 +48,7 @@ function useCountUp(key: string, target: number | null, delayMs: number): number
       if (!start) start = now;
       const t = Math.min(1, from + Math.max(0, now - start - wait) / COUNT_MS);
       progress.current = t;
-      setValue(target * t);
+      setValue(target * easeOutCubic(t));
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
