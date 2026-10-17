@@ -305,9 +305,9 @@ export const HERO_PLACES: readonly HeroPlace[] = [
     fact: 'Ultra-Trail racers get 46.5 hours to run the whole 103-mile loop.',
     factSource: 'https://en.wikipedia.org/wiki/Tour_du_Mont_Blanc',
     photoCredit: {
-      author: 'Cassican',
+      author: 'Rémih',
       license: 'CC BY-SA 4.0',
-      url: 'https://commons.wikimedia.org/wiki/File:GR5_-_TMB_au_nord_du_col_du_Bonhomme.jpg',
+      url: 'https://commons.wikimedia.org/wiki/File:Tour_du_Mont-Blanc_@_Val_Ferret_01.jpg',
     },
   },
   {

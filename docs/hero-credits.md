@@ -22,7 +22,7 @@ Photos on the opening screen come from Wikimedia Commons under the licenses belo
 | Torres del Paine | Aakerueh | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Las_Torres,_Torres_del_Paine,_Chile.jpg |
 | Cerro Torre | Masa Sakano | CC BY-SA 2.0 | https://commons.wikimedia.org/wiki/File:Cerro_Torre_Sunset.jpg |
 | Fitz Roy | oliver.dodd | CC BY 2.0 | https://commons.wikimedia.org/wiki/File:Fitz_Roy_and_Laguna_Sucia.jpg |
-| Tour du Mont Blanc | Cassican | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:GR5_-_TMB_au_nord_du_col_du_Bonhomme.jpg |
+| Tour du Mont Blanc | Rémih | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Tour_du_Mont-Blanc_@_Val_Ferret_01.jpg |
 | Trolltunga | Steinar Talmoen | CC BY-SA 3.0 | https://commons.wikimedia.org/wiki/File:Trolltunga_2.jpg |
 | Mount Hua | Liuboyoupeter | CC BY-SA 4.0 | https://commons.wikimedia.org/wiki/File:Chinese_Chess_Pavilion_In_Mount_Hua.jpg |
 | Kilimanjaro | Christoph Strässler | CC BY-SA 2.0 | https://commons.wikimedia.org/wiki/File:Glacier_near_Uhuru_Peak_with_Mont_Meru_in_the_background_(17054512855).jpg |
