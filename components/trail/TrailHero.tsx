@@ -15,7 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
-import { posterLayout } from '@/lib/posterFit';
+import { posterLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
 import { colors, fonts } from '@/theme/tokens';
 
@@ -84,8 +84,6 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
     transform: [{ translateY: scrollY.value > 0 ? scrollY.value * 0.25 : 0 }],
   }));
 
-  const lineHeight = Math.round(poster.fontSize * 0.95);
-
   return (
     <View style={{ height, overflow: 'hidden' }}>
       <Animated.View style={[StyleSheet.absoluteFill, styles.clip, parallaxStyle]}>
@@ -116,10 +114,10 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
       </Svg>
 
       <Animated.View style={[styles.text, textStyle]}>
-        {poster.lines.map((line) => (
+        {poster.lines.map((line, index) => (
           <Text
             key={line}
-            style={[styles.name, { fontSize: poster.fontSize, lineHeight }]}
+            style={[styles.name, { fontSize: poster.fontSize }, posterLineStyle(poster.fontSize, index, 0.95)]}
             numberOfLines={1}
             accessibilityRole="header"
           >

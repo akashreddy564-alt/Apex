@@ -16,7 +16,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { formatHeroElevation } from '@/lib/format';
 import { createOpeningClock } from '@/lib/openingClock';
-import { posterLayout } from '@/lib/posterFit';
+import { posterLayout, posterLineStyle } from '@/lib/posterFit';
 import { colors, fonts } from '@/theme/tokens';
 import type { HeroPlace } from '@/types/hero';
 
@@ -92,7 +92,6 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
   }));
 
   const rootStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-  const lineHeight = Math.round(poster.fontSize * 0.92);
 
   return (
     <Animated.View style={[StyleSheet.absoluteFill, styles.root, rootStyle]}>
@@ -130,10 +129,10 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
         <Text style={[styles.wordmark, { top: insets.top + 12 }]}>APEX</Text>
 
         <View style={[styles.lower, { paddingBottom: insets.bottom + 28 }]} pointerEvents="none">
-          {poster.lines.map((line) => (
+          {poster.lines.map((line, index) => (
             <Text
               key={line}
-              style={[styles.name, { fontSize: poster.fontSize, lineHeight }]}
+              style={[styles.name, { fontSize: poster.fontSize }, posterLineStyle(poster.fontSize, index)]}
               numberOfLines={1}
             >
               {line}
