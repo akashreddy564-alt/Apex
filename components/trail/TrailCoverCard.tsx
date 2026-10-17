@@ -78,51 +78,56 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
       onLayout={(e) => setCardWidth(Math.round(e.nativeEvent.layout.width))}
       accessibilityRole="button"
       accessibilityLabel={`${trail.name}, ${trail.region}${score ? `, score ${score}` : ''}`}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
     >
-      {cover ? (
-        <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
-          <Image
-            source={{ uri: cover.uri }}
-            style={StyleSheet.absoluteFill}
-            contentFit="cover"
-            transition={250}
-            accessible={false}
-          />
-        </Animated.View>
-      ) : null}
+      {/* Layout lives on a plain View: NativeWind drops function styles on
+          Pressable on iOS, which collapsed the card to zero height. */}
+      {({ pressed }) => (
+        <View style={[styles.card, pressed && styles.pressed]}>
+          {cover ? (
+            <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
+              <Image
+                source={{ uri: cover.uri }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                transition={250}
+                accessible={false}
+              />
+            </Animated.View>
+          ) : null}
 
-      <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-        <Defs>
-          <LinearGradient id="cardShade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0.3" stopColor={colors.bg} stopOpacity={0} />
-            <Stop offset="1" stopColor={colors.bg} stopOpacity={0.88} />
-          </LinearGradient>
-        </Defs>
-        <Rect width="100%" height="100%" fill="url(#cardShade)" />
-      </Svg>
+          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+            <Defs>
+              <LinearGradient id="cardShade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0.3" stopColor={colors.bg} stopOpacity={0} />
+                <Stop offset="1" stopColor={colors.bg} stopOpacity={0.88} />
+              </LinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#cardShade)" />
+          </Svg>
 
-      <View style={styles.info} pointerEvents="none">
-        <View style={styles.text}>
-          {title.lines.map((line) => (
-            <Text
-              key={line}
-              style={[styles.name, { fontSize: title.fontSize, lineHeight: Math.round(title.fontSize * 1.08) }]}
-              numberOfLines={1}
-            >
-              {line}
-            </Text>
-          ))}
-          <Text style={styles.meta} numberOfLines={1}>
-            {meta}
-          </Text>
-        </View>
-        {score ? (
-          <View style={styles.scorePill}>
-            <Text style={[styles.score, top && styles.scoreTop]}>{score}</Text>
+          <View style={styles.info} pointerEvents="none">
+            <View style={styles.text}>
+              {title.lines.map((line) => (
+                <Text
+                  key={line}
+                  style={[styles.name, { fontSize: title.fontSize, lineHeight: Math.round(title.fontSize * 1.08) }]}
+                  numberOfLines={1}
+                >
+                  {line}
+                </Text>
+              ))}
+              <Text style={styles.meta} numberOfLines={1}>
+                {meta}
+              </Text>
+            </View>
+            {score ? (
+              <View style={styles.scorePill}>
+                <Text style={[styles.score, top && styles.scoreTop]}>{score}</Text>
+              </View>
+            ) : null}
           </View>
-        ) : null}
-      </View>
+        </View>
+      )}
     </Pressable>
   );
 }
