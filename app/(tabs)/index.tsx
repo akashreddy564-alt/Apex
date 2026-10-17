@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TrailCoverCard } from '@/components/trail/TrailCoverCard';
+import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { trailCover } from '@/lib/trailCover';
 import { useRankingStore } from '@/stores/rankingStore';
@@ -59,6 +60,9 @@ export default function TrailsScreen() {
             );
           })}
         </View>
+        {trails.some(isCatalogTrail) ? (
+          <Text className="px-4 pt-5 font-ui text-[11px] text-zinc-600">{CATALOG_CREDIT}</Text>
+        ) : null}
       </ScrollView>
     </View>
   );

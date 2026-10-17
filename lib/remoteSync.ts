@@ -9,7 +9,7 @@ import type { HikeLog, PairwiseComparison, Trail, TrailRanking } from '@/types/t
 
 const OUTBOX_KEY = 'apex-sync-outbox';
 
-type OutboxKind = 'log' | 'ranking' | 'comparison';
+type OutboxKind = 'trail' | 'log' | 'ranking' | 'comparison';
 
 interface OutboxEntry {
   kind: OutboxKind;
@@ -31,18 +31,37 @@ function num(value: unknown, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function optionalNum(value: unknown): number | null {
+  if (value == null) return null;
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function point(value: unknown): [number, number] | null {
+  if (!value || typeof value !== 'object') return null;
+  const record = value as { type?: unknown; coordinates?: unknown };
+  if (record.type !== 'Point' || !Array.isArray(record.coordinates)) return null;
+  const [lon, lat] = record.coordinates as unknown[];
+  return typeof lon === 'number' && typeof lat === 'number' ? [lon, lat] : null;
+}
+
+const SHAPES = new Set(['loop', 'out-and-back', 'point-to-point']);
+
 function mapTrail(row: Record<string, unknown>): Trail | null {
+  if (typeof row.id !== 'string' || typeof row.name !== 'string') return null;
+  const source = row.source === 'user' ? 'user' : 'catalog';
   const path = asLineString(row.path);
-  if (!path || typeof row.id !== 'string' || typeof row.name !== 'string') return null;
+  // Only a user trail may lack a line (a past hike logged without GPS).
+  if (!path && source !== 'user') return null;
   const profile = Array.isArray(row.elevation_profile) ? row.elevation_profile : [];
   return {
     id: row.id,
     name: row.name,
     region: typeof row.region === 'string' ? row.region : '',
-    distance_km: num(row.distance_km),
-    elevation_gain_m: num(row.elevation_gain_m),
-    peak_elevation_m: num(row.peak_elevation_m),
-    path,
+    distance_km: optionalNum(row.distance_km),
+    elevation_gain_m: optionalNum(row.elevation_gain_m),
+    peak_elevation_m: optionalNum(row.peak_elevation_m),
+    path: path ?? { type: 'LineString', coordinates: [] },
     elevation_profile: profile
       .map((sample) => {
         if (!sample || typeof sample !== 'object') return null;
@@ -57,6 +76,11 @@ function mapTrail(row: Record<string, unknown>): Trail | null {
       row.avg_moving_time_seconds == null ? null : num(row.avg_moving_time_seconds),
     created_at: String(row.created_at ?? new Date().toISOString()),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
+    source,
+    owner_id: typeof row.owner_id === 'string' ? row.owner_id : null,
+    osm_ref: typeof row.osm_ref === 'string' ? row.osm_ref : null,
+    shape: typeof row.shape === 'string' && SHAPES.has(row.shape) ? (row.shape as Trail['shape']) : null,
+    trailhead: point(row.trailhead),
   };
 }
 
@@ -97,7 +121,9 @@ export async function pullRemote(): Promise<SyncResult> {
   const dirty = new Set(outbox.map((entry) => `${entry.kind}:${entry.id}`));
   const local = useTrailCache.getState();
   const trails =
-    remoteTrails.length === 0 ? local.trails : mergeById(local.trails, remoteTrails, new Set());
+    remoteTrails.length === 0
+      ? local.trails
+      : mergeById(local.trails, remoteTrails, dirtyIds(dirty, 'trail'));
   useTrailCache.setState({
     trails,
     logs: mergeById(local.logs, remoteLogs, dirtyIds(dirty, 'log')),
@@ -208,6 +234,14 @@ function mapPair(row: Record<string, unknown>): PairwiseComparison | null {
   };
 }
 
+/** A trail the hiker made. Catalog rows are never written from the app. */
+export async function pushTrail(trail: Trail): Promise<void> {
+  if (trail.source !== 'user') return;
+  await loadOutbox();
+  if (await sendTrail(trail)) dequeue('trail', trail.id);
+  else enqueue('trail', trail.id);
+}
+
 export async function pushLog(log: HikeLog): Promise<void> {
   await loadOutbox();
   if (await sendLog(log)) dequeue('log', log.id);
@@ -243,10 +277,39 @@ export async function pushComparison(comparison: PairwiseComparison): Promise<vo
   else enqueue('comparison', comparison.id);
 }
 
+async function sendTrail(trail: Trail): Promise<boolean> {
+  if (!supabase || trail.source !== 'user' || !isUuid(trail.id)) return true;
+  const uid = await userId();
+  if (!uid) return false;
+  const { error } = await supabase.from('trails').upsert({
+    id: trail.id,
+    name: trail.name,
+    region: trail.region,
+    distance_km: trail.distance_km,
+    elevation_gain_m: trail.elevation_gain_m,
+    peak_elevation_m: trail.peak_elevation_m,
+    path: trail.path.coordinates.length >= 2 ? lineStringToEwkt(trail.path) : null,
+    elevation_profile: trail.elevation_profile,
+    avg_moving_time_seconds: trail.avg_moving_time_seconds,
+    source: 'user',
+    owner_id: uid,
+    trailhead: trail.trailhead ? `SRID=4326;POINT(${trail.trailhead[0]} ${trail.trailhead[1]})` : null,
+    created_at: trail.created_at,
+    updated_at: trail.updated_at,
+  });
+  return !error;
+}
+
 async function sendLog(log: HikeLog): Promise<boolean> {
   if (!supabase || !isUuid(log.id) || !isUuid(log.trail_id)) return true;
   const uid = await userId();
   if (!uid) return false;
+  // The log points at the trail, so a user trail has to exist first.
+  const trail = useTrailCache.getState().trails.find((row) => row.id === log.trail_id);
+  if (trail?.source === 'user') {
+    if (!(await sendTrail(trail))) return false;
+    dequeue('trail', trail.id);
+  }
   const { error } = await supabase.from('hike_logs').upsert({
     id: log.id,
     user_id: uid,
@@ -390,6 +453,10 @@ export async function flushOutbox(): Promise<void> {
 }
 
 async function sendOutboxEntry(entry: OutboxEntry): Promise<boolean> {
+  if (entry.kind === 'trail') {
+    const trail = useTrailCache.getState().trails.find((row) => row.id === entry.id);
+    return trail ? sendTrail(trail) : true;
+  }
   if (entry.kind === 'log') {
     const log = useTrailCache.getState().logs.find((row) => row.id === entry.id);
     return log ? sendLog(log) : true;

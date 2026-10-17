@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 import { HikeDateField } from '@/components/log/HikeDateField';
+import { TrailNameField } from '@/components/log/TrailNameField';
 import {
   DISTANCE_UNIT,
   formatElevation,
@@ -38,7 +39,10 @@ interface PastHikeSheetProps {
   onTrailId: (id: string) => void;
   onClose: () => void;
   onContinue: (draft: {
+    /** Empty when `newTrailName` is set. */
     trailId: string;
+    /** A trail the hiker typed that is not in the list yet. */
+    newTrailName: string | null;
     hikedOn: Date;
     hours: number;
     minutes: number;
@@ -91,7 +95,10 @@ export function PastHikeSheet({
   onContinue,
 }: PastHikeSheetProps) {
   const insets = useSafeAreaInsets();
-  const trail = trails.find((item) => item.id === trailId) ?? trails[0] ?? null;
+  const [newTrailName, setNewTrailName] = useState<string | null>(null);
+  const picked = trails.find((item) => item.id === trailId) ?? trails[0] ?? null;
+  const trail = newTrailName ? null : picked;
+  const ready = trail != null || newTrailName != null;
   const [hikedOn, setHikedOn] = useState(() => new Date());
   const [showDate, setShowDate] = useState(false);
   const [pickingTrail, setPickingTrail] = useState(false);
@@ -108,6 +115,15 @@ export function PastHikeSheet({
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const maximumDate = useMemo(() => new Date(), []);
+
+  // A typed trail is created on Continue; closing the sheet drops it.
+  useEffect(() => {
+    if (!visible) setNewTrailName(null);
+  }, [visible]);
+
+  useEffect(() => {
+    if (newTrailName && !distanceTouched) setDistanceText('');
+  }, [distanceTouched, newTrailName]);
 
   useEffect(() => {
     if (!trail || distanceTouched) return;
@@ -208,11 +224,29 @@ export function PastHikeSheet({
           >
             {pickingTrail ? (
               <View style={{ marginTop: 8 }}>
+                <View style={{ marginBottom: 12 }}>
+                  <TrailNameField
+                    trails={trails}
+                    onPick={(id) => {
+                      onTrailId(id);
+                      setNewTrailName(null);
+                      setDistanceTouched(false);
+                      setTypeTouched(false);
+                      setPickingTrail(false);
+                    }}
+                    onCreate={(name) => {
+                      setNewTrailName(name);
+                      setDistanceTouched(false);
+                      setPickingTrail(false);
+                    }}
+                  />
+                </View>
                 {trails.map((item) => (
                   <Pressable
                     key={item.id}
                     onPress={() => {
                       onTrailId(item.id);
+                      setNewTrailName(null);
                       setDistanceTouched(false);
                       setTypeTouched(false);
                       setPickingTrail(false);
@@ -250,8 +284,13 @@ export function PastHikeSheet({
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Trail</Text>
                     <Text style={{ marginTop: 3, fontSize: 16, color: colors.fg, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
-                      {trail?.name ?? 'Choose a trail'}
+                      {newTrailName ?? trail?.name ?? 'Choose a trail'}
                     </Text>
+                    {newTrailName ? (
+                      <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                        New trail · yours
+                      </Text>
+                    ) : null}
                     {trail ? (
                       <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
                         {trail.region} · {formatOptionalDistance(trail.distance_km)} ·{' '}
@@ -535,11 +574,12 @@ export function PastHikeSheet({
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Continue"
-              disabled={!trail}
+              disabled={!ready}
               onPress={() => {
-                if (!trail) return;
+                if (!ready) return;
                 onContinue({
-                  trailId: trail.id,
+                  trailId: trail?.id ?? '',
+                  newTrailName,
                   hikedOn,
                   hours,
                   minutes,
@@ -558,7 +598,7 @@ export function PastHikeSheet({
                 backgroundColor: colors.sage,
                 alignItems: 'center',
                 justifyContent: 'center',
-                opacity: trail ? 1 : 0.5,
+                opacity: ready ? 1 : 0.5,
               }}
             >
               <Text

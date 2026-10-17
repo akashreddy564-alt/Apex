@@ -25,6 +25,9 @@ export interface ElevationSample {
   elevation_m: number;
 }
 
+export type TrailSource = 'catalog' | 'user';
+export type TrailShape = 'loop' | 'out-and-back' | 'point-to-point';
+
 export interface Trail {
   id: string;
   name: string;
@@ -39,6 +42,15 @@ export interface Trail {
   avg_moving_time_seconds: number | null;
   created_at: string;
   updated_at: string;
+  /** Absent on demo trails. 'user' trails come from the hiker's own hike. */
+  source?: TrailSource;
+  /** Set on user trails only. */
+  owner_id?: string | null;
+  /** OSM ways the catalog line was built from, e.g. `way/1,2`. */
+  osm_ref?: string | null;
+  shape?: TrailShape | null;
+  /** [lon, lat]. Catalog lines start here. */
+  trailhead?: [number, number] | null;
 }
 
 export interface HikeLog {

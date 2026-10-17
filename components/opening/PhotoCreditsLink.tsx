@@ -6,11 +6,11 @@ export function PhotoCreditsLink() {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Photo credits"
+      accessibilityLabel="Credits"
       onPress={() => router.push('/credits')}
       className="mt-8 py-3 active:opacity-70"
     >
-      <Text className="text-[15px] text-zinc-300">Photo credits</Text>
+      <Text className="text-[15px] text-zinc-300">Credits</Text>
     </Pressable>
   );
 }

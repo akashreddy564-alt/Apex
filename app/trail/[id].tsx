@@ -12,6 +12,7 @@ import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
 import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
+import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { trailCover } from '@/lib/trailCover';
 import { useRankingStore } from '@/stores/rankingStore';
@@ -111,6 +112,12 @@ export default function TrailDetailScreen() {
         <ElevationSparkline trailId={trail.id} samples={trail.elevation_profile} />
 
         <TrailMap canonical={trail.path} recorded={recorded} />
+
+        {isCatalogTrail(trail) ? (
+          <Text style={{ marginTop: -14, color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>
+            {CATALOG_CREDIT}
+          </Text>
+        ) : null}
 
         {placement ? null : (
           <Text style={{ color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 13 }}>
