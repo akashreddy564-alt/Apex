@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
-import { TelemetryRow } from '@/components/trail/TelemetryRow';
+import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
@@ -98,7 +98,7 @@ export default function TrailDetailScreen() {
       />
 
       <Animated.View style={[entranceStyle, { gap: 22, paddingHorizontal: 16, paddingTop: 18 }]}>
-        <TelemetryRow
+        <TrailStats
           trailId={trail.id}
           telemetry={{
             peak_elevation_m: trail.peak_elevation_m,
