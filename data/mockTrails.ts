@@ -128,7 +128,7 @@ export const MOCK_TRAILS: Trail[] = [
   },
   {
     id: 'trail-angel',
-    name: 'Angel Island Perimeter',
+    name: 'Angel Island Perimeter via the west ridge fire road overlook',
     region: 'SF Bay, CA',
     distance_km: 9.6,
     elevation_gain_m: 310,
