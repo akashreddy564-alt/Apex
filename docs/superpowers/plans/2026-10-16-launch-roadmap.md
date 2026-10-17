@@ -6,13 +6,15 @@ The spec covers several independent subsystems, so it ships as separate plans. E
 
 | # | Plan | Depends on | Blocked by owner action | Status |
 |---|------|-----------|--------------------------|--------|
-| 0 | Launch foundation | none | Apple Developer, Expo account | not started |
-| 1 | Opening screen | none | none | **planned:** `2026-10-16-opening-screen.md` |
+| 0 | Launch foundation | none | Apple Developer, Expo account | **in progress:** units done (`feat/us-units`); Mapbox done; PRs #20–22, GRANTs, Apple, Expo open |
+| 1 | Opening screen | none | none | **built, reviewed, tested** on `feat/opening-screen`; checked on web; not pushed, iPhone check owed |
 | 2 | Trail catalog and freeform hikes | none | none | not started |
 | 3 | Accounts, friends, feed, groups, leaderboards | 2 | Supabase GRANTs before Oct 30 | not started |
 | 4 | Habit loops: streak, goal ring, weekend pick, home | 3 for friend-facing parts | none | not started |
-| 5 | Route flyover and video share | none | Mapbox account and token | not started |
+| 5 | Route flyover and video share | none | none (Mapbox done) | **spike passed:** MP4 export works; see `.superpowers/spikes/flyover-notes.md` |
 | 6 | Visual pass and App Store submission | all | Apple Developer | not started |
+
+_Status updated 2026-10-17._
 
 Plans 1, 2 and 5 can run in parallel; they touch separate files. Plan 3 is the critical path and the largest.
 
