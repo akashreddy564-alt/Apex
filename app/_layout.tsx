@@ -100,6 +100,9 @@ export default function RootLayout() {
               options={{
                 title: '',
                 headerBackTitle: 'Back',
+                // The hero photo runs under the header.
+                headerTransparent: true,
+                headerStyle: { backgroundColor: 'transparent' },
               }}
             />
             <Stack.Screen name="account" options={{ title: 'Settings' }} />

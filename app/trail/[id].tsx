@@ -1,21 +1,25 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
+  useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 
 import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
-import { TelemetryRow } from '@/components/trail/TelemetryRow';
+import { TrailStats } from '@/components/trail/TrailStats';
+import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
+import { trailCover } from '@/lib/trailCover';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
-import { displayM, numericStyle } from '@/theme/tokens';
+import { colors, fonts } from '@/theme/tokens';
 
 const ENTRANCE = { damping: 20, stiffness: 240, mass: 0.85 };
+const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 
 export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,8 +38,14 @@ export default function TrailDetailScreen() {
     }
     return best?.recorded_path ?? null;
   });
+  const logs = useTrailCache((s) => s.logs);
   const rankings = useRankingStore((s) => s.rankings);
   const placement = describePlacement(rankings, String(id));
+  const { width, height: windowHeight } = useWindowDimensions();
+  const scrollY = useSharedValue(0);
+  const onScroll = useAnimatedScrollHandler((event) => {
+    scrollY.value = event.contentOffset.y;
+  });
 
   const progress = useSharedValue(0);
 
@@ -57,32 +67,38 @@ export default function TrailDetailScreen() {
     );
   }
 
+  const cover = trailCover(trail.id, recorded ?? trail.path, logs, MAPBOX_TOKEN, {
+    width: Math.min(640, Math.round(width)),
+    height: Math.min(640, heroHeight(windowHeight)),
+  });
+
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ padding: 16 }}>
-      <Animated.View style={entranceStyle} className="gap-5">
-        <TrailMap canonical={trail.path} recorded={recorded} />
-        <View>
-          <Text style={displayM} numberOfLines={2}>
-            {trail.name}
-          </Text>
-          <Text className="mt-1 font-ui text-caption text-fg-2">{trail.region}</Text>
-          {placement ? (
-            <Text className="mt-3 text-caption text-fg-2" style={numericStyle()}>
-              {placementScoreLabel(
+    <Animated.ScrollView
+      style={{ flex: 1, backgroundColor: colors.bg }}
+      contentContainerStyle={{ paddingBottom: 40 }}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+    >
+      <TrailHero
+        name={trail.name}
+        region={trail.region}
+        cover={cover}
+        placementLabel={
+          placement
+            ? placementScoreLabel(
                 placement.ranking.bucket,
                 placement.count,
                 placement.score,
                 placement.ordinal,
-              )}
-            </Text>
-          ) : (
-            <Text className="mt-3 font-ui text-caption text-fg-faint">
-              Unranked — log this trail to place it
-            </Text>
-          )}
-        </View>
+              )
+            : null
+        }
+        top={placement?.ordinal === 1 && placement.ranking.bucket === 'loved'}
+        scrollY={scrollY}
+      />
 
-        <TelemetryRow
+      <Animated.View style={[entranceStyle, { gap: 22, paddingHorizontal: 16, paddingTop: 18 }]}>
+        <TrailStats
           trailId={trail.id}
           telemetry={{
             peak_elevation_m: trail.peak_elevation_m,
@@ -92,11 +108,16 @@ export default function TrailDetailScreen() {
           }}
         />
 
-        <ElevationSparkline
-          trailId={trail.id}
-          samples={trail.elevation_profile}
-        />
+        <ElevationSparkline trailId={trail.id} samples={trail.elevation_profile} />
+
+        <TrailMap canonical={trail.path} recorded={recorded} />
+
+        {placement ? null : (
+          <Text style={{ color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 13 }}>
+            Log this trail to place it in your rankings.
+          </Text>
+        )}
       </Animated.View>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }

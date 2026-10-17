@@ -48,10 +48,10 @@ function rgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-/** Slow left→right map-out along distance. */
-const PATH_REVEAL_MS = 10000;
-/** Brief beat before the wipe so the chart doesn't flash. */
-const PATH_REVEAL_DELAY_MS = 400;
+/** Quick left→right map-out along distance. */
+const PATH_REVEAL_MS = 1200;
+/** Starts once the stats card's three counts have begun (3 × 120 ms). */
+const PATH_REVEAL_DELAY_MS = 360;
 /** One pass of the traveling dash along the stroke. */
 const TRACE_PERIOD_MS = 3200;
 const TRACE_DASH = 22;
@@ -102,7 +102,8 @@ function FlowingTrace({ reveal }: { reveal: SharedValue<number> }) {
 
   const animatedProps = useAnimatedProps(() => {
     const moving = reveal.value > 0 && reveal.value < 1 && !isActive.value;
-    const cycles = PATH_REVEAL_MS / TRACE_PERIOD_MS;
+    // At least one full pass, even though the reveal is now short.
+    const cycles = Math.max(1, PATH_REVEAL_MS / TRACE_PERIOD_MS);
     return {
       strokeDashoffset: -reveal.value * cycles * TRACE_CYCLE,
       strokeOpacity: moving ? 1 : 0,
@@ -316,7 +317,7 @@ export function ElevationSparkline({
     if (remaining <= 0.001) return;
 
     const duration = Math.max(1, PATH_REVEAL_MS * remaining);
-    const timing = withTiming(1, { duration, easing: Easing.linear });
+    const timing = withTiming(1, { duration, easing: Easing.out(Easing.cubic) });
     const fresh = reveal.value <= 0.001;
     reveal.value = fresh ? withDelay(PATH_REVEAL_DELAY_MS, timing) : timing;
 
