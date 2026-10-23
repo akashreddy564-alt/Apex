@@ -35,7 +35,7 @@ const taskOptions: Location.LocationTaskOptions = {
   foregroundService: {
     notificationTitle: 'Apex',
     notificationBody: 'Apex is recording your hike',
-    notificationColor: '#8B9A6D',
+    notificationColor: '#EDE6D6',
   },
 };
 

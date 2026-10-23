@@ -13,6 +13,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { HikeDateField } from '@/components/log/HikeDateField';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import {
@@ -26,7 +27,7 @@ import {
 import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
 import { formatHikeDay, suggestHikeType } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
-import { colors, fonts, numericStyle } from '@/theme/tokens';
+import { fonts, numericStyle, type Palette } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
 const CHIPS = ['Dry', 'Muddy', 'Snow', 'Rocky', 'Rain', 'Fog', 'Hot', 'Windy'] as const;
 const TERRAIN = new Set(['Snow', 'Rocky']);
@@ -57,6 +58,7 @@ interface PastHikeSheetProps {
 }
 
 function MiniProfile({ samples }: { samples: ElevationSample[] }) {
+  const c = useColors();
   if (samples.length < 2) return <View style={{ width: 64, height: 32 }} />;
   const width = 64;
   const height = 32;
@@ -74,8 +76,8 @@ function MiniProfile({ samples }: { samples: ElevationSample[] }) {
   const area = `${line} L${width - 2} ${height} L2 ${height} Z`;
   return (
     <Svg width={width} height={height}>
-      <Path d={area} fill={colors.sage} fillOpacity={0.12} />
-      <Path d={line} stroke={colors.sage} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
+      <Path d={area} fill={c.accent} fillOpacity={0.12} />
+      <Path d={line} stroke={c.accent} strokeWidth={1.6} fill="none" strokeLinejoin="round" />
     </Svg>
   );
 }
@@ -85,7 +87,7 @@ function stepMinutes(hours: number, minutes: number, delta: number): { hours: nu
   return { hours: Math.floor(total / 60), minutes: total % 60 };
 }
 
-/** Beli-style past hike sheet. Trail and date are required. Continue is the only sage control. */
+/** Beli-style past hike sheet. Trail and date are required. Continue is the only accent control. */
 export function PastHikeSheet({
   visible,
   trails,
@@ -94,6 +96,7 @@ export function PastHikeSheet({
   onClose,
   onContinue,
 }: PastHikeSheetProps) {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   const [newTrailName, setNewTrailName] = useState<string | null>(null);
   const picked = trails.find((item) => item.id === trailId) ?? trails[0] ?? null;
@@ -169,11 +172,11 @@ export function PastHikeSheet({
           style={{
             flex: 1,
             marginTop: insets.top + 8,
-            backgroundColor: colors.bg,
+            backgroundColor: c.bg,
             borderTopLeftRadius: 30,
             borderTopRightRadius: 30,
             borderTopWidth: 1,
-            borderTopColor: colors.border,
+            borderTopColor: c.border,
             overflow: 'hidden',
           }}
         >
@@ -183,7 +186,7 @@ export function PastHikeSheet({
                 width: 40,
                 height: 5,
                 borderRadius: 3,
-                backgroundColor: colors.borderStrong,
+                backgroundColor: c.borderStrong,
                 alignSelf: 'center',
                 marginBottom: 12,
               }}
@@ -191,7 +194,7 @@ export function PastHikeSheet({
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
               <Text
                 style={{
-                  color: colors.fg,
+                  color: c.fg,
                   fontFamily: fonts.displayExtraBold,
                   fontWeight: 'normal',
                   fontSize: 26,
@@ -206,14 +209,14 @@ export function PastHikeSheet({
                   width: 40,
                   height: 40,
                   borderRadius: 14,
-                  backgroundColor: colors.surface,
+                  backgroundColor: c.surface,
                   borderWidth: 1,
-                  borderColor: colors.raised,
+                  borderColor: c.raised,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <X size={18} strokeWidth={1.75} color={colors.fgMuted} />
+                <X size={18} strokeWidth={1.75} color={c.fgMuted} />
               </Pressable>
             </View>
           </View>
@@ -254,13 +257,13 @@ export function PastHikeSheet({
                     style={{
                       paddingVertical: 12,
                       borderTopWidth: 1,
-                      borderTopColor: colors.raised,
+                      borderTopColor: c.raised,
                     }}
                   >
-                    <Text style={{ fontSize: 16, color: colors.fg, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
+                    <Text style={{ fontSize: 16, color: c.fg, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
                       {item.name}
                     </Text>
-                    <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                    <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                       {item.region}
                     </Text>
                   </Pressable>
@@ -274,7 +277,7 @@ export function PastHikeSheet({
                   onPress={() => setPickingTrail(true)}
                   style={{
                     borderTopWidth: 1,
-                    borderTopColor: colors.raised,
+                    borderTopColor: c.raised,
                     paddingVertical: 10,
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -282,30 +285,30 @@ export function PastHikeSheet({
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Trail</Text>
-                    <Text style={{ marginTop: 3, fontSize: 16, color: colors.fg, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
+                    <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Trail</Text>
+                    <Text style={{ marginTop: 3, fontSize: 16, color: c.fg, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
                       {newTrailName ?? trail?.name ?? 'Choose a trail'}
                     </Text>
                     {newTrailName ? (
-                      <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                      <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                         New trail · yours
                       </Text>
                     ) : null}
                     {trail ? (
-                      <Text style={{ marginTop: 2, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                      <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                         {trail.region} · {formatOptionalDistance(trail.distance_km)} ·{' '}
                         {trail.elevation_gain_m == null ? MISSING_METRIC : `${formatElevation(trail.elevation_gain_m)} gain`}
                       </Text>
                     ) : null}
                   </View>
                   <MiniProfile samples={trail?.elevation_profile ?? []} />
-                  <ChevronRight size={16} strokeWidth={2.2} color={colors.fgFaint} />
+                  <ChevronRight size={16} strokeWidth={2.2} color={c.fgFaint} />
                 </Pressable>
 
                 <View
                   style={{
                     borderTopWidth: 1,
-                    borderTopColor: colors.raised,
+                    borderTopColor: c.raised,
                     paddingVertical: 10,
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -313,34 +316,34 @@ export function PastHikeSheet({
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Date</Text>
-                    <Text style={{ marginTop: 3, fontSize: 16, color: colors.fg, ...numericStyle('semibold') }}>
+                    <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Date</Text>
+                    <Text style={{ marginTop: 3, fontSize: 16, color: c.fg, ...numericStyle('semibold') }}>
                       {formatHikeDay(hikedOn)}
                     </Text>
                   </View>
                   <Pressable accessibilityLabel="Change date" onPress={() => setShowDate((open) => !open)}>
-                    <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Change</Text>
+                    <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Change</Text>
                   </Pressable>
                 </View>
                 {showDate ? (
                   <HikeDateField value={hikedOn} maximumDate={maximumDate} onChange={setHikedOn} />
                 ) : null}
 
-                <Text style={{ marginTop: 6, paddingVertical: 6, fontSize: 13, color: colors.fgFaint, fontFamily: fonts.ui }}>
+                <Text style={{ marginTop: 6, paddingVertical: 6, fontSize: 13, color: c.fgFaint, fontFamily: fonts.ui }}>
                   Optional details
                 </Text>
 
                 <View
                   style={{
                     borderTopWidth: 1,
-                    borderTopColor: colors.raised,
+                    borderTopColor: c.raised,
                     paddingVertical: 10,
                     flexDirection: 'row',
                     gap: 16,
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Time taken</Text>
+                    <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Time taken</Text>
                     <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Pressable
                         accessibilityLabel="Decrease time"
@@ -349,15 +352,15 @@ export function PastHikeSheet({
                           setHours(next.hours);
                           setMinutes(next.minutes);
                         }}
-                        style={stepStyle}
+                        style={stepStyle(c)}
                       >
-                        <Text style={{ fontSize: 18, color: colors.fg2 }}>−</Text>
+                        <Text style={{ fontSize: 18, color: c.fg2 }}>−</Text>
                       </Pressable>
-                      <Text style={{ fontSize: 20, color: colors.fg, ...numericStyle('semibold') }}>
+                      <Text style={{ fontSize: 20, color: c.fg, ...numericStyle('semibold') }}>
                         {hours}
-                        <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}>h </Text>
+                        <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.uiMedium }}>h </Text>
                         {String(minutes).padStart(2, '0')}
-                        <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}>m</Text>
+                        <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.uiMedium }}>m</Text>
                       </Text>
                       <Pressable
                         accessibilityLabel="Increase time"
@@ -366,17 +369,17 @@ export function PastHikeSheet({
                           setHours(next.hours);
                           setMinutes(next.minutes);
                         }}
-                        style={stepStyle}
+                        style={stepStyle(c)}
                       >
-                        <Text style={{ fontSize: 18, color: colors.fg2 }}>+</Text>
+                        <Text style={{ fontSize: 18, color: c.fg2 }}>+</Text>
                       </Pressable>
                     </View>
                   </View>
-                  <View style={{ width: 1, backgroundColor: colors.raised }} />
+                  <View style={{ width: 1, backgroundColor: c.raised }} />
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Distance</Text>
-                      <Text style={{ fontSize: 12, color: colors.fgFaint, fontFamily: fonts.ui }}>
+                      <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Distance</Text>
+                      <Text style={{ fontSize: 12, color: c.fgFaint, fontFamily: fonts.ui }}>
                         {distanceTouched ? 'Edited' : 'From trail'}
                       </Text>
                     </View>
@@ -392,28 +395,28 @@ export function PastHikeSheet({
                           autoFocus
                           keyboardType="decimal-pad"
                           accessibilityLabel="Distance in miles"
-                          style={{ flex: 1, fontSize: 20, color: colors.fg, ...numericStyle('semibold') }}
+                          style={{ flex: 1, fontSize: 20, color: c.fg, ...numericStyle('semibold') }}
                         />
                       ) : (
-                        <Text style={{ fontSize: 20, color: colors.fg, ...numericStyle('semibold') }}>
+                        <Text style={{ fontSize: 20, color: c.fg, ...numericStyle('semibold') }}>
                           {distanceText || MISSING_METRIC}
                           {distanceText ? (
-                            <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.uiMedium }}> {DISTANCE_UNIT}</Text>
+                            <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.uiMedium }}> {DISTANCE_UNIT}</Text>
                           ) : null}
                         </Text>
                       )}
                       <Pressable accessibilityLabel="Edit distance" onPress={() => setEditingDistance(true)}>
-                        <Text style={{ fontSize: 13, color: colors.fg2, fontFamily: fonts.ui }}>Edit</Text>
+                        <Text style={{ fontSize: 13, color: c.fg2, fontFamily: fonts.ui }}>Edit</Text>
                       </Pressable>
                     </View>
                   </View>
                 </View>
 
                 {HIKE_TYPES.length > 1 ? (
-                  <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
+                  <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 8 }}>
-                      <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Hike type</Text>
-                      <Text style={{ flexShrink: 1, fontSize: 12, color: colors.fgFaint, fontFamily: fonts.ui }}>
+                      <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Hike type</Text>
+                      <Text style={{ flexShrink: 1, fontSize: 12, color: c.fgFaint, fontFamily: fonts.ui }}>
                         Suggested from distance and gain
                       </Text>
                     </View>
@@ -422,9 +425,9 @@ export function PastHikeSheet({
                         marginTop: 9,
                         flexDirection: 'row',
                         gap: 3,
-                        backgroundColor: colors.surface,
+                        backgroundColor: c.surface,
                         borderWidth: 1,
-                        borderColor: colors.raised,
+                        borderColor: c.raised,
                         borderRadius: 12,
                         padding: 3,
                       }}
@@ -444,7 +447,7 @@ export function PastHikeSheet({
                               borderRadius: 10,
                               alignItems: 'center',
                               justifyContent: 'center',
-                              backgroundColor: on ? colors.fg : 'transparent',
+                              backgroundColor: on ? c.fg : 'transparent',
                               paddingHorizontal: 2,
                             }}
                           >
@@ -453,7 +456,7 @@ export function PastHikeSheet({
                               adjustsFontSizeToFit
                               style={{
                                 fontSize: 12,
-                                color: on ? colors.onSage : colors.fgMuted,
+                                color: on ? c.onAccent : c.fgMuted,
                                 fontFamily: fonts.uiSemibold,
                                 fontWeight: 'normal',
                               }}
@@ -467,8 +470,8 @@ export function PastHikeSheet({
                   </View>
                 ) : null}
 
-                <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                     Terrain and conditions
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
@@ -489,8 +492,8 @@ export function PastHikeSheet({
                   </View>
                 </View>
 
-                <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                     How hard did it feel?
                   </Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
@@ -505,27 +508,27 @@ export function PastHikeSheet({
                   </View>
                 </View>
 
-                <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Notes</Text>
+                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Notes</Text>
                   <TextInput
                     value={notes}
                     onChangeText={setNotes}
                     placeholder="Snow patches, pace, who you went with"
-                    placeholderTextColor={colors.fgFaint}
+                    placeholderTextColor={c.fgFaint}
                     accessibilityLabel="Notes"
                     multiline
                     style={{
                       marginTop: 5,
                       minHeight: 44,
                       fontSize: 15,
-                      color: colors.fg2,
+                      color: c.fg2,
                       fontFamily: fonts.ui,
                     }}
                   />
                 </View>
 
-                <View style={{ borderTopWidth: 1, borderTopColor: colors.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>Photos</Text>
+                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Photos</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                     {photos.map((uri) => (
                       <PastPhoto key={uri} stored={uri} />
@@ -539,16 +542,16 @@ export function PastHikeSheet({
                         borderRadius: 12,
                         borderWidth: 1,
                         borderStyle: 'dashed',
-                        borderColor: colors.borderStrong,
+                        borderColor: c.borderStrong,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <Text style={{ fontSize: 22, color: colors.fgMuted }}>+</Text>
+                      <Text style={{ fontSize: 22, color: c.fgMuted }}>+</Text>
                     </Pressable>
                   </View>
                   {photoError ? (
-                    <Text style={{ marginTop: 8, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                    <Text style={{ marginTop: 8, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                       {photoError}
                     </Text>
                   ) : null}
@@ -563,9 +566,9 @@ export function PastHikeSheet({
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: colors.bg,
+              backgroundColor: c.bg,
               borderTopWidth: 1,
-              borderTopColor: colors.raised,
+              borderTopColor: c.raised,
               paddingHorizontal: 16,
               paddingTop: 12,
               paddingBottom: Math.max(insets.bottom, 16),
@@ -595,7 +598,7 @@ export function PastHikeSheet({
               style={{
                 height: 56,
                 borderRadius: 18,
-                backgroundColor: colors.sage,
+                backgroundColor: c.accent,
                 alignItems: 'center',
                 justifyContent: 'center',
                 opacity: ready ? 1 : 0.5,
@@ -604,7 +607,7 @@ export function PastHikeSheet({
               <Text
                 style={{
                   fontSize: 16,
-                  color: colors.onSage,
+                  color: c.onAccent,
                   fontFamily: fonts.uiSemibold,
                   fontWeight: 'normal',
                 }}
@@ -619,16 +622,17 @@ export function PastHikeSheet({
   );
 }
 
-const stepStyle = {
+const stepStyle = (c: Palette) => ({
   width: 34,
   height: 34,
   borderRadius: 11,
-  backgroundColor: colors.raised,
+  backgroundColor: c.raised,
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
-};
+});
 
 function PastPhoto({ stored }: { stored: string }) {
+  const c = useColors();
   const [uri, setUri] = useState(stored.startsWith('sb:') ? '' : stored);
 
   useEffect(() => {
@@ -649,12 +653,13 @@ function PastPhoto({ stored }: { stored: string }) {
     <Image
       source={{ uri }}
       accessibilityLabel="Hike photo"
-      style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: colors.raised }}
+      style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.raised }}
     />
   );
 }
 
 function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+  const c = useColors();
   return (
     <Pressable
       onPress={onPress}
@@ -663,18 +668,18 @@ function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () 
         paddingHorizontal: 13,
         borderRadius: 12,
         borderWidth: 1,
-        borderColor: on ? colors.fg : colors.border,
-        backgroundColor: on ? colors.fg : 'transparent',
+        borderColor: on ? c.fg : c.border,
+        backgroundColor: on ? c.fg : 'transparent',
         flexDirection: 'row',
         alignItems: 'center',
         gap: 6,
       }}
     >
-      {on ? <Check size={13} strokeWidth={3} color={colors.onSage} /> : null}
+      {on ? <Check size={13} strokeWidth={3} color={c.onAccent} /> : null}
       <Text
         style={{
           fontSize: 14,
-          color: on ? colors.onSage : colors.fg2,
+          color: on ? c.onAccent : c.fg2,
           fontFamily: on ? fonts.uiSemibold : fonts.ui,
           fontWeight: 'normal',
         }}

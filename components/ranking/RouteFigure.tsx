@@ -1,9 +1,10 @@
 import { Text, View } from 'react-native';
 import { Circle, Line, Path, Polyline, Svg } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { projectPoints } from '@/lib/projectPath';
 import type { RouteShape } from '@/lib/routeSource';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
 function peakIndex(count: number, elevation: ElevationSample[] | null): number {
@@ -24,6 +25,7 @@ function pointsAttr(points: { x: number; y: number }[]): string {
 
 /** This trail's own route. An empty shape draws the dashed placeholder, never a fake line. */
 export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: number }) {
+  const c = useColors();
   if (shape.origin === 'none' || shape.coordinates.length < 2) {
     return (
       <View
@@ -33,27 +35,27 @@ export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: nu
           borderRadius: 16,
           borderWidth: 1,
           borderStyle: 'dashed',
-          borderColor: colors.border,
+          borderColor: c.border,
           alignItems: 'center',
           justifyContent: 'center',
           gap: 10,
         }}
       >
         <Svg width={84} height={14}>
-          <Circle cx={6} cy={7} r={4} fill="none" stroke={colors.fgFaint} strokeWidth={1.6} />
+          <Circle cx={6} cy={7} r={4} fill="none" stroke={c.fgFaint} strokeWidth={1.6} />
           <Line
             x1={12}
             x2={72}
             y1={7}
             y2={7}
-            stroke={colors.borderStrong}
+            stroke={c.borderStrong}
             strokeWidth={1.6}
             strokeDasharray="3 5"
             strokeLinecap="round"
           />
-          <Circle cx={78} cy={7} r={4} fill="none" stroke={colors.fgFaint} strokeWidth={1.6} />
+          <Circle cx={78} cy={7} r={4} fill="none" stroke={c.fgFaint} strokeWidth={1.6} />
         </Svg>
-        <Text style={{ fontSize: 12, color: colors.fgMuted, fontFamily: fonts.ui }}>No route</Text>
+        <Text style={{ fontSize: 12, color: c.fgMuted, fontFamily: fonts.ui }}>No route</Text>
       </View>
     );
   }
@@ -68,7 +70,7 @@ export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: nu
       <Polyline
         points={line}
         fill="none"
-        stroke={colors.bg}
+        stroke={c.bg}
         strokeWidth={6}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -76,20 +78,20 @@ export function RouteThumb({ shape, size = 124 }: { shape: RouteShape; size?: nu
       <Polyline
         points={line}
         fill="none"
-        stroke={colors.sage}
+        stroke={c.accent}
         strokeWidth={2.2}
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {start ? (
-        <Circle cx={start.x} cy={start.y} r={4} fill={colors.surface} stroke={colors.sage} strokeWidth={2} />
+        <Circle cx={start.x} cy={start.y} r={4} fill={c.surface} stroke={c.accent} strokeWidth={2} />
       ) : null}
-      {peak ? <Circle cx={peak.x} cy={peak.y} r={3.5} fill={colors.fg} /> : null}
+      {peak ? <Circle cx={peak.x} cy={peak.y} r={3.5} fill={c.fg} /> : null}
     </Svg>
   );
 }
 
-/** Flat 12% sage fill under the real profile. No invented shape when elevation is missing. */
+/** Flat 12% accent fill under the real profile. No invented shape when elevation is missing. */
 export function ElevationStrip({
   samples,
   width,
@@ -99,6 +101,7 @@ export function ElevationStrip({
   width: number;
   caption?: string | null;
 }) {
+  const c = useColors();
   const height = 48;
   if (!samples || samples.length < 2) {
     return (
@@ -106,12 +109,12 @@ export function ElevationStrip({
         style={{
           height,
           borderBottomWidth: 1,
-          borderBottomColor: colors.raised,
+          borderBottomColor: c.raised,
           justifyContent: 'center',
         }}
       >
         {caption ? (
-          <Text style={{ fontSize: 13, color: colors.fg2, fontFamily: fonts.ui }} numberOfLines={1}>
+          <Text style={{ fontSize: 13, color: c.fg2, fontFamily: fonts.ui }} numberOfLines={1}>
             {caption}
           </Text>
         ) : null}
@@ -139,9 +142,9 @@ export function ElevationStrip({
 
   return (
     <Svg width={width} height={height}>
-      <Line x1={0} x2={width} y1={height - 0.5} y2={height - 0.5} stroke={colors.raised} strokeWidth={1} />
-      <Path d={area} fill={colors.sage} fillOpacity={0.12} />
-      <Path d={line} fill="none" stroke={colors.sage} strokeWidth={1.8} strokeLinejoin="round" />
+      <Line x1={0} x2={width} y1={height - 0.5} y2={height - 0.5} stroke={c.raised} strokeWidth={1} />
+      <Path d={area} fill={c.accent} fillOpacity={0.12} />
+      <Path d={line} fill="none" stroke={c.accent} strokeWidth={1.8} strokeLinejoin="round" />
     </Svg>
   );
 }

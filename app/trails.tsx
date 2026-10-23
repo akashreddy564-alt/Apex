@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useColors } from '@/hooks/useColors';
 import { TrailCoverCard } from '@/components/trail/TrailCoverCard';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
@@ -13,6 +14,7 @@ import { displayXL } from '@/theme/tokens';
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 
 export default function TrailsScreen() {
+  const c = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const trails = useTrailCache((s) => s.trails);
@@ -20,14 +22,14 @@ export default function TrailsScreen() {
   const logs = useTrailCache((s) => s.logs);
 
   return (
-    <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
+    <View className="flex-1 bg-bg" style={{ paddingBottom: insets.bottom }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
-        <View className="border-b border-zinc-800 px-4 pb-4 pt-2">
-          <Text style={displayXL}>Trails</Text>
+        <View className="border-b border-raised px-4 pb-4 pt-2">
+          <Text style={{ ...displayXL, color: c.fg }}>Trails</Text>
         </View>
 
-        <View className="flex-row border-b border-zinc-800 px-4 py-2">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+        <View className="flex-row border-b border-raised px-4 py-2">
+          <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
             {trails.length} trails · {rankings.length} ranked
           </Text>
         </View>
@@ -57,7 +59,7 @@ export default function TrailsScreen() {
           })}
         </View>
         {trails.some(isCatalogTrail) ? (
-          <Text className="px-4 pt-5 font-ui text-[11px] text-zinc-600">{CATALOG_CREDIT}</Text>
+          <Text className="px-4 pt-5 font-ui text-[11px] text-fg-faint">{CATALOG_CREDIT}</Text>
         ) : null}
       </ScrollView>
     </View>

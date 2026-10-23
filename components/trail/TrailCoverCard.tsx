@@ -12,10 +12,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import { cardTitleLayout } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, type Palette } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
 
 const CARD_HEIGHT = 184;
@@ -36,6 +37,8 @@ interface TrailCoverCardProps {
 }
 
 export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }: TrailCoverCardProps) {
+  const styles = useStyles();
+  const c = useColors();
   const reduceMotion = useReducedMotion();
   const { width } = useWindowDimensions();
   // Measured card width; the window width is only a first guess (it is
@@ -98,8 +101,8 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
           <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
             <Defs>
               <LinearGradient id="cardShade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0.3" stopColor={colors.bg} stopOpacity={0} />
-                <Stop offset="1" stopColor={colors.bg} stopOpacity={0.88} />
+                <Stop offset="0.3" stopColor={c.bg} stopOpacity={0} />
+                <Stop offset="1" stopColor={c.bg} stopOpacity={0.88} />
               </LinearGradient>
             </Defs>
             <Rect width="100%" height="100%" fill="url(#cardShade)" />
@@ -138,14 +141,15 @@ const TEXT_SHADOW = {
   textShadowRadius: 10,
 } as const;
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
   card: {
     height: CARD_HEIGHT,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.raised,
+    borderColor: c.raised,
   },
   pressed: { opacity: 0.85, transform: [{ scale: 0.985 }] },
   info: {
@@ -159,14 +163,14 @@ const styles = StyleSheet.create({
   },
   text: { flex: 1 },
   name: {
-    color: colors.fg,
+    color: c.fg,
     fontFamily: fonts.poster,
     letterSpacing: 0.3,
     ...TEXT_SHADOW,
   },
   meta: {
     marginTop: 4,
-    color: colors.highlight,
+    color: c.fg2,
     fontFamily: fonts.mono,
     fontSize: 10.5,
     letterSpacing: 0.8,
@@ -181,11 +185,17 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.15)',
   },
   score: {
-    color: colors.fg,
+    color: c.fg,
     fontFamily: fonts.mono,
     fontSize: 19,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  scoreTop: { color: colors.heroAccent },
+  scoreTop: { color: c.accent },
 });
+
+/** Styles for the current appearance. */
+function useStyles() {
+  const c = useColors();
+  return useMemo(() => makeStyles(c), [c]);
+}

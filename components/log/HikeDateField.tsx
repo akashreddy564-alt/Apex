@@ -1,6 +1,9 @@
 import DateTimePicker from '@expo/ui/community/datetime-picker';
 import { View } from 'react-native';
 
+import { useColors } from '@/hooks/useColors';
+import { useSettings } from '@/stores/settingsStore';
+
 interface HikeDateFieldProps {
   value: Date;
   maximumDate: Date;
@@ -9,9 +12,11 @@ interface HikeDateFieldProps {
 
 /** Native system date picker. Web uses HikeDateField.web.tsx. */
 export function HikeDateField({ value, maximumDate, onChange }: HikeDateFieldProps) {
+  const c = useColors();
+  const appearance = useSettings((s) => s.appearance);
   return (
     <View
-      className="overflow-hidden border border-zinc-800 bg-zinc-900"
+      className="overflow-hidden border border-raised bg-surface"
       style={{ borderRadius: 12 }}
     >
       <DateTimePicker
@@ -20,8 +25,8 @@ export function HikeDateField({ value, maximumDate, onChange }: HikeDateFieldPro
         display="inline"
         presentation="inline"
         maximumDate={maximumDate}
-        accentColor="#8B9A6D"
-        themeVariant="dark"
+        accentColor={c.accent}
+        themeVariant={appearance}
         onValueChange={(_event, selected) => onChange(selected)}
       />
     </View>

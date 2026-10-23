@@ -1,4 +1,4 @@
-const { tailwindColors, tailwindFontFamily, tailwindFontSize, themeColorNames } = require('jiti')(__filename)(
+const { tailwindFontFamily, tailwindFontSize, themeColorNames } = require('jiti')(__filename)(
   './theme/tokens.ts',
 );
 
@@ -9,7 +9,6 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ...tailwindColors,
         // Follow the appearance setting through CSS variables set in app/_layout.tsx.
         ...Object.fromEntries(
           themeColorNames.map((name) => [name, `rgb(var(--color-${name}) / <alpha-value>)`]),

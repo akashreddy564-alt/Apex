@@ -1,38 +1,11 @@
 /**
- * Zinc + Sage palette.
- * Single source of truth for NativeWind (`tailwind.config.js`) and for JS
- * (Skia, SVG, Reanimated). Hex values live only in `colors`.
+ * Apex colors. One semantic palette per appearance (`palettes`), read in JS
+ * through `useColors()` and in Tailwind classes through CSS variables
+ * (`cssVars`). Bone (#EDE6D6) is the only accent.
  *
- * Headings and titles are always one solid color: `colors.fg` (#FAFAFA).
- * Never highlight individual words in a heading. `colors.sage300` is not a
- * headline accent.
+ * Headings and titles are one solid color: the palette's `fg`. Never
+ * highlight individual words in a heading.
  */
-
-export const colors = {
-  bg: '#09090B',
-  surface: '#18181B',
-  raised: '#27272A',
-  border: '#3F3F46',
-  borderStrong: '#52525B',
-  fg: '#FAFAFA',
-  fg2: '#D4D4D8',
-  fgMuted: '#A1A1AA',
-  fgFaint: '#71717A',
-  sage: '#8B9A6D',
-  sage500: '#A3B183',
-  sage700: '#77865A',
-  sage300: '#A9B78C',
-  sage200: '#C9D4B0',
-  sage50: '#EEF2E6',
-  /** Neutral highlight for NEW / just logged / placed. */
-  highlight: '#E4E4E7',
-  onSage: '#09090B',
-  danger: '#9F3A38',
-  /** Opening-screen elevation only. */
-  heroAccent: '#FF8A4C',
-} as const;
-
-export type ColorToken = keyof typeof colors;
 
 /** One semantic color set per appearance. Bone (#EDE6D6) is the only accent. */
 export interface Palette {
@@ -99,14 +72,6 @@ export const palettes: Record<'dark' | 'light', Palette> = {
 };
 
 /**
- * Route line and ridgeline stroke, low elevation → peak.
- * The middle stop (#C9D4B0) sits at 60%.
- */
-export const elevationGradient = [colors.sage, colors.sage200, colors.sage50] as const;
-
-export const elevationGradientMid = 0.6;
-
-/**
  * Family names registered with `useFonts` in `app/_layout.tsx`.
  * SDK 57 loads each weight as its own family, so use the weight-specific
  * name (or the matching Tailwind class) instead of `fontWeight`.
@@ -159,7 +124,7 @@ const tabularNums = ['tabular-nums'] as ['tabular-nums'];
  * Do not override `color` per word.
  */
 export const heading = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.display,
 } as const;
 
@@ -169,7 +134,7 @@ export const heading = {
  * registers (it does not set a weight). 800 is not used here.
  */
 export const navTitle = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.display,
   fontSize: 17,
   fontWeight: 'normal' as const,
@@ -180,7 +145,7 @@ export const navTitle = {
  * so web does not synthesize a bolder cut. 800 is only `displayXL`.
  */
 export const displayXL = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.displayExtraBold,
   fontSize: 34,
   lineHeight: 36,
@@ -189,7 +154,7 @@ export const displayXL = {
 
 /** 700 display for section titles and the trail name under the map. */
 export const displayM = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.display,
   fontSize: 28,
   lineHeight: 31,
@@ -224,7 +189,7 @@ export const type = {
     lineHeight: 34,
   },
   display: {
-    color: heading.color,
+    color: palettes.dark.fg,
     fontFamily: fonts.displayExtraBold,
     fontSize: typeScale.display,
     lineHeight: 40,
@@ -245,30 +210,6 @@ export function numericStyle(weight: 'regular' | 'medium' | 'semibold' = 'regula
 }
 
 export const numericText = numericStyle();
-
-/** Additive NativeWind colors. Does not include the existing `accent` scale. */
-export const tailwindColors = {
-  bg: colors.bg,
-  surface: colors.surface,
-  raised: colors.raised,
-  border: colors.border,
-  'border-strong': colors.borderStrong,
-  fg: colors.fg,
-  'fg-2': colors.fg2,
-  'fg-muted': colors.fgMuted,
-  'fg-faint': colors.fgFaint,
-  sage: {
-    DEFAULT: colors.sage,
-    500: colors.sage500,
-    700: colors.sage700,
-    300: colors.sage300,
-    200: colors.sage200,
-    50: colors.sage50,
-  },
-  highlight: colors.highlight,
-  'on-sage': colors.onSage,
-  danger: colors.danger,
-} as const;
 
 /** Additive NativeWind families. Does not include `mono` or `sans`. */
 export const tailwindFontFamily = {

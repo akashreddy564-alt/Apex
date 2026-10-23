@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useColors } from '@/hooks/useColors';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
@@ -38,7 +39,7 @@ import {
   notificationPermissionRequired,
 } from '@/lib/notificationPermission';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
-import { colors, displayM, fonts, numericStyle } from '@/theme/tokens';
+import { displayM, fonts, numericStyle } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 /** Record without choosing a trail; it is settled at Finish. */
@@ -68,6 +69,7 @@ function hikeClock(totalSeconds: number): string {
 }
 
 export default function LogScreen() {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
     setOptions: (options: Record<string, unknown>) => void;
@@ -108,8 +110,8 @@ export default function LogScreen() {
       tabBarStyle: tracker.isTracking
         ? { display: 'none' }
         : {
-            backgroundColor: colors.bg,
-            borderTopColor: colors.raised,
+            backgroundColor: c.bg,
+            borderTopColor: c.raised,
             borderTopWidth: 1,
             height: 58,
             paddingBottom: 6,
@@ -271,7 +273,7 @@ export default function LogScreen() {
 
   if (tracker.isTracking) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <View style={{ flex: 1, backgroundColor: c.bg }}>
         <RecordSession
           trailName={activeTrail?.name ?? 'New hike'}
           trailPath={activeTrail?.path ?? null}
@@ -309,9 +311,9 @@ export default function LogScreen() {
           <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}>
             <View
               style={{
-                backgroundColor: colors.bg,
+                backgroundColor: c.bg,
                 borderTopWidth: 1,
-                borderTopColor: colors.border,
+                borderTopColor: c.border,
                 borderTopLeftRadius: 24,
                 borderTopRightRadius: 24,
                 padding: 20,
@@ -319,19 +321,19 @@ export default function LogScreen() {
                 gap: 16,
               }}
             >
-              <Text style={{ color: colors.fg, fontFamily: fonts.display, fontWeight: 'normal', fontSize: 22 }}>
+              <Text style={{ color: c.fg, fontFamily: fonts.display, fontWeight: 'normal', fontSize: 22 }}>
                 Finish this hike?
               </Text>
-              <Text style={{ color: colors.fg, fontSize: 16, ...numericStyle() }}>
+              <Text style={{ color: c.fg, fontSize: 16, ...numericStyle() }}>
                 {formatDistance(tracker.distanceM / 1000)} · {hikeClock(tracker.elapsedSeconds)}
               </Text>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Finish"
                 onPress={finish}
-                style={{ backgroundColor: colors.sage, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+                style={{ backgroundColor: c.accent, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
               >
-                <Text style={{ color: colors.onSage, fontSize: 16, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
+                <Text style={{ color: c.onAccent, fontSize: 16, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
                   Finish
                 </Text>
               </Pressable>
@@ -339,9 +341,9 @@ export default function LogScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Keep recording"
                 onPress={() => setFinishOpen(false)}
-                style={{ backgroundColor: colors.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+                style={{ backgroundColor: c.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
               >
-                <Text style={{ color: colors.fg, fontSize: 16, fontFamily: fonts.uiMedium, fontWeight: 'normal' }}>
+                <Text style={{ color: c.fg, fontSize: 16, fontFamily: fonts.uiMedium, fontWeight: 'normal' }}>
                   Keep recording
                 </Text>
               </Pressable>
@@ -368,7 +370,7 @@ export default function LogScreen() {
   }
 
   return (
-    <View className="flex-1 bg-zinc-950" style={{ paddingTop: insets.top + 12 }}>
+    <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 12 }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <LogHeader
           view={view}
@@ -396,7 +398,7 @@ export default function LogScreen() {
               accessibilityLabel="Cancel"
               onPress={() => setRecording(false)}
             >
-              <Text className="text-[13px] text-zinc-400">Cancel</Text>
+              <Text className="text-[13px] text-fg-muted">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -406,14 +408,14 @@ export default function LogScreen() {
                   else setExplainer(true);
                 });
               }}
-              className="mt-2 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
+              className="mt-2 items-center bg-fg py-3.5 active:bg-fg-2"
               style={{ borderRadius: 12 }}
             >
-              <Text className="font-mono text-sm font-medium text-zinc-950">
+              <Text className="font-mono text-sm font-medium text-bg">
                 Start tracking
               </Text>
             </Pressable>
-            <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+            <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-fg-faint">
               Select trail
             </Text>
             <Pressable
@@ -428,12 +430,12 @@ export default function LogScreen() {
                 className={`border px-3 py-3 ${
                   selectedTrailId === FREEFORM
                     ? 'border-accent bg-accent/10'
-                    : 'border-zinc-800 bg-zinc-900'
+                    : 'border-raised bg-surface'
                 }`}
                 style={{ borderRadius: 12 }}
               >
-                <Text className="text-[14px] text-zinc-100">Name it at the end</Text>
-                <Text className="mt-0.5 font-mono text-[11px] text-zinc-500">
+                <Text className="text-[14px] text-fg">Name it at the end</Text>
+                <Text className="mt-0.5 font-mono text-[11px] text-fg-faint">
                   We'll suggest a trail from where you start
                 </Text>
               </View>
@@ -450,12 +452,12 @@ export default function LogScreen() {
                   className={`border px-3 py-3 ${
                     selected
                       ? 'border-accent bg-accent/10'
-                      : 'border-zinc-800 bg-zinc-900'
+                      : 'border-raised bg-surface'
                   }`}
                   style={{ borderRadius: 12 }}
                 >
-                  <Text className="text-[14px] text-zinc-100">{trail.name}</Text>
-                  <Text className="mt-0.5 font-mono text-[11px] text-zinc-500">
+                  <Text className="text-[14px] text-fg">{trail.name}</Text>
+                  <Text className="mt-0.5 font-mono text-[11px] text-fg-faint">
                     {trail.region}
                   </Text>
                 </Pressable>
@@ -466,29 +468,29 @@ export default function LogScreen() {
           </View>
         ) : null}
 
-        <View className="mt-8 border-t border-zinc-800 pt-4">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+        <View className="mt-8 border-t border-raised pt-4">
+          <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
             Log history
           </Text>
           {logs.length === 0 ? (
-            <Text className="mt-3 font-mono text-[11px] text-zinc-600">
+            <Text className="mt-3 font-mono text-[11px] text-fg-faint">
               No hikes logged yet.
             </Text>
           ) : (
             logs.map((log) => {
               const trail = trails.find((t) => t.id === log.trail_id);
               return (
-                <View key={log.id} className="mt-3 border-b border-zinc-800 pb-3">
+                <View key={log.id} className="mt-3 border-b border-raised pb-3">
                   <View className="flex-row items-baseline justify-between gap-3">
-                    <Text className="flex-1 text-[14px] text-zinc-100" numberOfLines={1}>
+                    <Text className="flex-1 text-[14px] text-fg" numberOfLines={1}>
                       {trail?.name ?? 'Trail'}
                     </Text>
-                    <Text className="font-mono text-[11px] text-zinc-400">
+                    <Text className="font-mono text-[11px] text-fg-muted">
                       {formatDuration(log.duration_seconds)}
                     </Text>
                   </View>
                   {log.notes ? (
-                    <Text className="mt-1 font-mono text-[11px] text-zinc-500" numberOfLines={2}>
+                    <Text className="mt-1 font-mono text-[11px] text-fg-faint" numberOfLines={2}>
                       {log.notes}
                     </Text>
                   ) : null}

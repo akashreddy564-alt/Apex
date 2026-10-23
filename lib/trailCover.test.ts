@@ -23,7 +23,7 @@ describe('mapCoverUrl', () => {
     const url = mapCoverUrl(path, 'pk.test');
     assert.ok(url);
     assert.ok(url.startsWith('https://api.mapbox.com/styles/v1/mapbox/satellite-v9/static/'));
-    assert.ok(url.includes(`path-4+C9D4B0-0.9(${encodeURIComponent('_p~iF~ps|U_ulLnnqC_mqNvxq`@')})`));
+    assert.ok(url.includes(`path-4+EDE6D6-0.9(${encodeURIComponent('_p~iF~ps|U_ulLnnqC_mqNvxq`@')})`));
     assert.ok(url.includes('/auto/600x340@2x?'));
     assert.ok(url.includes('access_token=pk.test'));
   });

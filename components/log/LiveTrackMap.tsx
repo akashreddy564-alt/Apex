@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Text, View } from 'react-native';
 import { Circle, Polyline, Svg } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { projectPoints } from '@/lib/projectPath';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
 import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
 
 interface TrackPoint {
@@ -43,7 +44,7 @@ function polyline(points: { x: number; y: number }[]): string {
   return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
 }
 
-/** Recorded sage track over the known route. The dashed line is the trail, not a guess. */
+/** Recorded accent track over the known route. The dashed line is the trail, not a guess. */
 export function LiveTrackMap({
   width,
   height,
@@ -52,6 +53,7 @@ export function LiveTrackMap({
   recorded,
   trailName,
 }: LiveTrackMapProps) {
+  const c = useColors();
   const [laidOut, setLaidOut] = useState({ width, height });
   const boxW = laidOut.width || width;
   const boxH = height;
@@ -74,7 +76,7 @@ export function LiveTrackMap({
 
   return (
     <View
-      style={{ height: boxH, backgroundColor: colors.bg }}
+      style={{ height: boxH, backgroundColor: c.bg }}
       onLayout={(event) => {
         const next = event.nativeEvent.layout.width;
         if (next > 0 && next !== laidOut.width) setLaidOut({ width: next, height: boxH });
@@ -92,7 +94,7 @@ export function LiveTrackMap({
           <Polyline
             points={polyline(trailXY)}
             fill="none"
-            stroke={colors.border}
+            stroke={c.border}
             strokeWidth={2.5}
             strokeDasharray="2 7"
             strokeLinecap="round"
@@ -104,7 +106,7 @@ export function LiveTrackMap({
             <Polyline
               points={polyline(recordedXY)}
               fill="none"
-              stroke={colors.bg}
+              stroke={c.bg}
               strokeWidth={9}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -112,7 +114,7 @@ export function LiveTrackMap({
             <Polyline
               points={polyline(recordedXY)}
               fill="none"
-              stroke={colors.sage}
+              stroke={c.accent}
               strokeWidth={4.5}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -124,8 +126,8 @@ export function LiveTrackMap({
             cx={start.x}
             cy={start.y}
             r={5.5}
-            fill={colors.bg}
-            stroke={colors.fgMuted}
+            fill={c.bg}
+            stroke={c.fgMuted}
             strokeWidth={2.2}
           />
         ) : null}
@@ -134,13 +136,13 @@ export function LiveTrackMap({
             cx={peak.x}
             cy={peak.y}
             r={4.5}
-            fill={colors.bg}
-            stroke={colors.fgFaint}
+            fill={c.bg}
+            stroke={c.fgFaint}
             strokeWidth={2}
           />
         ) : null}
         {current ? (
-          <Circle cx={current.x} cy={current.y} r={9} fill={colors.fg} stroke={colors.bg} strokeWidth={3} />
+          <Circle cx={current.x} cy={current.y} r={9} fill={c.fg} stroke={c.bg} strokeWidth={3} />
         ) : null}
       </Svg>
       {peak && showRoute ? (
@@ -150,7 +152,7 @@ export function LiveTrackMap({
             left: Math.min(peak.x + 10, boxW - 120),
             top: Math.max(8, peak.y - 18),
             fontSize: 12,
-            color: colors.fgMuted,
+            color: c.fgMuted,
             fontFamily: fonts.ui,
           }}
         >
@@ -164,7 +166,7 @@ export function LiveTrackMap({
             right: 12,
             bottom: 8,
             fontSize: 11,
-            color: colors.fgFaint,
+            color: c.fgFaint,
             fontFamily: fonts.ui,
           }}
         >
@@ -178,7 +180,7 @@ export function LiveTrackMap({
             left: 16,
             bottom: 12,
             fontSize: 13,
-            color: colors.fgMuted,
+            color: c.fgMuted,
             fontFamily: fonts.ui,
           }}
         >
