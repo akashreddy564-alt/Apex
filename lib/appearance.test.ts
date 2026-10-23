@@ -27,3 +27,13 @@ describe('parseSettings', () => {
     assert.deepEqual(parseSettings(null), { appearance: 'dark', scoreStyle: 'number' });
   });
 });
+
+import { cssVars, palettes } from '../theme/tokens.ts';
+
+describe('cssVars', () => {
+  it('writes each color as RGB channels for NativeWind', () => {
+    assert.equal(cssVars(palettes.dark)['--color-bg'], '9 9 11');
+    assert.equal(cssVars(palettes.light)['--color-accent'], '42 38 32');
+    assert.equal(cssVars(palettes.dark)['--color-fg-muted'], '161 161 170');
+  });
+});

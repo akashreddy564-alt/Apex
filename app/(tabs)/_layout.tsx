@@ -4,7 +4,8 @@ import { Tabs, useRouter } from 'expo-router';
 import { Footprints, ListOrdered, Mountain } from 'lucide-react-native';
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors, fonts, navTitle } from '@/theme/tokens';
+import { useColors } from '@/hooks/useColors';
+import { fonts, navTitle } from '@/theme/tokens';
 
 /** Fills the tab slot. minHeight is the touch target; icon and label styles stay put. */
 function TabButton(props: BottomTabBarButtonProps) {
@@ -27,30 +28,31 @@ function AccountButton() {
 }
 
 export default function TabsLayout() {
+  const c = useColors();
   return (
     <Tabs
       screenOptions={{
-        headerStyle: { backgroundColor: colors.bg },
-        headerTintColor: colors.fg,
-        headerTitleStyle: navTitle,
+        headerStyle: { backgroundColor: c.bg },
+        headerTintColor: c.fg,
+        headerTitleStyle: { ...navTitle, color: c.fg },
         headerShadowVisible: false,
         tabBarStyle: {
-          backgroundColor: colors.bg,
-          borderTopColor: colors.raised,
+          backgroundColor: c.bg,
+          borderTopColor: c.raised,
           borderTopWidth: 1,
           height: 58,
           paddingBottom: 6,
           paddingTop: 6,
         },
-        tabBarActiveTintColor: colors.sage,
-        tabBarInactiveTintColor: colors.fgFaint,
+        tabBarActiveTintColor: c.fg,
+        tabBarInactiveTintColor: c.fgFaint,
         headerRight: () => <AccountButton />,
         tabBarLabelStyle: {
           fontSize: 12,
           fontFamily: fonts.uiMedium,
         },
         tabBarButton: (props) => <TabButton {...props} />,
-        sceneStyle: { backgroundColor: colors.bg },
+        sceneStyle: { backgroundColor: c.bg },
       }}
     >
       <Tabs.Screen

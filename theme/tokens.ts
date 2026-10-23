@@ -288,3 +288,24 @@ export const tailwindFontSize = {
   'title-large': [`${typeScale.titleLarge}px`, { lineHeight: `${type.titleLarge.lineHeight}px` }],
   display: [`${typeScale.display}px`, { lineHeight: `${type.display.lineHeight}px` }],
 } as const;
+
+/** `fgMuted` → `fg-muted`, the Tailwind and CSS variable spelling. */
+function kebab(key: string): string {
+  return key.replace(/[A-Z0-9]/g, (ch, i: number) => (i === 0 ? '' : '-') + ch.toLowerCase());
+}
+
+/**
+ * The palette as NativeWind CSS variables (`--color-fg-muted: '161 161 170'`),
+ * set on the root view with `vars()` so Tailwind classes follow the appearance.
+ */
+export function cssVars(palette: Palette): Record<`--color-${string}`, string> {
+  const out: Record<`--color-${string}`, string> = {};
+  for (const [key, hex] of Object.entries(palette)) {
+    const n = Number.parseInt(hex.slice(1), 16);
+    out[`--color-${kebab(key)}`] = `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+  }
+  return out;
+}
+
+/** Tailwind color names backed by the CSS variables above. */
+export const themeColorNames = Object.keys(palettes.dark).map(kebab);
