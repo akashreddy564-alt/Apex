@@ -57,7 +57,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts lib/trailCover.test.ts lib/trailDifficulty.test.ts lib/catalogRoute.test.ts lib/catalogBuild.test.ts lib/catalogMerge.test.ts lib/trailMatch.test.ts lib/userTrail.test.ts && jest --ci",
+    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts lib/trailCover.test.ts lib/trailDifficulty.test.ts lib/contrast.test.ts lib/appearance.test.ts lib/catalogRoute.test.ts lib/catalogBuild.test.ts lib/catalogMerge.test.ts lib/trailMatch.test.ts lib/userTrail.test.ts && jest --ci",
     "start": "expo start --port 43127",
     "android": "expo run:android",
     "ios": "expo run:ios",

@@ -34,6 +34,70 @@ export const colors = {
 
 export type ColorToken = keyof typeof colors;
 
+/** One semantic color set per appearance. Bone (#EDE6D6) is the only accent. */
+export interface Palette {
+  bg: string;
+  surface: string;
+  raised: string;
+  border: string;
+  borderStrong: string;
+  fg: string;
+  fg2: string;
+  fgMuted: string;
+  fgFaint: string;
+  /** Primary buttons, your own highlights, comparison tags. */
+  accent: string;
+  /** Text and icons placed on `accent`. */
+  onAccent: string;
+  /** Score colors by bucket. */
+  loved: string;
+  fine: string;
+  disliked: string;
+  /** Route lines drawn over maps. */
+  mapLine: string;
+}
+
+/**
+ * Light mode can't use Bone as a fill on white, so its accent is Bone's dark
+ * ink with Bone text on it.
+ */
+export const palettes: Record<'dark' | 'light', Palette> = {
+  dark: {
+    bg: '#09090B',
+    surface: '#18181B',
+    raised: '#27272A',
+    border: '#3F3F46',
+    borderStrong: '#52525B',
+    fg: '#FAFAFA',
+    fg2: '#D4D4D8',
+    fgMuted: '#A1A1AA',
+    fgFaint: '#71717A',
+    accent: '#EDE6D6',
+    onAccent: '#0B0B0C',
+    loved: '#4CC27A',
+    fine: '#E0B04A',
+    disliked: '#E2675A',
+    mapLine: '#EDE6D6',
+  },
+  light: {
+    bg: '#FFFFFF',
+    surface: '#F6F6F4',
+    raised: '#ECECEA',
+    border: '#D9D9D6',
+    borderStrong: '#BDBDB8',
+    fg: '#141414',
+    fg2: '#2E2E30',
+    fgMuted: '#5F5F63',
+    fgFaint: '#8A8A90',
+    accent: '#2A2620',
+    onAccent: '#EDE6D6',
+    loved: '#1F8F4E',
+    fine: '#A86F0C',
+    disliked: '#C2412F',
+    mapLine: '#2A2620',
+  },
+};
+
 /**
  * Route line and ridgeline stroke, low elevation → peak.
  * The middle stop (#C9D4B0) sits at 60%.
