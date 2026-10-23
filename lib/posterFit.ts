@@ -63,3 +63,21 @@ export function cardTitleLayout(
   }
   return best;
 }
+
+/** iOS clips Anton glyphs when a line box is shorter than about 1.1 em. */
+const SAFE_LINE = 1.12;
+
+/**
+ * Line height and top margin for line `index` of a stacked poster name:
+ * each line keeps a box iOS won't clip, and later lines are pulled up so the
+ * lines still sit `visual` em apart.
+ */
+export function posterLineStyle(
+  fontSize: number,
+  index: number,
+  visual = 0.92,
+): { lineHeight: number; marginTop: number } {
+  const lineHeight = Math.round(fontSize * SAFE_LINE);
+  const marginTop = index === 0 ? 0 : Math.round(fontSize * visual) - lineHeight;
+  return { lineHeight, marginTop };
+}

@@ -67,6 +67,12 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "07c9116e-2ab4-49d5-9856-55ebe08111d0"
+      }
+    },
+    "owner": "akashreddy564"
   }
 }

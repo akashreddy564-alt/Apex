@@ -107,78 +107,84 @@ function HikePanel({
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={({ pressed }) => ({
-        borderRadius: 22,
-        overflow: 'hidden',
-        backgroundColor: colors.surface,
-        borderWidth: 1,
-        borderColor: colors.raised,
-        paddingHorizontal: 20,
-        paddingTop: 14,
-        paddingBottom: 12,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-      })}
     >
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-        <View style={{ flex: 1, alignSelf: 'flex-start', paddingRight: 4 }}>
-          <Text
-            style={{
-              color: colors.fg,
-              fontFamily: fonts.displayExtraBold,
-              fontWeight: 'normal',
-              fontSize: 22,
-              lineHeight: 24,
+      {/* Plain View for layout: NativeWind drops function styles on Pressable on iOS. */}
+      {({ pressed }) => (
+        <View
+          style={{
+            borderRadius: 22,
+            overflow: 'hidden',
+            backgroundColor: colors.surface,
+            borderWidth: 1,
+            borderColor: colors.raised,
+            paddingHorizontal: 20,
+            paddingTop: 14,
+            paddingBottom: 12,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
+            <View style={{ flex: 1, alignSelf: 'flex-start', paddingRight: 4 }}>
+              <Text
+                style={{
+                  color: colors.fg,
+                  fontFamily: fonts.displayExtraBold,
+                  fontWeight: 'normal',
+                  fontSize: 22,
+                  lineHeight: 24,
+                }}
+              >
+                {trail.name}
+              </Text>
+              <Text style={{ marginTop: 5, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                {trail.region}
+                {when ? ` · ${when}` : ''}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 14, marginTop: 12 }}>
+                <Stat
+                  label="Distance"
+                  value={
+                    trail.distance_km == null ? MISSING_METRIC : toMiles(trail.distance_km).toFixed(1)
+                  }
+                  unit={trail.distance_km == null ? undefined : DISTANCE_UNIT}
+                />
+                <Stat
+                  label="Gain"
+                  value={
+                    missing || trail.elevation_gain_m == null
+                      ? MISSING_METRIC
+                      : String(Math.round(toFeet(trail.elevation_gain_m)))
+                  }
+                  unit={missing || trail.elevation_gain_m == null ? undefined : ELEVATION_UNIT}
+                />
+                <Stat label="Time" value={duration} />
+              </View>
+            </View>
+            <RouteThumb shape={shape} />
+          </View>
+          <View
+            style={{ marginTop: 12 }}
+            onLayout={(event) => {
+              const next = Math.round(event.nativeEvent.layout.width);
+              if (next > 0 && next !== stripWidth) setStripWidth(next);
             }}
           >
-            {trail.name}
-          </Text>
-          <Text style={{ marginTop: 5, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
-            {trail.region}
-            {when ? ` · ${when}` : ''}
-          </Text>
-          <View style={{ flexDirection: 'row', gap: 14, marginTop: 12 }}>
-            <Stat
-              label="Distance"
-              value={
-                trail.distance_km == null ? MISSING_METRIC : toMiles(trail.distance_km).toFixed(1)
-              }
-              unit={trail.distance_km == null ? undefined : DISTANCE_UNIT}
+            <ElevationStrip
+              samples={missing ? null : shape.elevation}
+              width={stripWidth}
+              caption={missing ? log?.notes ?? null : null}
             />
-            <Stat
-              label="Gain"
-              value={
-                missing || trail.elevation_gain_m == null
-                  ? MISSING_METRIC
-                  : String(Math.round(toFeet(trail.elevation_gain_m)))
-              }
-              unit={missing || trail.elevation_gain_m == null ? undefined : ELEVATION_UNIT}
-            />
-            <Stat label="Time" value={duration} />
+          </View>
+          <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
+            <Text style={{ flex: 1, fontSize: 11, color: colors.fgMuted, fontFamily: fonts.ui }}>
+              {routeSourceLabel(shape.origin)}
+            </Text>
+            <Text style={{ fontSize: 11, color: colors.fgMuted, ...numericStyle() }}>
+              {missing ? 'No elevation data' : rangeLabel(shape.elevation)}
+            </Text>
           </View>
         </View>
-        <RouteThumb shape={shape} />
-      </View>
-      <View
-        style={{ marginTop: 12 }}
-        onLayout={(event) => {
-          const next = Math.round(event.nativeEvent.layout.width);
-          if (next > 0 && next !== stripWidth) setStripWidth(next);
-        }}
-      >
-        <ElevationStrip
-          samples={missing ? null : shape.elevation}
-          width={stripWidth}
-          caption={missing ? log?.notes ?? null : null}
-        />
-      </View>
-      <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-        <Text style={{ flex: 1, fontSize: 11, color: colors.fgMuted, fontFamily: fonts.ui }}>
-          {routeSourceLabel(shape.origin)}
-        </Text>
-        <Text style={{ fontSize: 11, color: colors.fgMuted, ...numericStyle() }}>
-          {missing ? 'No elevation data' : rangeLabel(shape.elevation)}
-        </Text>
-      </View>
+      )}
     </Pressable>
   );
 }
