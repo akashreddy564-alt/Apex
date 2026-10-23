@@ -16,3 +16,14 @@ export function parseSettings(raw: unknown): Settings {
   const scoreStyle = SCORE_STYLES.find((v) => v === record.scoreStyle) ?? 'number';
   return { appearance, scoreStyle };
 }
+
+/**
+ * Tell native pickers, keyboards and alerts which scheme to use.
+ * React Native Web has no `setColorScheme`, so this skips it there.
+ */
+export function applyNativeScheme(
+  appearance: Appearance,
+  api: { setColorScheme?: (scheme: Appearance) => void },
+): void {
+  if (typeof api.setColorScheme === 'function') api.setColorScheme(appearance);
+}

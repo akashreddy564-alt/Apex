@@ -37,3 +37,17 @@ describe('cssVars', () => {
     assert.equal(cssVars(palettes.dark)['--color-fg-muted'], '161 161 170');
   });
 });
+
+import { applyNativeScheme } from './appearance.ts';
+
+describe('applyNativeScheme', () => {
+  it('sets the native scheme where the platform supports it', () => {
+    const calls: string[] = [];
+    applyNativeScheme('light', { setColorScheme: (s: string) => calls.push(s) });
+    assert.deepEqual(calls, ['light']);
+  });
+
+  it('does nothing on web, where setColorScheme does not exist', () => {
+    assert.doesNotThrow(() => applyNativeScheme('dark', {}));
+  });
+});

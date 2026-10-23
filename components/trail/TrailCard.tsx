@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
@@ -9,10 +10,12 @@ interface TrailCardProps {
   rank?: number | null;
   /** One-decimal 0–10 score, already formatted. */
   score?: string | null;
+  /** Replaces the plain score, e.g. a ScoreBadge. */
+  trailing?: ReactNode;
   onPress?: () => void;
 }
 
-export function TrailCard({ trail, rank, score, onPress }: TrailCardProps) {
+export function TrailCard({ trail, rank, score, trailing, onPress }: TrailCardProps) {
   return (
     <Pressable
       onPress={onPress}
@@ -33,7 +36,8 @@ export function TrailCard({ trail, rank, score, onPress }: TrailCardProps) {
           {formatOptionalElevation(trail.elevation_gain_m)}
         </Text>
       </View>
-      {score ? (
+      {trailing ?? null}
+      {!trailing && score ? (
         <Text
           className="text-[15px] text-zinc-100"
           style={{ fontVariant: ['tabular-nums'] }}

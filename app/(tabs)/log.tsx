@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useNavigation } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import {
   Modal,
@@ -15,12 +15,13 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AddHikeSheet } from '@/components/log/AddHikeSheet';
+import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
 import { TrailAssignSheet } from '@/components/log/TrailAssignSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
+import { RankingsList } from '@/components/ranking/RankingsList';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
@@ -76,7 +77,13 @@ export default function LogScreen() {
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
-  const params = useLocalSearchParams<{ recording?: string }>();
+  const params = useLocalSearchParams<{ recording?: string; view?: string }>();
+  const router = useRouter();
+  const [view, setView] = useState<LogView>(params.view === 'rankings' ? 'rankings' : 'hikes');
+
+  useEffect(() => {
+    if (params.view === 'rankings' || params.view === 'hikes') setView(params.view);
+  }, [params.view]);
   const [explainer, setExplainer] = useState(false);
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
@@ -85,7 +92,6 @@ export default function LogScreen() {
   const [pastTrailId, setPastTrailId] = useState(trails[0]?.id ?? '');
   const [assignOpen, setAssignOpen] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
-  const [addOpen, setAddOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [notificationNote, setNotificationNote] = useState<string | null>(null);
@@ -98,7 +104,7 @@ export default function LogScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerShown: !tracker.isTracking,
+      headerShown: false,
       tabBarStyle: tracker.isTracking
         ? { display: 'none' }
         : {
@@ -362,36 +368,35 @@ export default function LogScreen() {
   }
 
   return (
-    <View className="flex-1 bg-zinc-950" style={{ paddingBottom: insets.bottom }}>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
-        <Text style={displayM}>Log a hike</Text>
-        <Text className="mt-1 font-mono text-[11px] text-zinc-500">
-          Duration · notes · then pairwise rank
-        </Text>
+    <View className="flex-1 bg-zinc-950" style={{ paddingTop: insets.top + 12 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+        <LogHeader
+          view={view}
+          onView={setView}
+          onStart={() => {
+            setView('hikes');
+            setRecording(true);
+          }}
+          onLogPast={() => {
+            setRecording(false);
+            setPastOpen(true);
+          }}
+          onProfile={() => router.push('/account')}
+        />
 
-        {!tracker.isTracking && !recording ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add a hike"
-            onPress={() => setAddOpen(true)}
-            className="mt-6 items-center border border-zinc-800 py-4 active:bg-zinc-900"
-            style={{ borderRadius: 12 }}
-          >
-            <Text className="text-[16px] text-zinc-50">+</Text>
-          </Pressable>
-        ) : null}
+        {view === 'rankings' ? (
+          <RankingsList onOpenTrail={(id) => router.push(`/trail/${id}`)} />
+        ) : (
+        <View style={{ paddingHorizontal: 16 }}>
 
         {!tracker.isTracking && recording ? (
           <View className="mt-6 gap-2">
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Change hike"
-              onPress={() => {
-                setRecording(false);
-                setAddOpen(true);
-              }}
+              accessibilityLabel="Cancel"
+              onPress={() => setRecording(false)}
             >
-              <Text className="text-[13px] text-zinc-400">Change</Text>
+              <Text className="text-[13px] text-zinc-400">Cancel</Text>
             </Pressable>
             <Pressable
               onPress={() => {
@@ -493,21 +498,10 @@ export default function LogScreen() {
             })
           )}
         </View>
+        </View>
+        )}
       </ScrollView>
 
-      <AddHikeSheet
-        visible={addOpen}
-        onRecord={() => {
-          setAddOpen(false);
-          setRecording(true);
-        }}
-        onPast={() => {
-          setAddOpen(false);
-          setRecording(false);
-          setPastOpen(true);
-        }}
-        onClose={() => setAddOpen(false)}
-      />
       <PastHikeSheet
         visible={pastOpen}
         trails={trails}

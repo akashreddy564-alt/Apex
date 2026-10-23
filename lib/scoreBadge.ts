@@ -2,7 +2,7 @@ import { formatRankScore, type Bucket } from './ranking.ts';
 
 export type BucketShortLabel = 'Loved' | 'Fine' | 'Nope';
 
-const SHORT_LABELS: Record<Bucket, BucketShortLabel> = {
+export const SHORT_LABELS: Record<Bucket, BucketShortLabel> = {
   loved: 'Loved',
   fine: 'Fine',
   disliked: 'Nope',

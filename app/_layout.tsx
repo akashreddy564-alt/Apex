@@ -1,40 +1,37 @@
-import "../global.css";
+import '../global.css';
 
-import { Anton_400Regular } from "@expo-google-fonts/anton";
+import { Anton_400Regular } from '@expo-google-fonts/anton';
 import {
   BricolageGrotesque_700Bold,
   BricolageGrotesque_800ExtraBold,
-} from "@expo-google-fonts/bricolage-grotesque";
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-} from "@expo-google-fonts/inter";
-import { BottomSheetModalProvider } from "@gorhom/bottom-sheet";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
-import * as SplashScreen from "expo-splash-screen";
-import { StatusBar } from "expo-status-bar";
-import { useCallback, useEffect, useState } from "react";
-import { Appearance, View } from "react-native";
-import { vars } from "nativewind";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+} from '@expo-google-fonts/bricolage-grotesque';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useCallback, useEffect, useState } from 'react';
+import { Appearance, View } from 'react-native';
+import { vars } from 'nativewind';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { OpeningScreen } from "@/components/opening/OpeningScreen";
-import { useColors } from "@/hooks/useColors";
-import { useOpeningPlace } from "@/hooks/useOpeningPlace";
-import { useRemoteSync } from "@/hooks/useRemoteSync";
-import { hydrateHike } from "@/lib/activeHike";
-import { reconcileTracking } from "@/lib/locationTask";
-import { useSettings } from "@/stores/settingsStore";
-import { cssVars, fonts, navTitle } from "@/theme/tokens";
+import { OpeningScreen } from '@/components/opening/OpeningScreen';
+import { useColors } from '@/hooks/useColors';
+import { useOpeningPlace } from '@/hooks/useOpeningPlace';
+import { useRemoteSync } from '@/hooks/useRemoteSync';
+import { hydrateHike } from '@/lib/activeHike';
+import { applyNativeScheme } from '@/lib/appearance';
+import { reconcileTracking } from '@/lib/locationTask';
+import { useSettings } from '@/stores/settingsStore';
+import { cssVars, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
     [fonts.display]: BricolageGrotesque_700Bold,
     [fonts.displayExtraBold]: BricolageGrotesque_800ExtraBold,
     [fonts.ui]: Inter_400Regular,
@@ -48,7 +45,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Native pickers, keyboards and alerts follow the app, not the phone.
-    Appearance.setColorScheme(appearance);
+    applyNativeScheme(appearance, Appearance);
   }, [appearance]);
 
   const [hikeReady] = useState(() => hydrateHike());
@@ -77,8 +74,7 @@ export default function RootLayout() {
   );
 
   const fontsSettled = fontsLoaded || Boolean(fontError);
-  const openingSettled =
-    opening.status === "skip" || (opening.status === "show" && photoShown);
+  const openingSettled = opening.status === 'skip' || (opening.status === 'show' && photoShown);
 
   useEffect(() => {
     if (fontsSettled && openingSettled) {
@@ -86,7 +82,7 @@ export default function RootLayout() {
     }
   }, [fontsSettled, openingSettled]);
 
-  if (!fontsSettled || opening.status === "deciding") {
+  if (!fontsSettled || opening.status === 'deciding') {
     return null;
   }
 
@@ -95,7 +91,7 @@ export default function RootLayout() {
       <View style={[{ flex: 1, backgroundColor: c.bg }, vars(cssVars(c))]}>
         <QueryClientProvider client={queryClient}>
           <BottomSheetModalProvider>
-            <StatusBar style={appearance === "dark" ? "light" : "dark"} />
+            <StatusBar style={appearance === 'dark' ? 'light' : 'dark'} />
             <Stack
               screenOptions={{
                 headerStyle: { backgroundColor: c.bg },
@@ -110,27 +106,28 @@ export default function RootLayout() {
               <Stack.Screen
                 name="trail/[id]"
                 options={{
-                  title: "",
-                  headerBackTitle: "Back",
+                  title: '',
+                  headerBackTitle: 'Back',
                   // The hero photo runs under the header.
                   headerTransparent: true,
-                  headerStyle: { backgroundColor: "transparent" },
+                  headerStyle: { backgroundColor: 'transparent' },
                 }}
               />
-              <Stack.Screen name="account" options={{ title: "Settings" }} />
+              <Stack.Screen name="trails" options={{ title: 'Trails', headerBackTitle: 'Home' }} />
+              <Stack.Screen name="account" options={{ title: 'Settings' }} />
               <Stack.Screen
                 name="credits"
-                options={{ title: "Credits", headerBackTitle: "Settings" }}
+                options={{ title: 'Credits', headerBackTitle: 'Settings' }}
               />
               <Stack.Screen
                 name="delete-account"
                 options={{
-                  title: "Delete account",
-                  headerBackTitle: "Settings",
+                  title: 'Delete account',
+                  headerBackTitle: 'Settings',
                 }}
               />
             </Stack>
-            {opening.status === "show" && !openingDone ? (
+            {opening.status === 'show' && !openingDone ? (
               <OpeningScreen
                 place={opening.place}
                 photo={opening.photo}
