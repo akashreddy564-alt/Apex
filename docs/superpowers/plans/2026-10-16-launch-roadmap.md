@@ -8,13 +8,13 @@ The spec covers several independent subsystems, so it ships as separate plans. E
 |---|------|-----------|--------------------------|--------|
 | 0 | Launch foundation | none | Apple Developer (deferred to near launch) | **nearly done:** units (#24), Mapbox, Supabase database set up with all migrations and grants (007), Expo linked with cloud simulator builds, #20 and #21 merged, #1 and #8 closed. Open: rebuild #22 on main, `expo install --fix`, sync past-hike fields, real-device GPS test |
 | 1 | Opening screen | none | none | **done:** merged (#23); owner reviewed places (22 approved, Tour du Mont Blanc photo replaced); runs in an iPhone build. Owed: launch-screen timing on a real iPhone |
-| 2 | Trail catalog and freeform hikes | none | none | not started |
-| 3 | Accounts, friends, feed, groups, leaderboards | 2 | Supabase GRANTs before Oct 30 | not started |
+| 2 | Trail catalog and freeform hikes | none | none | **done:** merged (#31); migration 008 and seed applied 2026-10-23. Owed: Finish → trail sheet on a phone |
+| 3 | Accounts, friends, feed, groups, leaderboards (now also the three-tab layout and new look) | 2 | none until friends test on their own phones (Apple Developer, domain, Resend) | **designed** 2026-10-23 (`docs/superpowers/specs/2026-10-23-apex-social-and-app-structure-design.md`); six steps, step 1 planned in `2026-10-23-social-step-1-app-shell.md` |
 | 4 | Habit loops: streak, goal ring, weekend pick, home | 3 for friend-facing parts | none | not started |
 | 5 | Route flyover and video share | none | none | **ready to build:** spike passed; owner approved Mapbox GL JS in a WebView (option A) |
 | 6 | Visual pass and App Store submission | all | Apple Developer | **started:** cinematic look chosen; trail list, trail page hero and stats card merged (#25); first iPhone build check fixed collapsed cards and clipped names. Rest of screens, listing, TestFlight, review not started |
 
-_Status updated end of 2026-10-17._
+_Status updated 2026-10-23._
 
 Plans 1, 2 and 5 can run in parallel; they touch separate files. Plan 3 is the critical path and the largest.
 
