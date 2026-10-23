@@ -142,17 +142,18 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
   );
 }
 
-const TEXT_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.55)',
+/** A soft halo in the page color, so text over photos reads in Dark and Light. */
+const textShadow = (c: Palette) => ({
+  textShadowColor: `${c.bg}8C`,
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 14,
-} as const;
+});
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
   clip: { overflow: 'hidden', backgroundColor: c.surface },
   text: { position: 'absolute', left: SIDE, right: SIDE, bottom: 8 },
-  name: { color: c.fg, fontFamily: fonts.poster, letterSpacing: 0.4, ...TEXT_SHADOW },
+  name: { color: c.fg, fontFamily: fonts.poster, letterSpacing: 0.4, ...textShadow(c) },
   metaRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   region: {
     flexShrink: 1,
@@ -160,7 +161,7 @@ const makeStyles = (c: Palette) =>
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1.2,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   pill: {
     marginLeft: 'auto',

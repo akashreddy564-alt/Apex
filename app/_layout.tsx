@@ -113,7 +113,7 @@ export default function RootLayout() {
                   headerStyle: { backgroundColor: 'transparent' },
                 }}
               />
-              <Stack.Screen name="trails" options={{ title: 'Trails', headerBackTitle: 'Home' }} />
+              <Stack.Screen name="trails" options={{ title: '', headerBackTitle: 'Home' }} />
               <Stack.Screen name="account" options={{ title: 'Settings' }} />
               <Stack.Screen
                 name="credits"

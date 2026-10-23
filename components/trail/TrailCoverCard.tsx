@@ -135,11 +135,12 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
   );
 }
 
-const TEXT_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.55)',
+/** A soft halo in the page color, so text over photos reads in Dark and Light. */
+const textShadow = (c: Palette) => ({
+  textShadowColor: `${c.bg}8C`,
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 10,
-} as const;
+});
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
@@ -166,7 +167,7 @@ const makeStyles = (c: Palette) =>
     color: c.fg,
     fontFamily: fonts.poster,
     letterSpacing: 0.3,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   meta: {
     marginTop: 4,
@@ -174,7 +175,7 @@ const makeStyles = (c: Palette) =>
     fontFamily: fonts.mono,
     fontSize: 10.5,
     letterSpacing: 0.8,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   scorePill: {
     paddingHorizontal: 10,

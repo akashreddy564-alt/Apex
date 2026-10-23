@@ -140,11 +140,12 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
   );
 }
 
-const TEXT_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.6)',
+/** A soft halo in the page color, so text over photos reads in Dark and Light. */
+const textShadow = (c: Palette) => ({
+  textShadowColor: `${c.bg}99`,
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 10,
-} as const;
+});
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
@@ -193,18 +194,18 @@ const makeStyles = (c: Palette) =>
     color: c.fg2,
     fontFamily: fonts.ui,
     fontSize: 11,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   info: { position: 'absolute', left: 16, right: 16, bottom: 14 },
-  name: { color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, lineHeight: 26, ...TEXT_SHADOW },
-  region: { marginTop: 1, color: c.fg2, fontFamily: fonts.ui, fontSize: 13, ...TEXT_SHADOW },
+  name: { color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, lineHeight: 26, ...textShadow(c) },
+  region: { marginTop: 1, color: c.fg2, fontFamily: fonts.ui, fontSize: 13, ...textShadow(c) },
   meta: {
     marginTop: 6,
     color: c.fg2,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 0.8,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   label: {
     marginTop: 10,
