@@ -39,7 +39,7 @@ import {
   notificationPermissionRequired,
 } from '@/lib/notificationPermission';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
-import { displayM, fonts, numericStyle } from '@/theme/tokens';
+import { fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 /** Record without choosing a trail; it is settled at Finish. */
@@ -107,18 +107,9 @@ export default function LogScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
-      tabBarStyle: tracker.isTracking
-        ? { display: 'none' }
-        : {
-            backgroundColor: c.bg,
-            borderTopColor: c.raised,
-            borderTopWidth: 1,
-            height: 58,
-            paddingBottom: 6,
-            paddingTop: 6,
-          },
+      tabBarStyle: tabBarStyle(c, tracker.isTracking),
     });
-  }, [navigation, tracker.isTracking]);
+  }, [navigation, tracker.isTracking, c]);
 
   const activeTrail = useMemo(
     () => trails.find((t) => t.id === tracker.session?.trailId) ?? null,

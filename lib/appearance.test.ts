@@ -51,3 +51,16 @@ describe('applyNativeScheme', () => {
     assert.doesNotThrow(() => applyNativeScheme('dark', {}));
   });
 });
+
+import { tabBarStyle } from '../theme/tokens.ts';
+
+describe('tabBarStyle', () => {
+  it('follows the palette so the Log tab bar repaints on a switch', () => {
+    assert.equal(tabBarStyle(palettes.light).backgroundColor, '#FFFFFF');
+    assert.equal(tabBarStyle(palettes.dark).borderTopColor, palettes.dark.raised);
+  });
+
+  it('hides the bar while recording', () => {
+    assert.deepEqual(tabBarStyle(palettes.light, true), { display: 'none' });
+  });
+});

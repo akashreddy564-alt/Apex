@@ -16,7 +16,7 @@ import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import { cardTitleLayout } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
-import { fonts, type Palette } from '@/theme/tokens';
+import { fonts, type Palette, photoPill } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
 
 const CARD_HEIGHT = 184;
@@ -181,18 +181,18 @@ const makeStyles = (c: Palette) =>
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: 'rgba(9,9,11,0.6)',
+    backgroundColor: photoPill.fill,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: photoPill.border,
   },
   score: {
-    color: c.fg,
+    color: photoPill.text,
     fontFamily: fonts.mono,
     fontSize: 19,
     fontWeight: '700',
     fontVariant: ['tabular-nums'],
   },
-  scoreTop: { color: c.accent },
+  scoreTop: { color: photoPill.top },
 });
 
 /** Styles for the current appearance. */

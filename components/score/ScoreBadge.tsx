@@ -31,7 +31,8 @@ export function ScoreBadge({ bucket, count, score, size = 'lg', style }: ScoreBa
   const scale = size === 'lg' ? 1 : 0.75;
   const a11y = value ? `${label}, ${value}` : label;
 
-  if (shape === 'number') {
+  // A small peak is too narrow for a word, so words fall back to the plain style.
+  if (shape === 'number' || (shape === 'peak' && size === 'sm' && !value)) {
     return (
       <View accessible accessibilityLabel={a11y} style={{ alignItems: 'flex-end' }}>
         <Text

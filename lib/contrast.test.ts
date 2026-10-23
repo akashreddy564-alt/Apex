@@ -32,3 +32,12 @@ for (const name of ['dark', 'light'] as const) {
 describe('signature color', () => {
   it('is Bone in dark mode', () => assert.equal(palettes.dark.accent, '#EDE6D6'));
 });
+
+import { photoPill } from '../theme/tokens.ts';
+
+describe('photo pill', () => {
+  it('keeps light text on its dark pill in every appearance', () => {
+    assert.ok(contrastRatio(photoPill.text, photoPill.solid) >= 7);
+    assert.ok(contrastRatio(photoPill.top, photoPill.solid) >= 7);
+  });
+});

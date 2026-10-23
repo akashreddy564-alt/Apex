@@ -5,7 +5,7 @@ import { Footprints, House, Users } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
 import { useColors } from '@/hooks/useColors';
-import { fonts, navTitle } from '@/theme/tokens';
+import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
 
 /** Fills the tab slot. minHeight is the touch target; icon and label styles stay put. */
 function TabButton(props: BottomTabBarButtonProps) {
@@ -21,14 +21,7 @@ export default function TabsLayout() {
         headerTintColor: c.fg,
         headerTitleStyle: { ...navTitle, color: c.fg },
         headerShadowVisible: false,
-        tabBarStyle: {
-          backgroundColor: c.bg,
-          borderTopColor: c.raised,
-          borderTopWidth: 1,
-          height: 58,
-          paddingBottom: 6,
-          paddingTop: 6,
-        },
+        tabBarStyle: tabBarStyle(c),
         tabBarActiveTintColor: c.fg,
         tabBarInactiveTintColor: c.fgFaint,
         headerShown: false,

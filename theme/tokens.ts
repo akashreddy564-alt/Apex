@@ -250,3 +250,29 @@ export function cssVars(palette: Palette): Record<`--color-${string}`, string> {
 
 /** Tailwind color names backed by the CSS variables above. */
 export const themeColorNames = Object.keys(palettes.dark).map(kebab);
+
+/** The bottom tab bar for a palette. Hidden while a hike is recording. */
+export function tabBarStyle(palette: Palette, hidden = false) {
+  if (hidden) return { display: 'none' as const };
+  return {
+    backgroundColor: palette.bg,
+    borderTopColor: palette.raised,
+    borderTopWidth: 1,
+    height: 58,
+    paddingBottom: 6,
+    paddingTop: 6,
+  };
+}
+
+/**
+ * Score pills that sit on photos stay dark in both appearances, so their
+ * text always uses the dark palette. `solid` is the pill color at full
+ * opacity, for contrast checks.
+ */
+export const photoPill = {
+  fill: 'rgba(9,9,11,0.6)',
+  solid: palettes.dark.bg,
+  border: 'rgba(255,255,255,0.15)',
+  text: palettes.dark.fg,
+  top: palettes.dark.accent,
+} as const;

@@ -27,3 +27,13 @@ describe.each<ScoreStyle>(['number', 'peak', 'blaze'])('%s badge', (style) => {
     expect(texts(style, 3, 9.43)).toContain('9.4');
   });
 });
+
+it('shows a small peak badge word as plain text instead of squeezing it into the shape', () => {
+  const { Path } = require('react-native-svg');
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(<ScoreBadge bucket="loved" count={1} score={9.6} style="peak" size="sm" />);
+  });
+  expect(tree.root.findAllByType(Path)).toHaveLength(0);
+  expect(tree.root.findAllByType(Text).map((n) => n.props.children)).toContain('Loved');
+});

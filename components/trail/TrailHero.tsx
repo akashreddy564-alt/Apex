@@ -18,7 +18,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 import { posterLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
-import { fonts, type Palette } from '@/theme/tokens';
+import { fonts, type Palette, photoPill } from '@/theme/tokens';
 
 const DRIFT_MS = 18_000;
 const SIDE = 20;
@@ -168,12 +168,12 @@ const makeStyles = (c: Palette) =>
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
-    backgroundColor: 'rgba(9,9,11,0.6)',
+    backgroundColor: photoPill.fill,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: photoPill.border,
   },
-  pillText: { color: c.fg, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.8 },
-  pillTop: { color: c.accent },
+  pillText: { color: photoPill.text, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.8 },
+  pillTop: { color: photoPill.top },
 });
 
 /** Styles for the current appearance. */
