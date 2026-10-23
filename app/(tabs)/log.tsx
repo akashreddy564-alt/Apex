@@ -19,22 +19,44 @@ import { AddHikeSheet } from '@/components/log/AddHikeSheet';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
+import { TrailAssignSheet } from '@/components/log/TrailAssignSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDistance, formatDuration } from '@/lib/format';
+import { newId } from '@/lib/geo';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
+import { pushTrail } from '@/lib/remoteSync';
+import { matchTrails } from '@/lib/trailMatch';
+import { buildUserTrail } from '@/lib/userTrail';
 import {
   LOCK_SCREEN_NOTIFICATION_NOTE,
   notificationPermissionRequired,
 } from '@/lib/notificationPermission';
-import { useTrailCache } from '@/stores/trailCache';
+import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
 import { colors, displayM, fonts, numericStyle } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
+/** Record without choosing a trail; it is settled at Finish. */
+const FREEFORM = '';
+const GEOCODE_WAIT_MS = 2500;
+
+/** "Boulder, CO" for a new trail's subtitle, or null when offline or unsupported. */
+async function placeName(latitude: number, longitude: number): Promise<string | null> {
+  try {
+    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), GEOCODE_WAIT_MS));
+    const result = await Promise.race([Location.reverseGeocodeAsync({ latitude, longitude }), timeout]);
+    const place = result?.[0];
+    if (!place) return null;
+    const parts = [place.city ?? place.subregion, place.region].filter(Boolean);
+    return parts.length > 0 ? parts.join(', ') : null;
+  } catch {
+    return null;
+  }
+}
 
 function hikeClock(totalSeconds: number): string {
   const safe = Math.max(0, Math.floor(totalSeconds));
@@ -58,7 +80,10 @@ export default function LogScreen() {
   const [explainer, setExplainer] = useState(false);
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedTrailId, setSelectedTrailId] = useState(trails[0]?.id ?? '');
+  const addTrail = useTrailCache((s) => s.addTrail);
+  const [selectedTrailId, setSelectedTrailId] = useState(FREEFORM);
+  const [pastTrailId, setPastTrailId] = useState(trails[0]?.id ?? '');
+  const [assignOpen, setAssignOpen] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [recording, setRecording] = useState(false);
@@ -96,7 +121,7 @@ export default function LogScreen() {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
     setExplainer(false);
-    if (!permission.granted || !selectedTrailId) return;
+    if (!permission.granted) return;
     if (shouldRequestNotificationPermission(Platform.OS, Platform.Version, permission.granted)) {
       try {
         await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -125,14 +150,57 @@ export default function LogScreen() {
     };
   }, [tracker.isTracking]);
 
-  const finish = () => {
-    setFinishOpen(false);
-    const log = tracker.complete();
+  const completeWith = (trailId?: string) => {
+    const log = tracker.complete(trailId);
+    setAssignOpen(false);
     setRecording(false);
     if (!log) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     comparison.start(log.trail_id, log.id);
     setModalOpen(true);
+  };
+
+  const finish = () => {
+    setFinishOpen(false);
+    if (tracker.session?.trailId) {
+      completeWith();
+      return;
+    }
+    // No trail yet: stop the clock while the hiker picks or names one.
+    tracker.pause();
+    setAssignOpen(true);
+  };
+
+  const points = tracker.session?.points;
+  const suggestions = useMemo(() => {
+    const first = points?.[0];
+    if (!assignOpen || !first) return [];
+    const recording = (points ?? []).map((p) => [p.longitude, p.latitude] as [number, number]);
+    return matchTrails(first, recording, trails).flatMap((match) => {
+      const trail = trails.find((t) => t.id === match.trailId);
+      return trail ? [{ trail, startDistanceM: match.startDistanceM }] : [];
+    });
+  }, [assignOpen, points, trails]);
+
+  const createRecordedTrail = async (name: string) => {
+    const hike = tracker.session;
+    if (!hike) return;
+    const first = hike.points[0];
+    const region = first ? await placeName(first.latitude, first.longitude) : null;
+    const trail = buildUserTrail({
+      id: newId(),
+      ownerId: MOCK_USER_ID,
+      name,
+      region,
+      points: hike.points,
+      distanceM: hike.distanceM,
+      gainM: hike.elevationGainM,
+      durationSeconds: tracker.elapsedSeconds,
+      now: new Date().toISOString(),
+    });
+    addTrail(trail);
+    void pushTrail(trail);
+    completeWith(trail.id);
   };
 
   useEffect(() => {
@@ -157,6 +225,7 @@ export default function LogScreen() {
 
   const savePast = (draft: {
     trailId: string;
+    newTrailName: string | null;
     hikedOn: Date;
     hours: number;
     minutes: number;
@@ -168,7 +237,25 @@ export default function LogScreen() {
     hikeType: string | null;
     photos: string[];
   }) => {
-    const log = tracker.logPast(draft);
+    let trailId = draft.trailId;
+    if (draft.newTrailName) {
+      const trail = buildUserTrail({
+        id: newId(),
+        ownerId: MOCK_USER_ID,
+        name: draft.newTrailName,
+        region: null,
+        points: [],
+        distanceM: 0,
+        gainM: 0,
+        durationSeconds: 0,
+        now: new Date().toISOString(),
+      });
+      addTrail(trail);
+      void pushTrail(trail);
+      trailId = trail.id;
+      setPastTrailId(trail.id);
+    }
+    const log = tracker.logPast({ ...draft, trailId });
     if (!log) return;
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     comparison.start(log.trail_id, log.id);
@@ -180,7 +267,7 @@ export default function LogScreen() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <RecordSession
-          trailName={activeTrail?.name ?? 'Trail'}
+          trailName={activeTrail?.name ?? 'New hike'}
           trailPath={activeTrail?.path ?? null}
           elevation={activeTrail?.elevation_profile ?? null}
           peakElevationM={activeTrail?.peak_elevation_m ?? null}
@@ -255,6 +342,16 @@ export default function LogScreen() {
             </View>
           </View>
         </Modal>
+        <TrailAssignSheet
+          visible={assignOpen}
+          suggestions={suggestions}
+          trails={trails}
+          onPick={(trailId) => completeWith(trailId)}
+          onCreate={(name) => {
+            void createRecordedTrail(name);
+          }}
+          onClose={() => setAssignOpen(false)}
+        />
         <PairwiseModal
           visible={modalOpen}
           comparison={comparison}
@@ -296,9 +393,46 @@ export default function LogScreen() {
             >
               <Text className="text-[13px] text-zinc-400">Change</Text>
             </Pressable>
+            <Pressable
+              onPress={() => {
+                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
+                  if (seen === '1') tracker.start(selectedTrailId);
+                  else setExplainer(true);
+                });
+              }}
+              className="mt-2 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
+              style={{ borderRadius: 12 }}
+            >
+              <Text className="font-mono text-sm font-medium text-zinc-950">
+                Start tracking
+              </Text>
+            </Pressable>
             <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-zinc-500">
               Select trail
             </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Name it at the end"
+              onPress={() => {
+                setSelectedTrailId(FREEFORM);
+                void Haptics.selectionAsync();
+              }}
+            >
+              <View
+                className={`border px-3 py-3 ${
+                  selectedTrailId === FREEFORM
+                    ? 'border-accent bg-accent/10'
+                    : 'border-zinc-800 bg-zinc-900'
+                }`}
+                style={{ borderRadius: 12 }}
+              >
+                <Text className="text-[14px] text-zinc-100">Name it at the end</Text>
+                <Text className="mt-0.5 font-mono text-[11px] text-zinc-500">
+                  We'll suggest a trail from where you start
+                </Text>
+              </View>
+            </Pressable>
             {trails.map((trail) => {
               const selected = trail.id === selectedTrailId;
               return (
@@ -323,22 +457,7 @@ export default function LogScreen() {
               );
             })}
 
-            <Pressable
-              onPress={() => {
-                if (!selectedTrailId) return;
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
-                  if (seen === '1') tracker.start(selectedTrailId);
-                  else setExplainer(true);
-                });
-              }}
-              className="mt-4 items-center bg-zinc-100 py-3.5 active:bg-zinc-200"
-              style={{ borderRadius: 12 }}
-            >
-              <Text className="font-mono text-sm font-medium text-zinc-950">
-                Start tracking
-              </Text>
-            </Pressable>
+
           </View>
         ) : null}
 
@@ -392,8 +511,8 @@ export default function LogScreen() {
       <PastHikeSheet
         visible={pastOpen}
         trails={trails}
-        trailId={selectedTrailId}
-        onTrailId={setSelectedTrailId}
+        trailId={pastTrailId}
+        onTrailId={setPastTrailId}
         onClose={() => setPastOpen(false)}
         onContinue={savePast}
       />

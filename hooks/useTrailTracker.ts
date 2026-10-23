@@ -48,7 +48,8 @@ export interface UseTrailTrackerResult {
   hydrated: boolean;
   dismissRecovery: () => void;
   tick: () => void;
-  complete: () => HikeLog | null;
+  /** `trailId` settles a hike that started without one. */
+  complete: (trailId?: string) => HikeLog | null;
   logPast: (draft: PastHikeDraft) => HikeLog | null;
   discard: () => void;
 }
@@ -140,14 +141,16 @@ export function useTrailTracker(): UseTrailTrackerResult {
     void stopTracking();
   }, []);
 
-  const complete = useCallback((): HikeLog | null => {
+  const complete = useCallback((trailId?: string): HikeLog | null => {
     const hike = currentHike();
     if (!hike) return null;
+    const trail = trailId ?? hike.trailId;
+    if (!trail) return null;
     const duration = Math.max(1, elapsedSeconds(hike));
     const log: HikeLog = {
       id: newId(),
       user_id: MOCK_USER_ID,
-      trail_id: hike.trailId,
+      trail_id: trail,
       duration_seconds: duration,
       photos: hike.photos,
       notes: hike.notes.trim() || null,

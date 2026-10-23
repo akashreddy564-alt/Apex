@@ -108,7 +108,7 @@ export default function RootLayout() {
             <Stack.Screen name="account" options={{ title: 'Settings' }} />
             <Stack.Screen
               name="credits"
-              options={{ title: 'Photo credits', headerBackTitle: 'Settings' }}
+              options={{ title: 'Credits', headerBackTitle: 'Settings' }}
             />
             <Stack.Screen
               name="delete-account"
