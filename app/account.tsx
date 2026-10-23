@@ -1,12 +1,52 @@
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { PhotoCreditsLink } from '@/components/opening/PhotoCreditsLink';
+import { ScoreBadge } from '@/components/score/ScoreBadge';
+import { ChoiceRow } from '@/components/settings/ChoiceRow';
 import { useAuth } from '@/hooks/useAuth';
+import type { Appearance, ScoreStyle } from '@/lib/appearance';
 import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
+import { useSettings } from '@/stores/settingsStore';
+
+const SCORE_STYLES: { value: ScoreStyle; label: string }[] = [
+  { value: 'number', label: 'Number' },
+  { value: 'peak', label: 'Peak' },
+  { value: 'blaze', label: 'Blaze' },
+];
+
+/** Appearance and score style. Personal: they change only this phone. */
+function DisplaySettings() {
+  const appearance = useSettings((s) => s.appearance);
+  const scoreStyle = useSettings((s) => s.scoreStyle);
+  const setAppearance = useSettings((s) => s.setAppearance);
+  const setScoreStyle = useSettings((s) => s.setScoreStyle);
+  return (
+    <View className="mb-8 gap-3">
+      <Text className="text-[13px] text-fg-muted">Appearance</Text>
+      <ChoiceRow<Appearance>
+        options={[
+          { value: 'dark', label: 'Dark' },
+          { value: 'light', label: 'Light' },
+        ]}
+        value={appearance}
+        onChange={setAppearance}
+      />
+      <Text className="mt-3 text-[13px] text-fg-muted">Score style</Text>
+      <ChoiceRow<ScoreStyle>
+        options={SCORE_STYLES.map((option) => ({
+          ...option,
+          preview: <ScoreBadge bucket="loved" count={5} score={9.4} style={option.value} />,
+        }))}
+        value={scoreStyle}
+        onChange={setScoreStyle}
+      />
+    </View>
+  );
+}
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -17,13 +57,14 @@ export default function AccountScreen() {
 
   if (!configured || !supabase) {
     return (
-      <View className="flex-1 bg-zinc-950 px-4 pt-6">
+      <ScrollView className="flex-1 bg-zinc-950" contentContainerClassName="px-4 pt-6 pb-10">
+        <DisplaySettings />
         <Text className="text-lg font-medium text-zinc-50">Local mode</Text>
         <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-500">
           No Supabase env. Trails, logs, and rankings stay on this device.
         </Text>
         <PhotoCreditsLink />
-      </View>
+      </ScrollView>
     );
   }
 
@@ -56,7 +97,8 @@ export default function AccountScreen() {
   };
 
   return (
-    <View className="flex-1 bg-zinc-950 px-4 pt-6">
+    <ScrollView className="flex-1 bg-zinc-950" contentContainerClassName="px-4 pt-6 pb-10">
+      <DisplaySettings />
       <Text className="text-lg font-medium text-zinc-50">Account</Text>
       <Text className="mt-2 font-mono text-[11px] leading-5 text-zinc-500">
         {email ? `Signed in as ${email}` : 'Magic link. Rankings stay private to this account.'}
@@ -128,6 +170,6 @@ export default function AccountScreen() {
       ) : null}
 
       <PhotoCreditsLink />
-    </View>
+    </ScrollView>
   );
 }
