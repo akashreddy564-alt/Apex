@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { cardTitleLayout, posterLayout, posterLineEm } from './posterFit.ts';
+import { cardTitleLayout, posterLayout, posterLineEm, posterLineStyle } from './posterFit.ts';
 
 const SE_WIDTH = 327;
 
@@ -49,5 +49,23 @@ describe('cardTitleLayout', () => {
     assert.equal(layout.lines.length, 2);
     assert.ok(layout.fontSize >= 18 && layout.fontSize <= 26);
     for (const line of layout.lines) assert.ok(posterLineEm(line) * layout.fontSize <= 260);
+  });
+});
+
+describe('posterLineStyle', () => {
+  it('gives every line room for Anton so iOS does not clip glyphs', () => {
+    const first = posterLineStyle(80, 0);
+    assert.ok(first.lineHeight >= 80 * 1.1);
+    assert.equal(first.marginTop, 0);
+  });
+
+  it('pulls later lines up so lines still sit 0.92 em apart', () => {
+    const second = posterLineStyle(80, 1);
+    assert.equal(second.lineHeight + second.marginTop, Math.round(80 * 0.92));
+  });
+
+  it('accepts a different visual spacing', () => {
+    const second = posterLineStyle(50, 1, 0.95);
+    assert.equal(second.lineHeight + second.marginTop, Math.round(50 * 0.95));
   });
 });
