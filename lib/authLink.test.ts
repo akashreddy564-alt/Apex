@@ -4,14 +4,14 @@ import { describe, it } from 'node:test';
 import { parseAuthLink } from './authLink.ts';
 
 describe('parseAuthLink', () => {
-  it('reads tokens from the fragment', () => {
-    assert.deepEqual(
+  it('ignores links that carry bare tokens', () => {
+    assert.equal(
       parseAuthLink('apex://account#access_token=aaa&expires_in=3600&refresh_token=rrr&type=magiclink'),
-      { kind: 'tokens', accessToken: 'aaa', refreshToken: 'rrr' },
+      null,
     );
   });
 
-  it('reads a PKCE code from the query', () => {
+  it('reads the PKCE code from the query', () => {
     assert.deepEqual(parseAuthLink('exp://192.168.1.2:8081/--/account?code=abc123'), {
       kind: 'code',
       code: 'abc123',

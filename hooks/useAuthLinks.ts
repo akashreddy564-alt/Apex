@@ -20,13 +20,8 @@ export function useAuthLinks() {
         Alert.alert('Sign-in link didn’t work', `${link.message}. Send a new link from Settings.`);
         return;
       }
-      const { error } =
-        link.kind === 'tokens'
-          ? await client.auth.setSession({
-              access_token: link.accessToken,
-              refresh_token: link.refreshToken,
-            })
-          : await client.auth.exchangeCodeForSession(link.code);
+      // Fails unless this phone asked for the link (PKCE code verifier).
+      const { error } = await client.auth.exchangeCodeForSession(link.code);
       if (error) Alert.alert('Couldn’t sign in', error.message);
     };
     void Linking.getInitialURL().then(handle);

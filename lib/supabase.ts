@@ -16,6 +16,9 @@ export const supabase: SupabaseClient | null =
   url && anonKey
     ? createClient(url, anonKey, {
         auth: {
+          // PKCE: a sign-in link only works on the phone that asked for it,
+          // so a link someone else sends can't sign you into their account.
+          flowType: 'pkce',
           persistSession: !isServer,
           autoRefreshToken: !isServer,
           // Only the browser can read the sign-in link itself; native uses useAuthLinks.

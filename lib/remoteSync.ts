@@ -438,20 +438,22 @@ function scheduleRetry(): void {
   }, wait);
 }
 
-const UPLOADED_KEY = 'apex-uploaded-for';
+/** The one account this phone's signed-out data belongs to, once claimed. */
+const LOCAL_OWNER_KEY = 'apex-local-owner';
 
 /**
- * The first time an account signs in on this phone, queue everything made
- * signed out (user trails, hikes, rankings, comparisons) and send it. Runs
- * once per account per phone; anything that fails stays in the outbox.
+ * The first account to sign in on this phone claims everything made signed
+ * out (user trails, hikes, rankings, comparisons) and uploads it. Runs once
+ * per phone: a second account signing in later never receives the first
+ * person's hikes. Anything that fails to send stays in the outbox.
  */
 export async function uploadLocalOnce(): Promise<void> {
   if (!supabase) return;
   const uid = await userId();
   if (!uid) return;
-  const key = `${UPLOADED_KEY}:${uid}`;
   try {
-    if (await AsyncStorage.getItem(key)) return;
+    if (await AsyncStorage.getItem(LOCAL_OWNER_KEY)) return;
+    await AsyncStorage.setItem(LOCAL_OWNER_KEY, uid);
   } catch {
     return;
   }
@@ -473,7 +475,6 @@ export async function uploadLocalOnce(): Promise<void> {
     }
   }
   await saveOutbox();
-  await AsyncStorage.setItem(key, new Date().toISOString());
   await flushOutbox();
 }
 

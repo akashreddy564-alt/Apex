@@ -1,12 +1,10 @@
 /**
- * What a sign-in link carried back into the app. Supabase puts tokens in the
- * URL fragment (implicit flow) or a `code` in the query (PKCE flow). On native,
- * supabase-js can't read these itself, so the app hands them over.
+ * What a sign-in link carried back into the app. The client uses the PKCE
+ * flow, so the link brings a one-time `code` that only this phone can turn
+ * into a session. Links carrying bare tokens are ignored on purpose: anyone
+ * could craft one to sign you into their own account.
  */
-export type AuthLink =
-  | { kind: 'tokens'; accessToken: string; refreshToken: string }
-  | { kind: 'code'; code: string }
-  | { kind: 'error'; message: string };
+export type AuthLink = { kind: 'code'; code: string } | { kind: 'error'; message: string };
 
 function params(part: string): URLSearchParams {
   return new URLSearchParams(part.startsWith('?') || part.startsWith('#') ? part.slice(1) : part);
@@ -24,10 +22,6 @@ export function parseAuthLink(url: string | null): AuthLink | null {
   const error = hash.get('error_description') ?? query.get('error_description')
     ?? hash.get('error') ?? query.get('error');
   if (error) return { kind: 'error', message: error.replace(/\+/g, ' ') };
-
-  const accessToken = hash.get('access_token');
-  const refreshToken = hash.get('refresh_token');
-  if (accessToken && refreshToken) return { kind: 'tokens', accessToken, refreshToken };
 
   const code = query.get('code');
   if (code) return { kind: 'code', code };

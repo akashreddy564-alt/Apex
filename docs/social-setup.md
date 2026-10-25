@@ -15,7 +15,7 @@ pbcopy < supabase/migrations/009_profiles.sql
 
 ## Sign-in emails
 
-The app signs in with an email link. On a phone, the link opens Apex and signs you in. Where the link can't open the app (the iOS simulator, or reading the email on a laptop), the app also takes the 6-digit code from the same email, **if the email template includes it**:
+The app signs in with an email link. On a phone, the link opens Apex and signs you in. For safety, a link only works on the phone that asked for it (PKCE), so a link someone forwards you can't sign you into their account. Where the link can't open the app (the iOS simulator, or reading the email on a laptop), the app also takes the 6-digit code from the same email, **if the email template includes it**:
 
 1. Supabase dashboard → **Authentication** → **Emails** → **Magic Link** (and **Confirm signup**).
 2. Add a line such as `Or enter this code in Apex: {{ .Token }}`.
