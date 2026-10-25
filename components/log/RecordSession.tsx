@@ -4,6 +4,7 @@ import { AccessibilityInfo, Pressable, Text, View, useWindowDimensions } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Circle, Rect, Svg } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { LiveTrackMap } from '@/components/log/LiveTrackMap';
 import {
   DISTANCE_UNIT,
@@ -13,7 +14,7 @@ import {
   toMiles,
 } from '@/lib/format';
 import { paceSecondsPerKm } from '@/lib/hikeStats';
-import { colors, fonts, numericStyle } from '@/theme/tokens';
+import { fonts, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
 
 const HOLD_MS = 1000;
@@ -93,6 +94,7 @@ function StatCell({
   unit: string;
   edge?: boolean;
 }) {
+  const c = useColors();
   return (
     <View
       style={{
@@ -100,14 +102,14 @@ function StatCell({
         paddingVertical: 12,
         paddingLeft: edge ? 16 : 0,
         borderLeftWidth: edge ? 1 : 0,
-        borderLeftColor: colors.raised,
+        borderLeftColor: c.raised,
       }}
     >
-      <Text style={{ fontSize: 14, color: colors.fgMuted, fontFamily: fonts.ui }}>{label}</Text>
-      <Text style={{ marginTop: 2, fontSize: 30, color: colors.fg, ...numericStyle('semibold') }}>
+      <Text style={{ fontSize: 14, color: c.fgMuted, fontFamily: fonts.ui }}>{label}</Text>
+      <Text style={{ marginTop: 2, fontSize: 30, color: c.fg, ...numericStyle('semibold') }}>
         {value}
         {unit ? (
-          <Text style={{ fontSize: 15, color: colors.fgMuted, ...numericStyle('medium') }}>
+          <Text style={{ fontSize: 15, color: c.fgMuted, ...numericStyle('medium') }}>
             {' '}
             {unit}
           </Text>
@@ -118,6 +120,7 @@ function StatCell({
 }
 
 function SignalBars() {
+  const c = useColors();
   const heights = [4, 6.5, 9, 12];
   return (
     <View style={{ width: 16, height: 12, flexDirection: 'row', alignItems: 'flex-end', gap: 1.3 }}>
@@ -128,7 +131,7 @@ function SignalBars() {
             width: 3,
             height: bar,
             borderRadius: 1,
-            backgroundColor: index === heights.length - 1 ? colors.borderStrong : colors.fg,
+            backgroundColor: index === heights.length - 1 ? c.borderStrong : c.fg,
           }}
         />
       ))}
@@ -139,6 +142,7 @@ function SignalBars() {
 const DRAIN_MS = 200;
 
 function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: boolean }) {
+  const c = useColors();
   const [progress, setProgress] = useState(0);
   const [screenReader, setScreenReader] = useState(false);
   const frame = useRef<number | null>(null);
@@ -237,9 +241,9 @@ function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: 
         flex: 1,
         height: 76,
         borderRadius: 22,
-        backgroundColor: colors.raised,
+        backgroundColor: c.raised,
         borderWidth: 1,
-        borderColor: colors.border,
+        borderColor: c.border,
         flexDirection: 'row',
         alignItems: 'center',
         paddingLeft: 18,
@@ -247,15 +251,15 @@ function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: 
       }}
     >
       {screenReader ? (
-        <Square size={18} strokeWidth={1.75} color={colors.fg} />
+        <Square size={18} strokeWidth={1.75} color={c.fg} />
       ) : (
         <Svg width={36} height={36}>
-          <Circle cx={18} cy={18} r={15} stroke={colors.border} strokeWidth={3} fill="none" />
+          <Circle cx={18} cy={18} r={15} stroke={c.border} strokeWidth={3} fill="none" />
           <Circle
             cx={18}
             cy={18}
             r={15}
-            stroke={colors.fg}
+            stroke={c.fg}
             strokeWidth={3}
             fill="none"
             strokeDasharray={`${RING}`}
@@ -263,7 +267,7 @@ function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: 
             strokeLinecap="round"
             transform="rotate(-90 18 18)"
           />
-          <Rect x={12} y={12} width={12} height={12} rx={2} fill={colors.fg} />
+          <Rect x={12} y={12} width={12} height={12} rx={2} fill={c.fg} />
         </Svg>
       )}
       <Text
@@ -271,7 +275,7 @@ function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: 
           marginLeft: 8,
           fontSize: 17,
           lineHeight: 20,
-          color: colors.fg,
+          color: c.fg,
           fontFamily: fonts.uiSemibold,
           fontWeight: 'normal',
         }}
@@ -282,7 +286,7 @@ function HoldToStop({ onFinish, sheetOpen }: { onFinish: () => void; sheetOpen: 
   );
 }
 
-/** Live and paused recording. Sage is the track, and the Resume button once paused. */
+/** Live and paused recording. The accent is the track, and the Resume button once paused. */
 export function RecordSession({
   trailName,
   trailPath,
@@ -305,6 +309,7 @@ export function RecordSession({
   onResume,
   onFinish,
 }: RecordSessionProps) {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   const { height, width } = useWindowDimensions();
   const mapHeight = Math.max(220, Math.min(330, Math.round(height * 0.36)));
@@ -319,7 +324,7 @@ export function RecordSession({
   const distance = toMiles(distanceM / 1000).toFixed(1);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bg, paddingBottom: insets.bottom }}>
+    <View style={{ flex: 1, backgroundColor: c.bg, paddingBottom: insets.bottom }}>
       <LiveTrackMap
         width={width}
         height={mapHeight}
@@ -345,23 +350,23 @@ export function RecordSession({
             height: 40,
             paddingHorizontal: 14,
             borderRadius: 14,
-            backgroundColor: colors.surface,
+            backgroundColor: c.surface,
             borderWidth: 1,
-            borderColor: colors.raised,
+            borderColor: c.raised,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
           }}
         >
           {paused ? (
-            <Pause size={12} fill={colors.fg} color={colors.fg} strokeWidth={0} />
+            <Pause size={12} fill={c.fg} color={c.fg} strokeWidth={0} />
           ) : (
-            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: colors.fg }} />
+            <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.fg }} />
           )}
           <Text
             style={{
               fontSize: 14,
-              color: colors.fg,
+              color: c.fg,
               fontFamily: fonts.uiSemibold,
               fontWeight: 'normal',
             }}
@@ -374,9 +379,9 @@ export function RecordSession({
             height: 40,
             paddingHorizontal: 12,
             borderRadius: 14,
-            backgroundColor: colors.surface,
+            backgroundColor: c.surface,
             borderWidth: 1,
-            borderColor: colors.raised,
+            borderColor: c.raised,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 8,
@@ -384,9 +389,9 @@ export function RecordSession({
           }}
         >
           <SignalBars />
-          <Text style={{ fontSize: 13, color: colors.fg2, fontFamily: fonts.ui }} numberOfLines={1}>
+          <Text style={{ fontSize: 13, color: c.fg2, fontFamily: fonts.ui }} numberOfLines={1}>
             {gps}
-            <Text style={{ color: colors.borderStrong }}> · </Text>
+            <Text style={{ color: c.borderStrong }}> · </Text>
             {savedLabel(savedAt, now)}
           </Text>
         </View>
@@ -394,10 +399,10 @@ export function RecordSession({
 
       <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 18 }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
-          <Text style={{ fontSize: 15, color: colors.fgMuted, fontFamily: fonts.ui }}>Moving time</Text>
-          <Text style={{ fontSize: 15, color: colors.fgMuted, fontFamily: fonts.ui }}>
+          <Text style={{ fontSize: 15, color: c.fgMuted, fontFamily: fonts.ui }}>Moving time</Text>
+          <Text style={{ fontSize: 15, color: c.fgMuted, fontFamily: fonts.ui }}>
             Total{' '}
-            <Text style={{ color: colors.fg, ...numericStyle('semibold') }}>{clock(totalSeconds)}</Text>
+            <Text style={{ color: c.fg, ...numericStyle('semibold') }}>{clock(totalSeconds)}</Text>
           </Text>
         </View>
         <Text
@@ -406,7 +411,7 @@ export function RecordSession({
             fontSize: 84,
             lineHeight: 84,
             letterSpacing: -1.5,
-            color: colors.fg,
+            color: c.fg,
             ...numericStyle('semibold'),
           }}
           numberOfLines={1}
@@ -422,29 +427,29 @@ export function RecordSession({
               height: 36,
               borderRadius: 12,
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: c.border,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 8,
               paddingHorizontal: 12,
             }}
           >
-            <Pause size={12} fill={colors.fgMuted} color={colors.fgMuted} strokeWidth={0} />
-            <Text style={{ fontSize: 14, color: colors.fg2, fontFamily: fonts.ui }}>
+            <Pause size={12} fill={c.fgMuted} color={c.fgMuted} strokeWidth={0} />
+            <Text style={{ fontSize: 14, color: c.fg2, fontFamily: fonts.ui }}>
               Paused {pausedClock(pausedSeconds)} · not counted in moving time
             </Text>
           </View>
         ) : null}
         <View style={{ marginTop: paused ? 12 : 18 }}>
-          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
+          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.raised }}>
             <StatCell label="Distance" value={distance} unit={DISTANCE_UNIT} />
             <StatCell label="Pace" value={paceValue(distanceM, movingSeconds)} unit={`/${DISTANCE_UNIT}`} edge />
           </View>
-          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
+          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.raised }}>
             <StatCell label="Gained" value={`↑ ${Math.round(toFeet(gainM))}`} unit={ELEVATION_UNIT} />
             <StatCell label="Lost" value={`↓ ${Math.round(toFeet(lossM))}`} unit={ELEVATION_UNIT} edge />
           </View>
-          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: colors.raised }}>
+          <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.raised }}>
             <StatCell
               label="Elevation"
               value={elevationM == null ? '—' : String(Math.round(toFeet(elevationM)))}
@@ -454,12 +459,12 @@ export function RecordSession({
           </View>
         </View>
         {notice ? (
-          <Text style={{ marginTop: 10, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+          <Text style={{ marginTop: 10, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
             {notice}
           </Text>
         ) : null}
         {notificationNote ? (
-          <Text style={{ marginTop: 10, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+          <Text style={{ marginTop: 10, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
             {notificationNote}
           </Text>
         ) : null}
@@ -476,18 +481,18 @@ export function RecordSession({
                 flex: 1.4,
                 height: 76,
                 borderRadius: 22,
-                backgroundColor: colors.sage,
+                backgroundColor: c.accent,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 10,
               }}
             >
-              <Play size={22} fill={colors.onSage} color={colors.onSage} strokeWidth={0} />
+              <Play size={22} fill={c.onAccent} color={c.onAccent} strokeWidth={0} />
               <Text
                 style={{
                   fontSize: 19,
-                  color: colors.onSage,
+                  color: c.onAccent,
                   fontFamily: fonts.uiSemibold,
                   fontWeight: 'normal',
                 }}
@@ -503,20 +508,20 @@ export function RecordSession({
                 flex: 1,
                 height: 76,
                 borderRadius: 22,
-                backgroundColor: colors.raised,
+                backgroundColor: c.raised,
                 borderWidth: 1,
-                borderColor: colors.border,
+                borderColor: c.border,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 10,
               }}
             >
-              <Square size={16} fill={colors.fg} color={colors.fg} strokeWidth={0} />
+              <Square size={16} fill={c.fg} color={c.fg} strokeWidth={0} />
               <Text
                 style={{
                   fontSize: 19,
-                  color: colors.fg,
+                  color: c.fg,
                   fontFamily: fonts.uiSemibold,
                   fontWeight: 'normal',
                 }}
@@ -535,18 +540,18 @@ export function RecordSession({
                 flex: 1.4,
                 height: 76,
                 borderRadius: 22,
-                backgroundColor: colors.fg,
+                backgroundColor: c.fg,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 10,
               }}
             >
-              <Pause size={22} fill={colors.onSage} color={colors.onSage} strokeWidth={0} />
+              <Pause size={22} fill={c.onAccent} color={c.onAccent} strokeWidth={0} />
               <Text
                 style={{
                   fontSize: 19,
-                  color: colors.onSage,
+                  color: c.onAccent,
                   fontFamily: fonts.uiSemibold,
                   fontWeight: 'normal',
                 }}

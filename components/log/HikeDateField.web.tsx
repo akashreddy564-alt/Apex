@@ -1,3 +1,5 @@
+import { useColors } from '@/hooks/useColors';
+
 interface HikeDateFieldProps {
   value: Date;
   maximumDate: Date;
@@ -25,6 +27,7 @@ function fromYmd(value: string): Date | null {
 
 /** Browser date picker. The native file uses the system picker. */
 export function HikeDateField({ value, maximumDate, onChange }: HikeDateFieldProps) {
+  const c = useColors();
   return (
     <input
       type="date"
@@ -38,9 +41,9 @@ export function HikeDateField({ value, maximumDate, onChange }: HikeDateFieldPro
       style={{
         width: '100%',
         boxSizing: 'border-box',
-        backgroundColor: '#18181B',
-        color: '#F4F4F5',
-        border: '1px solid #27272A',
+        backgroundColor: c.surface,
+        color: c.fg,
+        border: `1px solid ${c.raised}`,
         borderRadius: 12,
         padding: 12,
         fontFamily: 'ui-monospace, monospace',

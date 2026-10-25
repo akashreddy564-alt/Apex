@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useColors } from '@/hooks/useColors';
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
 import { ElevationStrip, RouteThumb } from '@/components/ranking/RouteFigure';
 import type { UseTrailComparisonResult } from '@/hooks/useTrailComparison';
@@ -19,7 +20,7 @@ import {
 import { BUCKET_BANDS, BUCKETS, DEFAULT_HIKE_TYPE } from '@/lib/ranking';
 import { resolveRoute, routeSourceLabel } from '@/lib/routeSource';
 import { useTrailCache } from '@/stores/trailCache';
-import { colors, fonts, numericStyle } from '@/theme/tokens';
+import { fonts, numericStyle, type Palette } from '@/theme/tokens';
 import type { ElevationSample, HikeLog, Trail } from '@/types/trail';
 
 interface PairwiseModalProps {
@@ -65,13 +66,14 @@ function latestLog(logs: HikeLog[], trailId: string, recordedOnly = false): Hike
 }
 
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+  const c = useColors();
   return (
     <View>
-      <Text style={{ fontSize: 12, color: colors.fgMuted, fontFamily: fonts.ui }}>{label}</Text>
-      <Text style={{ marginTop: 2, fontSize: 17, color: colors.fg, ...numericStyle('semibold') }}>
+      <Text style={{ fontSize: 12, color: c.fgMuted, fontFamily: fonts.ui }}>{label}</Text>
+      <Text style={{ marginTop: 2, fontSize: 17, color: c.fg, ...numericStyle('semibold') }}>
         {value}
         {unit ? (
-          <Text style={{ fontSize: 12, color: colors.fgMuted, ...numericStyle('medium') }}> {unit}</Text>
+          <Text style={{ fontSize: 12, color: c.fgMuted, ...numericStyle('medium') }}> {unit}</Text>
         ) : null}
       </Text>
     </View>
@@ -85,6 +87,7 @@ function HikePanel({
   trail: Trail;
   onPress: () => void;
 }) {
+  const c = useColors();
   const logs = useTrailCache((state) => state.logs);
   const log = latestLog(logs, trail.id);
   const recorded = latestLog(logs, trail.id, true)?.recorded_path ?? null;
@@ -114,9 +117,9 @@ function HikePanel({
           style={{
             borderRadius: 22,
             overflow: 'hidden',
-            backgroundColor: colors.surface,
+            backgroundColor: c.surface,
             borderWidth: 1,
-            borderColor: colors.raised,
+            borderColor: c.raised,
             paddingHorizontal: 20,
             paddingTop: 14,
             paddingBottom: 12,
@@ -127,7 +130,7 @@ function HikePanel({
             <View style={{ flex: 1, alignSelf: 'flex-start', paddingRight: 4 }}>
               <Text
                 style={{
-                  color: colors.fg,
+                  color: c.fg,
                   fontFamily: fonts.displayExtraBold,
                   fontWeight: 'normal',
                   fontSize: 22,
@@ -136,7 +139,7 @@ function HikePanel({
               >
                 {trail.name}
               </Text>
-              <Text style={{ marginTop: 5, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+              <Text style={{ marginTop: 5, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                 {trail.region}
                 {when ? ` · ${when}` : ''}
               </Text>
@@ -176,10 +179,10 @@ function HikePanel({
             />
           </View>
           <View style={{ marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', gap: 12 }}>
-            <Text style={{ flex: 1, fontSize: 11, color: colors.fgMuted, fontFamily: fonts.ui }}>
+            <Text style={{ flex: 1, fontSize: 11, color: c.fgMuted, fontFamily: fonts.ui }}>
               {routeSourceLabel(shape.origin)}
             </Text>
-            <Text style={{ fontSize: 11, color: colors.fgMuted, ...numericStyle() }}>
+            <Text style={{ fontSize: 11, color: c.fgMuted, ...numericStyle() }}>
               {missing ? 'No elevation data' : rangeLabel(shape.elevation)}
             </Text>
           </View>
@@ -190,6 +193,7 @@ function HikePanel({
 }
 
 export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalProps) {
+  const c = useColors();
   const insets = useSafeAreaInsets();
   const {
     phase,
@@ -226,7 +230,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
 
   return (
     <Modal visible={visible} animationType="fade" transparent onRequestClose={discard}>
-      <View style={{ flex: 1, backgroundColor: colors.bg, paddingTop: insets.top + 6 }}>
+      <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 6 }}>
         {phase === 'preview' && preview ? (
           <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: insets.bottom + 16 }}>
             <LeaderboardReveal
@@ -249,19 +253,19 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                   width: 40,
                   height: 40,
                   borderRadius: 14,
-                  backgroundColor: colors.surface,
+                  backgroundColor: c.surface,
                   borderWidth: 1,
-                  borderColor: colors.raised,
+                  borderColor: c.raised,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <X size={18} strokeWidth={1.75} color={colors.fgMuted} />
+                <X size={18} strokeWidth={1.75} color={c.fgMuted} />
               </Pressable>
             </View>
             <Text
               style={{
-                color: colors.fg,
+                color: c.fg,
                 fontFamily: fonts.displayExtraBold,
                 fontWeight: 'normal',
                 fontSize: 30,
@@ -281,8 +285,8 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                   style={{
                     borderRadius: 18,
                     borderWidth: 1,
-                    borderColor: colors.raised,
-                    backgroundColor: colors.surface,
+                    borderColor: c.raised,
+                    backgroundColor: c.surface,
                     paddingHorizontal: 16,
                     paddingVertical: 16,
                   }}
@@ -290,14 +294,14 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                   <Text
                     style={{
                       fontSize: 17,
-                      color: colors.fg,
+                      color: c.fg,
                       fontFamily: fonts.uiSemibold,
                       fontWeight: 'normal',
                     }}
                   >
                     {BUCKET_BANDS[item].label}
                   </Text>
-                  <Text style={{ marginTop: 4, fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+                  <Text style={{ marginTop: 4, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
                     {BUCKET_BANDS[item].lo.toFixed(1)}–{BUCKET_BANDS[item].hi.toFixed(1)}
                   </Text>
                 </Pressable>
@@ -314,35 +318,35 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                   width: 40,
                   height: 40,
                   borderRadius: 14,
-                  backgroundColor: colors.surface,
+                  backgroundColor: c.surface,
                   borderWidth: 1,
-                  borderColor: colors.raised,
+                  borderColor: c.raised,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <X size={18} strokeWidth={1.75} color={colors.fgMuted} />
+                <X size={18} strokeWidth={1.75} color={c.fgMuted} />
               </Pressable>
               <View
                 style={{
                   height: 30,
                   paddingHorizontal: 12,
                   borderRadius: 15,
-                  backgroundColor: colors.surface,
+                  backgroundColor: c.surface,
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: c.border,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <Text style={{ fontSize: 13, color: colors.fg2, fontFamily: fonts.ui }}>{chip}</Text>
+                <Text style={{ fontSize: 13, color: c.fg2, fontFamily: fonts.ui }}>{chip}</Text>
               </View>
               <Text
                 style={{
                   width: 56,
                   textAlign: 'right',
                   fontSize: 13,
-                  color: colors.fgMuted,
+                  color: c.fgMuted,
                   ...numericStyle(),
                 }}
               >
@@ -354,7 +358,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                 style={{
                   marginTop: 22,
                   paddingHorizontal: 4,
-                  color: colors.fg,
+                  color: c.fg,
                   fontFamily: fonts.displayExtraBold,
                   fontWeight: 'normal',
                   fontSize: 30,
@@ -371,20 +375,20 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                 <Pressable
                   onPress={undo}
                   disabled={!canUndo}
-                  style={actionStyle}
+                  style={actionStyle(c)}
                 >
-                  <Undo2 size={16} strokeWidth={2} color={canUndo ? colors.fgMuted : colors.fgFaint} />
-                  <Text style={{ fontSize: 14, color: canUndo ? colors.fg2 : colors.fgFaint, fontFamily: fonts.uiMedium }}>
+                  <Undo2 size={16} strokeWidth={2} color={canUndo ? c.fgMuted : c.fgFaint} />
+                  <Text style={{ fontSize: 14, color: canUndo ? c.fg2 : c.fgFaint, fontFamily: fonts.uiMedium }}>
                     Undo
                   </Text>
                 </Pressable>
-                <Pressable onPress={() => pick('too_close')} style={[actionStyle, { flex: 1.6 }]}>
-                  <Text style={{ fontSize: 14, color: colors.fg2, fontFamily: fonts.uiMedium }}>
+                <Pressable onPress={() => pick('too_close')} style={[actionStyle(c), { flex: 1.6 }]}>
+                  <Text style={{ fontSize: 14, color: c.fg2, fontFamily: fonts.uiMedium }}>
                     Too close to call
                   </Text>
                 </Pressable>
-                <Pressable onPress={() => pick('skip')} style={actionStyle}>
-                  <Text style={{ fontSize: 14, color: colors.fg2, fontFamily: fonts.uiMedium }}>Skip</Text>
+                <Pressable onPress={() => pick('skip')} style={actionStyle(c)}>
+                  <Text style={{ fontSize: 14, color: c.fg2, fontFamily: fonts.uiMedium }}>Skip</Text>
                 </Pressable>
               </View>
               <Text
@@ -392,7 +396,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                   marginTop: 14,
                   textAlign: 'center',
                   fontSize: 13,
-                  color: colors.fgMuted,
+                  color: c.fgMuted,
                   fontFamily: fonts.ui,
                 }}
               >
@@ -402,7 +406,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
           </View>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 13, color: colors.fgMuted, fontFamily: fonts.ui }}>
+            <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
               Preparing comparison
             </Text>
           </View>
@@ -412,15 +416,15 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
   );
 }
 
-const actionStyle = {
+const actionStyle = (c: Palette) => ({
   flex: 1,
   height: 48,
   borderRadius: 14,
   borderWidth: 1,
-  borderColor: colors.raised,
-  backgroundColor: colors.surface,
+  borderColor: c.raised,
+  backgroundColor: c.surface,
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
   gap: 6,
-};
+});

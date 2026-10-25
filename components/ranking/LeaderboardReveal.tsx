@@ -52,26 +52,26 @@ function Row({
       style={style}
     >
       <View
-        className={`flex-row items-center gap-3 border-b border-zinc-800 px-1 py-3 ${
-          entry.isNew ? 'bg-accent-faint' : ''
+        className={`flex-row items-center gap-3 border-b border-raised px-1 py-3 ${
+          entry.isNew ? 'bg-accent/15' : ''
         }`}
       >
         <Text
-          className={`w-8 text-[15px] ${entry.isNew ? 'text-accent' : 'text-zinc-500'}`}
+          className={`w-8 text-[15px] ${entry.isNew ? 'text-accent' : 'text-fg-faint'}`}
           style={{ fontVariant: ['tabular-nums'] }}
         >
           {entry.ordinal}
         </Text>
         <Text
           className={`min-w-0 flex-1 text-[15px] ${
-            entry.isNew ? 'font-medium text-zinc-50' : 'text-zinc-200'
+            entry.isNew ? 'font-medium text-fg' : 'text-fg-2'
           }`}
           numberOfLines={1}
         >
           {entry.trail.name}
         </Text>
         <Text
-          className="text-right text-[15px] text-zinc-100"
+          className="text-right text-[15px] text-fg"
           style={{ fontVariant: ['tabular-nums'] }}
         >
           {placementScoreLabel(entry.ranking.bucket, count, entry.score)}
@@ -99,16 +99,16 @@ export function LeaderboardReveal({
   return (
     <View className="flex-1">
       <Text
-        className="text-center text-[34px] text-zinc-50"
+        className="text-center text-[34px] text-fg"
         style={{ fontVariant: ['tabular-nums'] }}
       >
         {placementScoreLabel(bucket, count, score)}
       </Text>
-      <Text className="mt-1 text-center text-[15px] text-zinc-200">
+      <Text className="mt-1 text-center text-[15px] text-fg-2">
         #{ordinalRank} in {label}
       </Text>
 
-      <View className="mt-6 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900 px-3">
+      <View className="mt-6 overflow-hidden rounded-xl border border-raised bg-surface px-3">
         {entries.map((entry, index) => (
           <Row key={entry.trail.id} entry={entry} index={index} count={count} />
         ))}
@@ -117,10 +117,10 @@ export function LeaderboardReveal({
       <View className="mt-8 flex-row gap-2">
         <Pressable
           onPress={onUndo}
-          className="flex-1 items-center border border-zinc-800 py-3 active:bg-zinc-900"
+          className="flex-1 items-center border border-raised py-3 active:bg-surface"
           style={{ borderRadius: 12 }}
         >
-          <Text className="text-[15px] text-zinc-300">Undo</Text>
+          <Text className="text-[15px] text-fg-2">Undo</Text>
         </Pressable>
         <Pressable
           onPress={() => {

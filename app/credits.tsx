@@ -18,21 +18,21 @@ const DATA_CREDITS = [
 
 export default function CreditsScreen() {
   return (
-    <ScrollView className="flex-1 bg-zinc-950" contentContainerClassName="px-4 pb-12 pt-6">
-      <Text className="font-mono text-[11px] uppercase tracking-widest text-zinc-500">Trail data</Text>
+    <ScrollView className="flex-1 bg-bg" contentContainerClassName="px-4 pb-12 pt-6">
+      <Text className="font-mono text-[11px] uppercase tracking-widest text-fg-faint">Trail data</Text>
       {DATA_CREDITS.map((credit) => (
         <Pressable
           key={credit.name}
           accessibilityRole="link"
           accessibilityLabel={`${credit.name}, ${credit.detail}`}
           onPress={() => void Linking.openURL(credit.url)}
-          className="border-b border-zinc-800 py-3 active:opacity-70"
+          className="border-b border-raised py-3 active:opacity-70"
         >
-          <Text className="text-[15px] text-zinc-100">{credit.name}</Text>
-          <Text className="mt-1 font-mono text-[11px] text-zinc-500">{credit.detail}</Text>
+          <Text className="text-[15px] text-fg">{credit.name}</Text>
+          <Text className="mt-1 font-mono text-[11px] text-fg-faint">{credit.detail}</Text>
         </Pressable>
       ))}
-      <Text className="mt-8 font-mono text-[11px] leading-5 text-zinc-500">
+      <Text className="mt-8 font-mono text-[11px] leading-5 text-fg-faint">
         Opening-screen photos from Wikimedia Commons, cropped and re-compressed. Tap one to open its
         source and license.
       </Text>
@@ -42,10 +42,10 @@ export default function CreditsScreen() {
           accessibilityRole="link"
           accessibilityLabel={`${place.name}, photo by ${place.photoCredit.author}, ${place.photoCredit.license}`}
           onPress={() => void Linking.openURL(place.photoCredit.url)}
-          className="border-b border-zinc-800 py-3 active:opacity-70"
+          className="border-b border-raised py-3 active:opacity-70"
         >
-          <Text className="text-[15px] text-zinc-100">{place.name}</Text>
-          <Text className="mt-1 font-mono text-[11px] text-zinc-500">
+          <Text className="text-[15px] text-fg">{place.name}</Text>
+          <Text className="mt-1 font-mono text-[11px] text-fg-faint">
             {place.photoCredit.author} · {place.photoCredit.license}
           </Text>
         </Pressable>

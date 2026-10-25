@@ -32,11 +32,11 @@ function Thumb({ stored }: { stored: string }) {
   }, [stored]);
 
   if (!uri) {
-    return <View className="h-14 w-14 border border-zinc-800 bg-zinc-900" />;
+    return <View className="h-14 w-14 border border-raised bg-surface" />;
   }
 
   return (
-    <View className="h-14 w-14 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-900">
+    <View className="h-14 w-14 overflow-hidden rounded-lg border border-raised bg-surface">
       <Image
         source={{ uri }}
         accessibilityLabel="Hike photo"

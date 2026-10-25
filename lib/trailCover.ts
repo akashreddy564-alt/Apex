@@ -12,8 +12,8 @@ type CoverLog = { trail_id: string; photos: string[]; created_at: string };
 
 export type TrailCover = { kind: 'photo'; uri: string } | { kind: 'map'; uri: string };
 
-/** Route colour on the satellite image (sage200). */
-const ROUTE_COLOR = 'C9D4B0';
+/** Route colour on the satellite image (Bone). */
+const ROUTE_COLOR = 'EDE6D6';
 const MAX_POINTS = 300;
 
 /** Logical pixels; Mapbox serves @2x. Its static API caps each side at 1280. */

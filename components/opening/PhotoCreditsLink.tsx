@@ -10,7 +10,7 @@ export function PhotoCreditsLink() {
       onPress={() => router.push('/credits')}
       className="mt-8 py-3 active:opacity-70"
     >
-      <Text className="text-[15px] text-zinc-300">Credits</Text>
+      <Text className="text-[15px] text-fg-2">Credits</Text>
     </Pressable>
   );
 }

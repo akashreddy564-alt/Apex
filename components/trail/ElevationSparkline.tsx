@@ -28,18 +28,16 @@ import {
   SHAPE_EASE_MS,
   shapeEase,
 } from '@/lib/elevationMotion';
+import { useColors } from '@/hooks/useColors';
 import { formatChartDistance, formatChartElevation, formatDistance } from '@/lib/format';
-import { colors, numericStyle, typeScale } from '@/theme/tokens';
+import { numericStyle, typeScale } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
-/** Accent sage — crisp stroke only, no bloom. */
-const LINE_COLOR = colors.sage;
-/** Flat sage under the stroke. Same geometry as the line, 12% opacity. */
-const FILL_COLOR = rgba(colors.sage, 0.12);
-/** Muted foreground. The dash is a flat stroke, not a glow. */
-const DASH_COLOR = colors.fgMuted;
-/** Near-white tip. No shadow, no blur. */
-const BEAD_COLOR = colors.fg;
+/** Chart colors for the current appearance: accent line, flat 12% fill, muted dash, fg tip. */
+function useSparkColors() {
+  const c = useColors();
+  return { line: c.accent, fill: rgba(c.accent, 0.12), dash: c.fgMuted, bead: c.fg };
+}
 
 function rgba(hex: string, alpha: number): string {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -73,11 +71,12 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedLine = Animated.createAnimatedComponent(Line);
 
 /**
- * Sage fill under the stroke. Wagmi's gradient lives in an SVG that does not
+ * Accent fill under the stroke. Wagmi's gradient lives in an SVG that does not
  * receive the chart width, so on web it stops short of the line. This path is
  * the chart's own area, in an SVG of the same width and height as the stroke.
  */
 function AreaFill() {
+  const spark = useSparkColors();
   const { area, width, height } = useContext(LineChartDimensionsContext);
   if (!area || width <= 0 || height <= 0) return null;
   return (
@@ -86,17 +85,18 @@ function AreaFill() {
       height={height}
       style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}
     >
-      <Path d={area} fill={FILL_COLOR} />
+      <Path d={area} fill={spark.fill} />
     </Svg>
   );
 }
 
 /**
- * Short zinc segment that crawls the sage stroke while the profile is
+ * Short zinc segment that crawls the accent stroke while the profile is
  * mapping out. It is tied to the reveal clock, so it stops when the wipe
  * finishes. Solid dash, no blur. Hidden while the scrub cursor is active.
  */
 function FlowingTrace({ reveal }: { reveal: SharedValue<number> }) {
+  const spark = useSparkColors();
   const { path, width, height } = useContext(LineChartDimensionsContext);
   const { isActive } = useLineChart();
 
@@ -120,7 +120,7 @@ function FlowingTrace({ reveal }: { reveal: SharedValue<number> }) {
     >
       <AnimatedPath
         d={path}
-        stroke={DASH_COLOR}
+        stroke={spark.dash}
         strokeWidth={1.75}
         fill="none"
         strokeLinecap="round"
@@ -139,6 +139,7 @@ function FlowingTrace({ reveal }: { reveal: SharedValue<number> }) {
  * chart, thin zinc, with the crosshair dot on top.
  */
 function ScrubGuide() {
+  const c = useColors();
   const { currentX, isActive } = useLineChart();
   const { width, height } = useContext(LineChartDimensionsContext);
   const animatedProps = useAnimatedProps(() => {
@@ -163,7 +164,7 @@ function ScrubGuide() {
         animatedProps={animatedProps}
         y1={0}
         y2={height}
-        stroke={colors.fgMuted}
+        stroke={c.fgMuted}
         strokeWidth={1.25}
       />
     </Svg>
@@ -176,6 +177,7 @@ function ScrubGuide() {
  * line. Hidden while scrubbing, so the crosshair stays the only cursor.
  */
 function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
+  const spark = useSparkColors();
   const { parsedPath, pathWidth, width, height } = useContext(
     LineChartDimensionsContext,
   );
@@ -207,7 +209,7 @@ function RevealHead({ reveal }: { reveal: SharedValue<number> }) {
       <AnimatedCircle
         animatedProps={animatedProps}
         r={BEAD_R}
-        fill={BEAD_COLOR}
+        fill={spark.bead}
       />
     </Svg>
   );
@@ -224,6 +226,8 @@ export function ElevationSparkline({
   samples,
   height = 168,
 }: ElevationSparklineProps) {
+  const spark = useSparkColors();
+  const c = useColors();
   const lastIndex = useRef<number | null>(null);
   const seenSamples = useRef(samples);
   const seenTrail = useRef<string | null>(null);
@@ -382,14 +386,14 @@ export function ElevationSparkline({
                 'worklet';
                 return formatChartElevation({ value, atRestMeters: peakM });
               }}
-              style={{ ...readoutStyle, color: colors.fgMuted }}
+              style={{ ...readoutStyle, color: c.fgMuted }}
             />
             <LineChart.DatetimeText
               format={({ value }) => {
                 'worklet';
                 return formatChartDistance({ value, atRestMeters: totalM });
               }}
-              style={{ ...readoutStyle, color: colors.fgFaint }}
+              style={{ ...readoutStyle, color: c.fgFaint }}
             />
           </View>
         </View>
@@ -427,7 +431,7 @@ export function ElevationSparkline({
                   <View style={{ width: chartWidth, height, pointerEvents: 'none' }}>
                     <AreaFill />
                     <LineChart.Path
-                      color={LINE_COLOR}
+                      color={spark.line}
                       width={1.75}
                       widthOffset={0}
                       showInactivePath={false}
@@ -443,7 +447,7 @@ export function ElevationSparkline({
                 </Animated.View>
                 <ScrubGuide />
                 <LineChart.CursorCrosshair
-                  color={colors.highlight}
+                  color={c.fg2}
                   outerSize={14}
                   size={6}
                 />

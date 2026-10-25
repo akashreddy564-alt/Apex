@@ -1,46 +1,75 @@
 /**
- * Zinc + Sage palette.
- * Single source of truth for NativeWind (`tailwind.config.js`) and for JS
- * (Skia, SVG, Reanimated). Hex values live only in `colors`.
+ * Apex colors. One semantic palette per appearance (`palettes`), read in JS
+ * through `useColors()` and in Tailwind classes through CSS variables
+ * (`cssVars`). Bone (#EDE6D6) is the only accent.
  *
- * Headings and titles are always one solid color: `colors.fg` (#FAFAFA).
- * Never highlight individual words in a heading. `colors.sage300` is not a
- * headline accent.
+ * Headings and titles are one solid color: the palette's `fg`. Never
+ * highlight individual words in a heading.
  */
 
-export const colors = {
-  bg: '#09090B',
-  surface: '#18181B',
-  raised: '#27272A',
-  border: '#3F3F46',
-  borderStrong: '#52525B',
-  fg: '#FAFAFA',
-  fg2: '#D4D4D8',
-  fgMuted: '#A1A1AA',
-  fgFaint: '#71717A',
-  sage: '#8B9A6D',
-  sage500: '#A3B183',
-  sage700: '#77865A',
-  sage300: '#A9B78C',
-  sage200: '#C9D4B0',
-  sage50: '#EEF2E6',
-  /** Neutral highlight for NEW / just logged / placed. */
-  highlight: '#E4E4E7',
-  onSage: '#09090B',
-  danger: '#9F3A38',
-  /** Opening-screen elevation only. */
-  heroAccent: '#FF8A4C',
-} as const;
-
-export type ColorToken = keyof typeof colors;
+/** One semantic color set per appearance. Bone (#EDE6D6) is the only accent. */
+export interface Palette {
+  bg: string;
+  surface: string;
+  raised: string;
+  border: string;
+  borderStrong: string;
+  fg: string;
+  fg2: string;
+  fgMuted: string;
+  fgFaint: string;
+  /** Primary buttons, your own highlights, comparison tags. */
+  accent: string;
+  /** Text and icons placed on `accent`. */
+  onAccent: string;
+  /** Score colors by bucket. */
+  loved: string;
+  fine: string;
+  disliked: string;
+  /** Route lines drawn over maps. */
+  mapLine: string;
+}
 
 /**
- * Route line and ridgeline stroke, low elevation → peak.
- * The middle stop (#C9D4B0) sits at 60%.
+ * Light mode can't use Bone as a fill on white, so its accent is Bone's dark
+ * ink with Bone text on it.
  */
-export const elevationGradient = [colors.sage, colors.sage200, colors.sage50] as const;
-
-export const elevationGradientMid = 0.6;
+export const palettes: Record<'dark' | 'light', Palette> = {
+  dark: {
+    bg: '#09090B',
+    surface: '#18181B',
+    raised: '#27272A',
+    border: '#3F3F46',
+    borderStrong: '#52525B',
+    fg: '#FAFAFA',
+    fg2: '#D4D4D8',
+    fgMuted: '#A1A1AA',
+    fgFaint: '#71717A',
+    accent: '#EDE6D6',
+    onAccent: '#0B0B0C',
+    loved: '#4CC27A',
+    fine: '#E0B04A',
+    disliked: '#E2675A',
+    mapLine: '#EDE6D6',
+  },
+  light: {
+    bg: '#FFFFFF',
+    surface: '#F6F6F4',
+    raised: '#ECECEA',
+    border: '#D9D9D6',
+    borderStrong: '#BDBDB8',
+    fg: '#141414',
+    fg2: '#2E2E30',
+    fgMuted: '#5F5F63',
+    fgFaint: '#8A8A90',
+    accent: '#2A2620',
+    onAccent: '#EDE6D6',
+    loved: '#1F8F4E',
+    fine: '#A86F0C',
+    disliked: '#C2412F',
+    mapLine: '#2A2620',
+  },
+};
 
 /**
  * Family names registered with `useFonts` in `app/_layout.tsx`.
@@ -95,7 +124,7 @@ const tabularNums = ['tabular-nums'] as ['tabular-nums'];
  * Do not override `color` per word.
  */
 export const heading = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.display,
 } as const;
 
@@ -105,7 +134,7 @@ export const heading = {
  * registers (it does not set a weight). 800 is not used here.
  */
 export const navTitle = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.display,
   fontSize: 17,
   fontWeight: 'normal' as const,
@@ -116,7 +145,7 @@ export const navTitle = {
  * so web does not synthesize a bolder cut. 800 is only `displayXL`.
  */
 export const displayXL = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.displayExtraBold,
   fontSize: 34,
   lineHeight: 36,
@@ -125,7 +154,7 @@ export const displayXL = {
 
 /** 700 display for section titles and the trail name under the map. */
 export const displayM = {
-  color: colors.fg,
+  color: palettes.dark.fg,
   fontFamily: fonts.display,
   fontSize: 28,
   lineHeight: 31,
@@ -160,7 +189,7 @@ export const type = {
     lineHeight: 34,
   },
   display: {
-    color: heading.color,
+    color: palettes.dark.fg,
     fontFamily: fonts.displayExtraBold,
     fontSize: typeScale.display,
     lineHeight: 40,
@@ -182,30 +211,6 @@ export function numericStyle(weight: 'regular' | 'medium' | 'semibold' = 'regula
 
 export const numericText = numericStyle();
 
-/** Additive NativeWind colors. Does not include the existing `accent` scale. */
-export const tailwindColors = {
-  bg: colors.bg,
-  surface: colors.surface,
-  raised: colors.raised,
-  border: colors.border,
-  'border-strong': colors.borderStrong,
-  fg: colors.fg,
-  'fg-2': colors.fg2,
-  'fg-muted': colors.fgMuted,
-  'fg-faint': colors.fgFaint,
-  sage: {
-    DEFAULT: colors.sage,
-    500: colors.sage500,
-    700: colors.sage700,
-    300: colors.sage300,
-    200: colors.sage200,
-    50: colors.sage50,
-  },
-  highlight: colors.highlight,
-  'on-sage': colors.onSage,
-  danger: colors.danger,
-} as const;
-
 /** Additive NativeWind families. Does not include `mono` or `sans`. */
 export const tailwindFontFamily = {
   display: [fonts.display, 'sans-serif'],
@@ -223,4 +228,51 @@ export const tailwindFontSize = {
   title: [`${typeScale.title}px`, { lineHeight: `${type.title.lineHeight}px` }],
   'title-large': [`${typeScale.titleLarge}px`, { lineHeight: `${type.titleLarge.lineHeight}px` }],
   display: [`${typeScale.display}px`, { lineHeight: `${type.display.lineHeight}px` }],
+} as const;
+
+/** `fgMuted` → `fg-muted`, the Tailwind and CSS variable spelling. */
+function kebab(key: string): string {
+  return key.replace(/[A-Z0-9]/g, (ch, i: number) => (i === 0 ? '' : '-') + ch.toLowerCase());
+}
+
+/**
+ * The palette as NativeWind CSS variables (`--color-fg-muted: '161 161 170'`),
+ * set on the root view with `vars()` so Tailwind classes follow the appearance.
+ */
+export function cssVars(palette: Palette): Record<`--color-${string}`, string> {
+  const out: Record<`--color-${string}`, string> = {};
+  for (const [key, hex] of Object.entries(palette)) {
+    const n = Number.parseInt(hex.slice(1), 16);
+    out[`--color-${kebab(key)}`] = `${(n >> 16) & 255} ${(n >> 8) & 255} ${n & 255}`;
+  }
+  return out;
+}
+
+/** Tailwind color names backed by the CSS variables above. */
+export const themeColorNames = Object.keys(palettes.dark).map(kebab);
+
+/** The bottom tab bar for a palette. Hidden while a hike is recording. */
+export function tabBarStyle(palette: Palette, hidden = false) {
+  if (hidden) return { display: 'none' as const };
+  return {
+    backgroundColor: palette.bg,
+    borderTopColor: palette.raised,
+    borderTopWidth: 1,
+    height: 58,
+    paddingBottom: 6,
+    paddingTop: 6,
+  };
+}
+
+/**
+ * Score pills that sit on photos stay dark in both appearances, so their
+ * text always uses the dark palette. `solid` is the pill color at full
+ * opacity, for contrast checks.
+ */
+export const photoPill = {
+  fill: 'rgba(9,9,11,0.6)',
+  solid: palettes.dark.bg,
+  border: 'rgba(255,255,255,0.15)',
+  text: palettes.dark.fg,
+  top: palettes.dark.accent,
 } as const;

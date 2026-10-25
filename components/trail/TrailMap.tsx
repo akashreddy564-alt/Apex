@@ -2,13 +2,11 @@ import { Canvas, DashPathEffect, Path, Skia } from '@shopify/react-native-skia';
 import { useMemo, useState } from 'react';
 import { Text, View } from 'react-native';
 
+import { useColors } from '@/hooks/useColors';
 import { useMovingDash } from '@/components/trail/useMovingDash';
 import { buildTrailMap } from '@/lib/projectPath';
 import type { GeoJSONLineString } from '@/types/trail';
 
-const SAGE = '#8B9A6D';
-const ZINC = '#71717A';
-const TRACE = '#A1A1AA';
 const HEIGHT = 180;
 
 interface TrailMapProps {
@@ -21,6 +19,7 @@ function skPath(d: string) {
 }
 
 export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
+  const c = useColors();
   const [width, setWidth] = useState(0);
   const dash = useMovingDash();
   const model = buildTrailMap(canonical, recorded, width, HEIGHT);
@@ -38,10 +37,10 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
   return (
     <View
       accessibilityLabel="Trail path"
-      className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
+      className="overflow-hidden rounded-xl border border-raised bg-surface"
     >
-      <View className="border-b border-zinc-800 px-3 py-2">
-        <Text className="font-mono text-[10px] uppercase tracking-widest text-zinc-500">
+      <View className="border-b border-raised px-3 py-2">
+        <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
           Path
         </Text>
       </View>
@@ -58,7 +57,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
                 path={canonicalPath}
                 style="stroke"
                 strokeWidth={1.75}
-                color={model.moving === 'canonical' ? SAGE : ZINC}
+                color={model.moving === 'canonical' ? c.mapLine : c.fgFaint}
                 strokeCap="round"
                 strokeJoin="round"
               />
@@ -68,7 +67,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
                 path={recordedPath}
                 style="stroke"
                 strokeWidth={1.75}
-                color={SAGE}
+                color={c.mapLine}
                 strokeCap="round"
                 strokeJoin="round"
               />
@@ -78,7 +77,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
                 path={movingPath}
                 style="stroke"
                 strokeWidth={1.75}
-                color={TRACE}
+                color={c.fgMuted}
                 strokeCap="round"
                 strokeJoin="round"
               >
@@ -88,15 +87,15 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
           </Canvas>
         ) : (
           <View style={{ height: HEIGHT }} className="items-center justify-center">
-            <Text className="font-mono text-xs text-zinc-500">No path</Text>
+            <Text className="font-mono text-xs text-fg-faint">No path</Text>
           </View>
         )}
       </View>
       <View className="flex-row justify-between px-3 pb-2">
-        <Text className="text-[11px] text-zinc-500">
+        <Text className="text-[11px] text-fg-faint">
           {canonical.coordinates.length >= 2 ? '© OpenStreetMap' : 'No route'}
         </Text>
-        <Text className="font-mono text-[10px] text-zinc-600">
+        <Text className="font-mono text-[10px] text-fg-faint">
           {recorded && recorded.coordinates.length >= 2
             ? `Recorded · ${recorded.coordinates.length}`
             : 'No recording'}

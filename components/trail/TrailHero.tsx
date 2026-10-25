@@ -15,9 +15,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { posterLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, type Palette, photoPill } from '@/theme/tokens';
 
 const DRIFT_MS = 18_000;
 const SIDE = 20;
@@ -40,6 +41,8 @@ interface TrailHeroProps {
 }
 
 export function TrailHero({ name, region, cover, placementLabel, top, scrollY }: TrailHeroProps) {
+  const styles = useStyles();
+  const c = useColors();
   const { width, height: windowHeight } = useWindowDimensions();
   const height = heroHeight(windowHeight);
   const reduceMotion = useReducedMotion();
@@ -103,11 +106,11 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
         <Defs>
           <LinearGradient id="heroShade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={colors.bg} stopOpacity={0.55} />
-            <Stop offset="0.22" stopColor={colors.bg} stopOpacity={0} />
-            <Stop offset="0.5" stopColor={colors.bg} stopOpacity={0} />
-            <Stop offset="0.86" stopColor={colors.bg} stopOpacity={0.85} />
-            <Stop offset="1" stopColor={colors.bg} stopOpacity={1} />
+            <Stop offset="0" stopColor={c.bg} stopOpacity={0.55} />
+            <Stop offset="0.22" stopColor={c.bg} stopOpacity={0} />
+            <Stop offset="0.5" stopColor={c.bg} stopOpacity={0} />
+            <Stop offset="0.86" stopColor={c.bg} stopOpacity={0.85} />
+            <Stop offset="1" stopColor={c.bg} stopOpacity={1} />
           </LinearGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#heroShade)" />
@@ -139,34 +142,42 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
   );
 }
 
-const TEXT_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.55)',
+/** A soft halo in the page color, so text over photos reads in Dark and Light. */
+const textShadow = (c: Palette) => ({
+  textShadowColor: `${c.bg}8C`,
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 14,
-} as const;
+});
 
-const styles = StyleSheet.create({
-  clip: { overflow: 'hidden', backgroundColor: colors.surface },
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
+  clip: { overflow: 'hidden', backgroundColor: c.surface },
   text: { position: 'absolute', left: SIDE, right: SIDE, bottom: 8 },
-  name: { color: colors.fg, fontFamily: fonts.poster, letterSpacing: 0.4, ...TEXT_SHADOW },
+  name: { color: c.fg, fontFamily: fonts.poster, letterSpacing: 0.4, ...textShadow(c) },
   metaRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
   region: {
     flexShrink: 1,
-    color: colors.highlight,
+    color: c.fg2,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1.2,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   pill: {
     marginLeft: 'auto',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
-    backgroundColor: 'rgba(9,9,11,0.6)',
+    backgroundColor: photoPill.fill,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
+    borderColor: photoPill.border,
   },
-  pillText: { color: colors.fg, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.8 },
-  pillTop: { color: colors.heroAccent },
+  pillText: { color: photoPill.text, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.8 },
+  pillTop: { color: photoPill.top },
 });
+
+/** Styles for the current appearance. */
+function useStyles() {
+  const c = useColors();
+  return useMemo(() => makeStyles(c), [c]);
+}

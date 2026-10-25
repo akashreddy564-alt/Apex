@@ -17,7 +17,10 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { formatHeroElevation } from '@/lib/format';
 import { createOpeningClock } from '@/lib/openingClock';
 import { posterLayout, posterLineStyle } from '@/lib/posterFit';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, palettes } from '@/theme/tokens';
+
+/** The opening screen is a photo moment and stays dark whatever the appearance. */
+const dark = palettes.dark;
 import type { HeroPlace } from '@/types/hero';
 
 const DRIFT_MS = 18_000;
@@ -117,10 +120,10 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
         <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
           <Defs>
             <LinearGradient id="shade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.bg} stopOpacity={0.3} />
-              <Stop offset="0.28" stopColor={colors.bg} stopOpacity={0} />
-              <Stop offset="0.52" stopColor={colors.bg} stopOpacity={0} />
-              <Stop offset="1" stopColor={colors.bg} stopOpacity={0.78} />
+              <Stop offset="0" stopColor={dark.bg} stopOpacity={0.3} />
+              <Stop offset="0.28" stopColor={dark.bg} stopOpacity={0} />
+              <Stop offset="0.52" stopColor={dark.bg} stopOpacity={0} />
+              <Stop offset="1" stopColor={dark.bg} stopOpacity={0.78} />
             </LinearGradient>
           </Defs>
           <Rect width="100%" height="100%" fill="url(#shade)" />
@@ -177,14 +180,14 @@ const TEXT_SHADOW = {
 } as const;
 
 const styles = StyleSheet.create({
-  root: { backgroundColor: colors.bg },
+  root: { backgroundColor: dark.bg },
   photoFrame: { position: 'absolute', top: '-6%', bottom: '-6%', left: '-6%', right: '-6%' },
   wordmark: {
     position: 'absolute',
     left: 0,
     right: 0,
     textAlign: 'center',
-    color: colors.fg,
+    color: dark.fg,
     fontFamily: fonts.displayExtraBold,
     fontSize: 14,
     letterSpacing: 5.6,
@@ -192,7 +195,7 @@ const styles = StyleSheet.create({
   },
   lower: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: SIDE_PADDING },
   name: {
-    color: colors.fg,
+    color: dark.fg,
     fontFamily: fonts.poster,
     textAlign: 'center',
     includeFontPadding: false,
@@ -207,7 +210,7 @@ const styles = StyleSheet.create({
   sideLeft: { alignItems: 'flex-end' },
   sideRight: { alignItems: 'flex-start' },
   sideText: {
-    color: colors.fg,
+    color: dark.fg,
     fontFamily: fonts.mono,
     fontSize: 11,
     lineHeight: 15,
@@ -219,7 +222,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderRightWidth: 1,
     borderColor: 'rgba(255,255,255,0.35)',
-    color: colors.heroAccent,
+    color: dark.accent,
     fontFamily: fonts.mono,
     fontSize: 17,
     letterSpacing: 0.5,
@@ -228,7 +231,7 @@ const styles = StyleSheet.create({
   fact: { marginTop: 44, alignItems: 'center', paddingHorizontal: 12 },
   rule: { width: 28, height: 1, backgroundColor: 'rgba(255,255,255,0.5)', marginBottom: 12 },
   label: {
-    color: colors.fg,
+    color: dark.fg,
     opacity: 0.65,
     fontFamily: fonts.mono,
     fontSize: 11,
@@ -237,7 +240,7 @@ const styles = StyleSheet.create({
     ...TEXT_SHADOW,
   },
   factText: {
-    color: colors.fg,
+    color: dark.fg,
     fontFamily: fonts.uiMedium,
     fontSize: 14,
     lineHeight: 20,

@@ -1,12 +1,13 @@
 import { useIsFocused } from 'expo-router';
 import { Gauge, Mountain, TrendingUp } from 'lucide-react-native';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useReducedMotion } from 'react-native-reanimated';
 
+import { useColors } from '@/hooks/useColors';
 import { MISSING_METRIC, toFeet, toMiles } from '@/lib/format';
 import { climbRateFtPerMile, difficultyRating, paceLabel } from '@/lib/trailDifficulty';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, type Palette } from '@/theme/tokens';
 import type { TrailTelemetry } from '@/types/trail';
 
 /** Quick count with a short stagger; the elevation chart starts after the third. */
@@ -15,8 +16,10 @@ export const STAGGER_MS = 120;
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
-/** Difficulty meter, easiest → very strenuous. */
-const LEVEL_COLORS = [colors.sage, colors.sage500, colors.sage200, '#F2B66D', colors.heroAccent];
+/** Difficulty meter, easiest → very strenuous: a brightness ramp ending in the accent. */
+function levelColors(c: Palette): string[] {
+  return [c.fgFaint, c.fgMuted, c.fg2, c.fg, c.accent];
+}
 
 /** Eased 0→target count that restarts per trail and freezes while unfocused. */
 function useCountUp(key: string, target: number | null, delayMs: number): number | null {
@@ -84,11 +87,13 @@ function Headline({
   accent?: boolean;
   spoken: string;
 }) {
+  const styles = useStyles();
+  const c = useColors();
   return (
     <View style={styles.headline} accessible accessibilityRole="text" accessibilityLabel={spoken}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.bigLine} numberOfLines={1}>
-        <Text style={[styles.big, accent && { color: colors.heroAccent }]}>{value}</Text>
+        <Text style={[styles.big, accent && { color: c.accent }]}>{value}</Text>
         {unit ? <Text style={styles.unit}> {unit}</Text> : null}
       </Text>
     </View>
@@ -96,6 +101,7 @@ function Headline({
 }
 
 function Detail({ icon, label, value, children }: { icon: ReactNode; label: string; value: string; children?: ReactNode }) {
+  const styles = useStyles();
   return (
     <View style={styles.detail} accessible accessibilityRole="text" accessibilityLabel={`${label}, ${value}`}>
       <View style={styles.detailIcon}>{icon}</View>
@@ -111,6 +117,8 @@ function Detail({ icon, label, value, children }: { icon: ReactNode; label: stri
 }
 
 export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry: TrailTelemetry }) {
+  const styles = useStyles();
+  const c = useColors();
   const { distance_km, elevation_gain_m, peak_elevation_m, avg_moving_time_seconds } = telemetry;
   const miles = useCountUp(`${trailId}:mi`, distance_km == null ? null : toMiles(distance_km), 0);
   const gainFt = useCountUp(`${trailId}:ft`, elevation_gain_m == null ? null : toFeet(elevation_gain_m), STAGGER_MS);
@@ -155,15 +163,15 @@ export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry:
         accessibilityLabel={`Difficulty, ${rating ? rating.label : 'unknown'}`}>
         <View style={styles.difficultyTop}>
           <Text style={styles.label}>DIFFICULTY</Text>
-          <Text style={[styles.difficultyLabel, rating && { color: LEVEL_COLORS[rating.level] }]}>
+          <Text style={[styles.difficultyLabel, rating && { color: levelColors(c)[rating.level] }]}>
             {rating ? rating.label : 'Not rated'}
           </Text>
         </View>
         <View style={styles.meter}>
-          {LEVEL_COLORS.map((color, i) => (
+          {levelColors(c).map((color, i) => (
             <View
               key={color}
-              style={[styles.segment, { backgroundColor: rating && i <= rating.level ? color : colors.raised }]}
+              style={[styles.segment, { backgroundColor: rating && i <= rating.level ? color : c.raised }]}
             />
           ))}
         </View>
@@ -173,14 +181,14 @@ export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry:
       <View style={styles.rule} />
 
       <View style={styles.details}>
-        <Detail icon={<Mountain size={16} strokeWidth={1.75} color={colors.fgMuted} />} label="Peak" value={peak} />
+        <Detail icon={<Mountain size={16} strokeWidth={1.75} color={c.fgMuted} />} label="Peak" value={peak} />
         <Detail
-          icon={<TrendingUp size={16} strokeWidth={1.75} color={colors.fgMuted} />}
+          icon={<TrendingUp size={16} strokeWidth={1.75} color={c.fgMuted} />}
           label="Climb"
           value={climb == null ? MISSING_METRIC : `${group(climb)} ft/mi`}
         />
         <Detail
-          icon={<Gauge size={16} strokeWidth={1.75} color={colors.fgMuted} />}
+          icon={<Gauge size={16} strokeWidth={1.75} color={c.fgMuted} />}
           label="Pace"
           value={pace === MISSING_METRIC ? pace : `${pace} /mi`}
         />
@@ -189,34 +197,35 @@ export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry:
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
   card: {
     borderRadius: 22,
-    backgroundColor: '#111113',
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,255,255,0.09)',
+    borderColor: c.raised,
     paddingVertical: 18,
   },
   headlines: { flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 6 },
   headline: { flex: 1, paddingHorizontal: 12 },
   vrule: { width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 2 },
-  label: { color: colors.fgFaint, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.6 },
+  label: { color: c.fgFaint, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.6 },
   bigLine: { marginTop: 6 },
   big: {
-    color: colors.fg,
+    color: c.fg,
     fontFamily: fonts.uiSemibold,
     fontSize: 27,
     letterSpacing: -0.6,
     fontVariant: ['tabular-nums'],
   },
-  unit: { color: colors.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 },
+  unit: { color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 },
   rule: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 16, marginHorizontal: 18 },
   difficulty: { paddingHorizontal: 18 },
   difficultyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  difficultyLabel: { color: colors.fg2, fontFamily: fonts.uiSemibold, fontSize: 15 },
+  difficultyLabel: { color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 15 },
   meter: { flexDirection: 'row', gap: 4, marginTop: 10 },
   segment: { flex: 1, height: 6, borderRadius: 3 },
-  footnote: { marginTop: 8, color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 11 },
+  footnote: { marginTop: 8, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 },
   details: { flexDirection: 'row', paddingHorizontal: 12 },
   detail: { flex: 1, flexDirection: 'row', gap: 8, paddingHorizontal: 6 },
   detailIcon: {
@@ -227,12 +236,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailLabel: { color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 11 },
+  detailLabel: { color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 },
   detailValue: {
     marginTop: 1,
-    color: colors.fg,
+    color: c.fg,
     fontFamily: fonts.uiMedium,
     fontSize: 13.5,
     fontVariant: ['tabular-nums'],
   },
 });
+
+/** Styles for the current appearance. */
+function useStyles() {
+  const c = useColors();
+  return useMemo(() => makeStyles(c), [c]);
+}

@@ -8,6 +8,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { useColors } from '@/hooks/useColors';
 import { ElevationSparkline } from '@/components/trail/ElevationSparkline';
 import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
@@ -17,12 +18,13 @@ import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { trailCover } from '@/lib/trailCover';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts } from '@/theme/tokens';
 
 const ENTRANCE = { damping: 20, stiffness: 240, mass: 0.85 };
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 
 export default function TrailDetailScreen() {
+  const c = useColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const trail = useTrailCache((s) => s.getTrail(String(id)));
   const recorded = useTrailCache((s) => {
@@ -75,7 +77,7 @@ export default function TrailDetailScreen() {
 
   return (
     <Animated.ScrollView
-      style={{ flex: 1, backgroundColor: colors.bg }}
+      style={{ flex: 1, backgroundColor: c.bg }}
       contentContainerStyle={{ paddingBottom: 40 }}
       onScroll={onScroll}
       scrollEventThrottle={16}
@@ -114,13 +116,13 @@ export default function TrailDetailScreen() {
         <TrailMap canonical={trail.path} recorded={recorded} />
 
         {isCatalogTrail(trail) ? (
-          <Text style={{ marginTop: -14, color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>
+          <Text style={{ marginTop: -14, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>
             {CATALOG_CREDIT}
           </Text>
         ) : null}
 
         {placement ? null : (
-          <Text style={{ color: colors.fgFaint, fontFamily: fonts.ui, fontSize: 13 }}>
+          <Text style={{ color: c.fgFaint, fontFamily: fonts.ui, fontSize: 13 }}>
             Log this trail to place it in your rankings.
           </Text>
         )}

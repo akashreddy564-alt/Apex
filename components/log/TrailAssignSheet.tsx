@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Image } from 'expo-image';
 import { X } from 'lucide-react-native';
 import {
@@ -13,11 +14,12 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { useColors } from '@/hooks/useColors';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import { isCatalogTrail, OSM_CREDIT } from '@/lib/catalog';
 import { formatDistance, formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import { mapCoverUrl } from '@/lib/trailCover';
-import { colors, fonts } from '@/theme/tokens';
+import { fonts, type Palette } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
@@ -46,6 +48,8 @@ export function startLabel(meters: number): string {
 }
 
 function SuggestionCard({ suggestion, onPress }: { suggestion: TrailSuggestion; onPress: () => void }) {
+  const styles = useStyles();
+  const c = useColors();
   const { trail, startDistanceM } = suggestion;
   const cover = mapCoverUrl(trail.path, MAPBOX_TOKEN, { width: 600, height: 260 });
   const meta = [
@@ -68,8 +72,8 @@ function SuggestionCard({ suggestion, onPress }: { suggestion: TrailSuggestion; 
         <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
           <Defs>
             <LinearGradient id="assignShade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0.15" stopColor={colors.bg} stopOpacity={0} />
-              <Stop offset="1" stopColor={colors.bg} stopOpacity={0.9} />
+              <Stop offset="0.15" stopColor={c.bg} stopOpacity={0} />
+              <Stop offset="1" stopColor={c.bg} stopOpacity={0.9} />
             </LinearGradient>
           </Defs>
           <Rect width="100%" height="100%" fill="url(#assignShade)" />
@@ -93,6 +97,8 @@ function SuggestionCard({ suggestion, onPress }: { suggestion: TrailSuggestion; 
 
 /** Finish on a hike that started without a trail: pick the suggested one, or name it. */
 export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreate, onClose }: TrailAssignSheetProps) {
+  const styles = useStyles();
+  const c = useColors();
   const insets = useSafeAreaInsets();
 
   return (
@@ -107,7 +113,7 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
             <Text style={styles.title}>Which trail was this?</Text>
             <Pressable accessibilityLabel="Close" onPress={onClose}>
               <View style={styles.close}>
-                <X size={18} strokeWidth={1.75} color={colors.fgMuted} />
+                <X size={18} strokeWidth={1.75} color={c.fgMuted} />
               </View>
             </Pressable>
           </View>
@@ -134,19 +140,21 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
   );
 }
 
-const TEXT_SHADOW = {
-  textShadowColor: 'rgba(0,0,0,0.6)',
+/** A soft halo in the page color, so text over photos reads in Dark and Light. */
+const textShadow = (c: Palette) => ({
+  textShadowColor: `${c.bg}99`,
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 10,
-} as const;
+});
 
-const styles = StyleSheet.create({
+const makeStyles = (c: Palette) =>
+  StyleSheet.create({
   sheet: {
-    backgroundColor: colors.bg,
+    backgroundColor: c.bg,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
+    borderTopColor: c.border,
     paddingHorizontal: 16,
     paddingTop: 10,
   },
@@ -154,57 +162,63 @@ const styles = StyleSheet.create({
     width: 40,
     height: 5,
     borderRadius: 3,
-    backgroundColor: colors.borderStrong,
+    backgroundColor: c.borderStrong,
     alignSelf: 'center',
     marginBottom: 16,
   },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
-  title: { color: colors.fg, fontFamily: fonts.displayExtraBold, fontSize: 26, flexShrink: 1 },
+  title: { color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 26, flexShrink: 1 },
   close: {
     width: 40,
     height: 40,
     borderRadius: 14,
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: 1,
-    borderColor: colors.raised,
+    borderColor: c.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  lede: { marginTop: 6, paddingHorizontal: 4, color: colors.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 },
+  lede: { marginTop: 6, paddingHorizontal: 4, color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 },
   card: {
     height: 136,
     borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: colors.surface,
+    backgroundColor: c.surface,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.raised,
+    borderColor: c.raised,
   },
   credit: {
     position: 'absolute',
     top: 10,
     right: 12,
-    color: colors.fg2,
+    color: c.fg2,
     fontFamily: fonts.ui,
     fontSize: 11,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   info: { position: 'absolute', left: 16, right: 16, bottom: 14 },
-  name: { color: colors.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, lineHeight: 26, ...TEXT_SHADOW },
-  region: { marginTop: 1, color: colors.fg2, fontFamily: fonts.ui, fontSize: 13, ...TEXT_SHADOW },
+  name: { color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, lineHeight: 26, ...textShadow(c) },
+  region: { marginTop: 1, color: c.fg2, fontFamily: fonts.ui, fontSize: 13, ...textShadow(c) },
   meta: {
     marginTop: 6,
-    color: colors.highlight,
+    color: c.fg2,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 0.8,
-    ...TEXT_SHADOW,
+    ...textShadow(c),
   },
   label: {
     marginTop: 10,
     paddingHorizontal: 4,
-    color: colors.fgFaint,
+    color: c.fgFaint,
     fontFamily: fonts.mono,
     fontSize: 11,
     letterSpacing: 1.6,
   },
 });
+
+/** Styles for the current appearance. */
+function useStyles() {
+  const c = useColors();
+  return useMemo(() => makeStyles(c), [c]);
+}
