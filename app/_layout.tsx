@@ -118,6 +118,9 @@ export default function RootLayout() {
               <Stack.Screen name="trails" options={{ title: '', headerBackTitle: 'Home' }} />
               <Stack.Screen name="account" options={{ title: 'Settings' }} />
               <Stack.Screen name="username" options={{ title: '', headerBackTitle: 'Back' }} />
+              <Stack.Screen name="add-friends" options={{ title: 'Add friends', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="friend-requests" options={{ title: 'Friend requests', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="friend/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
               <Stack.Screen
                 name="credits"
                 options={{ title: 'Credits', headerBackTitle: 'Settings' }}
