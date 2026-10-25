@@ -23,6 +23,10 @@ from (values
   (12, 'grant: trails_api view',         to_regclass('public.trails_api') is not null
                                            and coalesce(has_table_privilege('authenticated', to_regclass('public.trails_api'), 'select'), false)),
   (13, 'grant: hike_logs_api view',      to_regclass('public.hike_logs_api') is not null
-                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.hike_logs_api'), 'select'), false))
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.hike_logs_api'), 'select'), false)),
+  (14, '008 trail catalog columns',      exists (select 1 from information_schema.columns
+                                           where table_schema = 'public' and table_name = 'trails' and column_name = 'source')),
+  (15, '009 profiles (read/write)',      to_regclass('public.profiles') is not null
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.profiles'), 'select'), false) and coalesce(has_table_privilege('authenticated', to_regclass('public.profiles'), 'insert'), false) and coalesce(has_table_privilege('authenticated', to_regclass('public.profiles'), 'update'), false))
 ) as checks (n, step, ok)
 order by n;

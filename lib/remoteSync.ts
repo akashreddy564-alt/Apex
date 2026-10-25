@@ -438,6 +438,45 @@ function scheduleRetry(): void {
   }, wait);
 }
 
+const UPLOADED_KEY = 'apex-uploaded-for';
+
+/**
+ * The first time an account signs in on this phone, queue everything made
+ * signed out (user trails, hikes, rankings, comparisons) and send it. Runs
+ * once per account per phone; anything that fails stays in the outbox.
+ */
+export async function uploadLocalOnce(): Promise<void> {
+  if (!supabase) return;
+  const uid = await userId();
+  if (!uid) return;
+  const key = `${UPLOADED_KEY}:${uid}`;
+  try {
+    if (await AsyncStorage.getItem(key)) return;
+  } catch {
+    return;
+  }
+  await loadOutbox();
+  const { trails, logs } = useTrailCache.getState();
+  const { rankings, comparisons } = useRankingStore.getState();
+  // Trails first: logs and rankings point at them.
+  const queued: [OutboxKind, string[]][] = [
+    ['trail', trails.filter((trail) => trail.source === 'user').map((trail) => trail.id)],
+    ['log', logs.map((log) => log.id)],
+    ['ranking', rankings.map((ranking) => ranking.id)],
+    ['comparison', comparisons.map((comparison) => comparison.id)],
+  ];
+  for (const [kind, ids] of queued) {
+    for (const id of ids) {
+      if (!outbox.some((entry) => entry.kind === kind && entry.id === id)) {
+        outbox.push({ kind, id, attempts: 0 });
+      }
+    }
+  }
+  await saveOutbox();
+  await AsyncStorage.setItem(key, new Date().toISOString());
+  await flushOutbox();
+}
+
 export async function flushOutbox(): Promise<void> {
   await loadOutbox();
   for (const entry of [...outbox]) {

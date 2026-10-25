@@ -8,6 +8,10 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 jest.mock('@/lib/supabase', () => ({ supabase: null, isSupabaseConfigured: false }));
+jest.mock('lucide-react-native', () => ({ ChevronRight: () => null }));
+jest.mock('@/hooks/useProfile', () => ({
+  useMyProfile: () => ({ configured: false, session: null, profile: null, loading: false }),
+}));
 
 function radio(tree: ReactTestRenderer, label: string) {
   return tree.root.find(

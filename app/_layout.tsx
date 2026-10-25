@@ -18,6 +18,7 @@ import { vars } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { OpeningScreen } from '@/components/opening/OpeningScreen';
+import { useAuthLinks } from '@/hooks/useAuthLinks';
 import { useColors } from '@/hooks/useColors';
 import { useOpeningPlace } from '@/hooks/useOpeningPlace';
 import { useRemoteSync } from '@/hooks/useRemoteSync';
@@ -40,6 +41,7 @@ export default function RootLayout() {
     [fonts.poster]: Anton_400Regular,
   });
   useRemoteSync();
+  useAuthLinks();
   const appearance = useSettings((s) => s.appearance);
   const c = useColors();
 
@@ -115,6 +117,7 @@ export default function RootLayout() {
               />
               <Stack.Screen name="trails" options={{ title: '', headerBackTitle: 'Home' }} />
               <Stack.Screen name="account" options={{ title: 'Settings' }} />
+              <Stack.Screen name="username" options={{ title: '', headerBackTitle: 'Back' }} />
               <Stack.Screen
                 name="credits"
                 options={{ title: 'Credits', headerBackTitle: 'Settings' }}

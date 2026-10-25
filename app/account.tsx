@@ -1,5 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
+import { ChevronRight } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
@@ -7,7 +8,9 @@ import { useColors } from '@/hooks/useColors';
 import { PhotoCreditsLink } from '@/components/opening/PhotoCreditsLink';
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { ChoiceRow } from '@/components/settings/ChoiceRow';
-import { useAuth } from '@/hooks/useAuth';
+import { Avatar } from '@/components/social/Avatar';
+import { useMyProfile } from '@/hooks/useProfile';
+import { fonts } from '@/theme/tokens';
 import type { Appearance, ScoreStyle } from '@/lib/appearance';
 import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
@@ -52,8 +55,10 @@ function DisplaySettings() {
 export default function AccountScreen() {
   const c = useColors();
   const router = useRouter();
-  const { configured, email, session } = useAuth();
+  const { configured, email, session, profile, loading: profileLoading } = useMyProfile();
   const [address, setAddress] = useState('');
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [code, setCode] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -82,7 +87,31 @@ export default function AccountScreen() {
         email: next,
         options: { emailRedirectTo: Linking.createURL('/account') },
       });
-      setStatus(error ? error.message : 'Check your email for the sign-in link.');
+      if (error) {
+        setStatus(error.message);
+      } else {
+        setSentTo(next);
+        setStatus('Check your email. Open the link on this phone, or type the code from it.');
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // The same email carries a 6-digit code when the template includes it.
+  // It works where the link can't, like a simulator.
+  const verifyCode = async () => {
+    const token = code.replace(/\D/g, '');
+    if (!sentTo || token.length !== 6) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const { error } = await client.auth.verifyOtp({ email: sentTo, token, type: 'email' });
+      if (error) setStatus(error.message);
+      else {
+        setStatus(null);
+        setCode('');
+      }
     } finally {
       setBusy(false);
     }
@@ -105,6 +134,26 @@ export default function AccountScreen() {
       <Text className="mt-2 font-mono text-[11px] leading-5 text-fg-faint">
         {email ? `Signed in as ${email}` : 'Magic link. Rankings stay private to this account.'}
       </Text>
+
+      {session && !profileLoading ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={profile ? 'Edit profile' : 'Choose a username'}
+          onPress={() => router.push('/username')}
+          className="mt-6 flex-row items-center gap-3 rounded-2xl bg-surface px-4 py-3 active:opacity-80"
+        >
+          {profile ? <Avatar name={profile.display_name} size={40} /> : null}
+          <View className="flex-1">
+            <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 16 }}>
+              {profile ? profile.display_name : 'Choose a username'}
+            </Text>
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
+              {profile ? `@${profile.username}` : 'Friends find you by it'}
+            </Text>
+          </View>
+          <ChevronRight size={18} strokeWidth={1.6} color={c.fgMuted} />
+        </Pressable>
+      ) : null}
 
       {session ? (
         <Pressable
@@ -142,6 +191,38 @@ export default function AccountScreen() {
           >
             <Text className="font-mono text-sm text-accent">Send magic link</Text>
           </Pressable>
+          {sentTo ? (
+            <View className="mt-4 flex-row gap-2">
+              <TextInput
+                value={code}
+                onChangeText={setCode}
+                keyboardType="number-pad"
+                textContentType="oneTimeCode"
+                autoComplete="one-time-code"
+                maxLength={6}
+                placeholder="6-digit code"
+                placeholderTextColor={c.fgFaint}
+                accessibilityLabel="Code from the email"
+                className="flex-1 border border-raised bg-surface px-3 py-3 font-mono text-sm text-fg"
+                style={{ borderRadius: 12 }}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Sign in with code"
+                disabled={busy || code.replace(/\D/g, '').length !== 6}
+                onPress={() => {
+                  void verifyCode();
+                }}
+                className="items-center justify-center border border-raised px-4 active:bg-surface"
+                style={{
+                  borderRadius: 12,
+                  opacity: busy || code.replace(/\D/g, '').length !== 6 ? 0.5 : 1,
+                }}
+              >
+                <Text className="font-mono text-sm text-fg-2">Sign in</Text>
+              </Pressable>
+            </View>
+          ) : null}
         </>
       )}
 
