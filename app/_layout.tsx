@@ -30,6 +30,14 @@ import { cssVars, fonts, navTitle } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
+/**
+ * Links that open a screen directly (sign-in links to /account, invite links
+ * to /friend/<id>) still get the tabs underneath, so there's always a way back.
+ */
+export const unstable_settings = {
+  anchor: '(tabs)',
+};
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
@@ -104,7 +112,7 @@ export default function RootLayout() {
                 contentStyle: { backgroundColor: c.bg },
               }}
             >
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
               <Stack.Screen
                 name="trail/[id]"
                 options={{
