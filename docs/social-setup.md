@@ -15,10 +15,14 @@ pbcopy < supabase/migrations/009_profiles.sql
 
 ## Sign-in emails
 
-The app signs in with an email link. On a phone, the link opens Apex and signs you in. For safety, a link only works on the phone that asked for it (PKCE), so a link someone forwards you can't sign you into their account. Where the link can't open the app (the iOS simulator, or reading the email on a laptop), the app also takes the 6-digit code from the same email, **if the email template includes it**:
+The app signs in with an email link. On a phone, the link opens Apex and signs you in. For safety, a link only works on the phone that asked for it (PKCE), so a link someone forwards you can't sign you into their account.
 
-1. Supabase dashboard → **Authentication** → **Emails** → **Magic Link** (and **Confirm signup**).
-2. Add a line such as `Or enter this code in Apex: {{ .Token }}`.
-3. Under **Authentication** → **URL Configuration**, add `apex://**` to **Redirect URLs**, so the link may open the app.
+Done on 2026-10-25: `apex://**` is in **Authentication** → **URL Configuration** → **Redirect URLs**, so the link may open the app.
 
-Supabase's built-in email only sends to your own team members, a few an hour. Before friends can sign in, set up a domain and a sender (Resend or Postmark) as custom SMTP. Building and testing don't need it.
+The app also takes a 6-digit code where the link can't open it (the simulator, or email read on a laptop). Supabase only lets you add `{{ .Token }}` to the email templates once custom SMTP is set up, so the code arrives after that step.
+
+Supabase's built-in email only sends to your own team members, a few an hour. Before friends can sign in, set up a domain and a sender (Resend or Postmark) as custom SMTP, then add `Or enter this code in Apex: {{ .Token }}` to the **Magic link or OTP** and **Confirm sign up** templates.
+
+## Test hikers
+
+`supabase/seed/test_hikers.sql` adds three accounts nobody can sign in to (`maya_test`, `jordan_test`, `sam_test`). Maya sends a friend request to every real account, so you can try requests, accepting and unfriending with one phone. Run it again after a new person signs up to send them a request too. `supabase/seed/remove_test_hikers.sql` removes all three.
