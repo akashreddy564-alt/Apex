@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-import { pullRemote, type SyncResult } from '@/lib/remoteSync';
+import { pullRemote, uploadLocalOnce, type SyncResult } from '@/lib/remoteSync';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { useTrailCache } from '@/stores/trailCache';
 
@@ -21,9 +21,13 @@ export function useRemoteSync() {
       queued = true;
       queueMicrotask(() => {
         queued = false;
-        void pullRemote().then((next) => {
-          if (!cancelled) setResult(next);
-        });
+        // Upload first so the pull's merge already sees the signed-out hikes.
+        void uploadLocalOnce()
+          .catch(() => undefined)
+          .then(() => pullRemote())
+          .then((next) => {
+            if (!cancelled) setResult(next);
+          });
       });
     };
 

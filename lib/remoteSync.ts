@@ -438,6 +438,46 @@ function scheduleRetry(): void {
   }, wait);
 }
 
+/** The one account this phone's signed-out data belongs to, once claimed. */
+const LOCAL_OWNER_KEY = 'apex-local-owner';
+
+/**
+ * The first account to sign in on this phone claims everything made signed
+ * out (user trails, hikes, rankings, comparisons) and uploads it. Runs once
+ * per phone: a second account signing in later never receives the first
+ * person's hikes. Anything that fails to send stays in the outbox.
+ */
+export async function uploadLocalOnce(): Promise<void> {
+  if (!supabase) return;
+  const uid = await userId();
+  if (!uid) return;
+  try {
+    if (await AsyncStorage.getItem(LOCAL_OWNER_KEY)) return;
+    await AsyncStorage.setItem(LOCAL_OWNER_KEY, uid);
+  } catch {
+    return;
+  }
+  await loadOutbox();
+  const { trails, logs } = useTrailCache.getState();
+  const { rankings, comparisons } = useRankingStore.getState();
+  // Trails first: logs and rankings point at them.
+  const queued: [OutboxKind, string[]][] = [
+    ['trail', trails.filter((trail) => trail.source === 'user').map((trail) => trail.id)],
+    ['log', logs.map((log) => log.id)],
+    ['ranking', rankings.map((ranking) => ranking.id)],
+    ['comparison', comparisons.map((comparison) => comparison.id)],
+  ];
+  for (const [kind, ids] of queued) {
+    for (const id of ids) {
+      if (!outbox.some((entry) => entry.kind === kind && entry.id === id)) {
+        outbox.push({ kind, id, attempts: 0 });
+      }
+    }
+  }
+  await saveOutbox();
+  await flushOutbox();
+}
+
 export async function flushOutbox(): Promise<void> {
   await loadOutbox();
   for (const entry of [...outbox]) {

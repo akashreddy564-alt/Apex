@@ -3,10 +3,11 @@ import { ChevronRight } from 'lucide-react-native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { fonts } from '@/theme/tokens';
 
-/** Friends' hikes land here once accounts and friends exist (plan 3 steps 2–4). */
+/** Friends' hikes land here (plan 3 step 4). */
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -24,14 +25,18 @@ export default function HomeScreen() {
         apex
       </Text>
 
-      <View className="mx-4 mt-6 rounded-2xl bg-surface px-5 py-8">
-        <Text className="text-center text-[15px] text-fg">
-          Your friends' hikes will show up here.
-        </Text>
-        <Text className="mt-2 text-center text-[13px] text-fg-muted">
-          Friends arrive in the next update.
-        </Text>
-      </View>
+      <SignInGate why="see what your friends hiked">
+        {() => (
+          <View className="mx-4 mt-6 rounded-2xl bg-surface px-5 py-8">
+            <Text className="text-center text-[15px] text-fg">
+              Your friends' hikes will show up here.
+            </Text>
+            <Text className="mt-2 text-center text-[13px] text-fg-muted">
+              Add friends from Social.
+            </Text>
+          </View>
+        )}
+      </SignInGate>
 
       <Pressable
         accessibilityRole="button"
