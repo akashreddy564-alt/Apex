@@ -127,3 +127,15 @@ export function hikeDayLabel(iso: string, now: Date = new Date()): string {
   if (days < 7) return at.toLocaleDateString('en-US', { weekday: 'long' });
   return at.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+
+/**
+ * Where "You're all caught up" goes: before the first post you'd already seen
+ * last time you left Home. Null when everything is new or nothing is.
+ */
+export function caughtUpIndex(postedAts: string[], seenUpTo: string | null): number | null {
+  if (!seenUpTo) return null;
+  const seen = Date.parse(seenUpTo);
+  if (!Number.isFinite(seen)) return null;
+  const index = postedAts.findIndex((at) => Date.parse(at) <= seen);
+  return index > 0 ? index : null;
+}

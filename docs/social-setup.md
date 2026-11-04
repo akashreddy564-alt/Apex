@@ -6,6 +6,7 @@ Each social step adds a migration. You run them in the Supabase SQL Editor, the 
 |------|-----------|-----------|
 | 2. Accounts and profiles | `supabase/migrations/009_profiles.sql` | 008 |
 | 3. Friends | `supabase/migrations/010_friends.sql` | 009 |
+| 4. Feed, likes and comments | `supabase/migrations/011_feed.sql` | 010 |
 
 Each is safe to run more than once. After running one, run `supabase/checks/migration_status.sql` and check that every row says `true`.
 
@@ -25,4 +26,4 @@ Supabase's built-in email only sends to your own team members, a few an hour. Be
 
 ## Test hikers
 
-`supabase/seed/test_hikers.sql` adds three accounts nobody can sign in to (`maya_test`, `jordan_test`, `sam_test`). Maya sends a friend request to every real account, so you can try requests, accepting and unfriending with one phone. Run it again after a new person signs up to send them a request too. `supabase/seed/remove_test_hikers.sql` removes all three.
+`supabase/seed/test_hikers.sql` adds three accounts nobody can sign in to (`maya_test`, `jordan_test`, `sam_test`). Maya sends a friend request to every real account, so you can try requests, accepting and unfriending with one phone. Run it again after a new person signs up to send them a request too. Once `011` has run, it also gives Maya and Jordan a few recent ranked hikes, so Home has posts after you accept Maya. `supabase/seed/remove_test_hikers.sql` removes all three.

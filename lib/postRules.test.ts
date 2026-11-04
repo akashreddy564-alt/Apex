@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { comparisonTag, hikeDayLabel, mapFeedPost, shouldPost, type MyRankedTrail } from './postRules.ts';
+import { caughtUpIndex, comparisonTag, hikeDayLabel, mapFeedPost, shouldPost, type MyRankedTrail } from './postRules.ts';
 
 const NOW = new Date('2026-10-25T18:00:00');
 
@@ -75,5 +75,19 @@ describe('hikeDayLabel', () => {
     assert.equal(hikeDayLabel('2026-10-24T08:00:00', NOW), 'Yesterday');
     assert.equal(hikeDayLabel('2026-10-21T08:00:00', NOW), 'Wednesday');
     assert.equal(hikeDayLabel('2026-10-12T08:00:00', NOW), 'Oct 12');
+  });
+});
+
+describe('caughtUpIndex', () => {
+  const posted = ['2026-10-25T10:00:00Z', '2026-10-24T10:00:00Z', '2026-10-20T10:00:00Z'];
+
+  it('sits before the first post seen last time', () => {
+    assert.equal(caughtUpIndex(posted, '2026-10-24T10:00:00Z'), 1);
+  });
+
+  it('is absent when nothing is new, everything is new, or there is no history', () => {
+    assert.equal(caughtUpIndex(posted, '2026-10-26T10:00:00Z'), null);
+    assert.equal(caughtUpIndex(posted, '2026-10-01T10:00:00Z'), null);
+    assert.equal(caughtUpIndex(posted, null), null);
   });
 });

@@ -5,6 +5,7 @@ import {
   useQueryClient,
   type InfiniteData,
 } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { Alert } from 'react-native';
 
 import { useAuth } from '@/hooks/useAuth';
@@ -21,16 +22,33 @@ import {
 
 export const feedKey = (uid: string | null) => ['feed', uid] as const;
 
+const feedPages = {
+  queryFn: ({ pageParam }: { pageParam: string | null }) => fetchFeedPage(pageParam),
+  initialPageParam: null as string | null,
+  getNextPageParam: (last: FeedPost[]) =>
+    last.length < FEED_PAGE_SIZE ? undefined : (last[last.length - 1]?.postedAt ?? undefined),
+};
+
+/**
+ * Starts loading the feed while the opening screen plays, so Home is already
+ * full when it appears.
+ */
+export function usePrefetchFeed() {
+  const queryClient = useQueryClient();
+  const { session } = useAuth();
+  const uid = session?.user.id ?? null;
+  useEffect(() => {
+    if (uid) void queryClient.prefetchInfiniteQuery({ queryKey: feedKey(uid), ...feedPages }).catch(() => undefined);
+  }, [queryClient, uid]);
+}
+
 /** Home's feed, a page at a time. */
 export function useFeed() {
   const { session } = useAuth();
   const uid = session?.user.id ?? null;
   const query = useInfiniteQuery({
     queryKey: feedKey(uid),
-    queryFn: ({ pageParam }) => fetchFeedPage(pageParam),
-    initialPageParam: null as string | null,
-    getNextPageParam: (last) =>
-      last.length < FEED_PAGE_SIZE ? undefined : (last[last.length - 1]?.postedAt ?? undefined),
+    ...feedPages,
     enabled: uid !== null,
   });
   return {
@@ -44,6 +62,7 @@ export function useFeed() {
       if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
     },
     loadingMore: query.isFetchingNextPage,
+    hasMore: query.hasNextPage,
   };
 }
 
