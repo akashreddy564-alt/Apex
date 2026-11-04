@@ -6,6 +6,8 @@ import { ActivityIndicator, AppState, FlatList, Pressable, RefreshControl, Scrol
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
+import { NotificationAsk } from '@/components/habit/NotificationAsk';
+import { StreakChip } from '@/components/habit/StreakChip';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -43,6 +45,7 @@ function Header() {
     <View className="flex-row items-center px-4">
       <View className="flex-row items-center gap-3">
         <Text style={{ color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, letterSpacing: -0.4 }}>apex</Text>
+        <StreakChip />
       </View>
       <Pressable
         accessibilityRole="button"
@@ -189,6 +192,9 @@ function Feed() {
       ListHeaderComponent={
         <View>
           <Header />
+          <View className="px-4">
+            <NotificationAsk />
+          </View>
         </View>
       }
       ListEmptyComponent={empty}

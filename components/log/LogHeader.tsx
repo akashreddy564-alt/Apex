@@ -1,5 +1,7 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { NotificationAsk } from '@/components/habit/NotificationAsk';
+import { StreakChip } from '@/components/habit/StreakChip';
 import { useColors } from '@/hooks/useColors';
 import { displayXL, fonts } from '@/theme/tokens';
 
@@ -20,6 +22,9 @@ export function LogHeader({ view, onView, onStart, onLogPast, onProfile }: LogHe
     <View className="px-4">
       <View className="flex-row items-center justify-between">
         <Text style={{ ...displayXL, color: c.fg }}>Log</Text>
+        <View className="ml-auto mr-3">
+          <StreakChip />
+        </View>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Profile and settings"
@@ -52,6 +57,8 @@ export function LogHeader({ view, onView, onStart, onLogPast, onProfile }: LogHe
           </Text>
         </Pressable>
       </View>
+
+      <NotificationAsk />
 
       <View className="mt-3 flex-row rounded-xl bg-surface p-1" accessibilityRole="tablist">
         {(['hikes', 'rankings'] as const).map((option) => {

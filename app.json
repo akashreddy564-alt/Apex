@@ -63,7 +63,13 @@
           "backgroundColor": "#09090B"
         }
       ],
-      "expo-image"
+      "expo-image",
+      [
+        "expo-notifications",
+        {
+          "color": "#09090B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
