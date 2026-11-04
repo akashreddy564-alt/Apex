@@ -42,6 +42,12 @@ from (values
                                            and exists (select 1 from information_schema.columns
                                                        where table_schema = 'public' and table_name = 'hike_logs_api' and column_name = 'elevation_gain_m')
                                            and to_regprocedure('public.join_group(text)') is not null
-                                           and to_regprocedure('public.group_summary(uuid, text)') is not null)
+                                           and to_regprocedure('public.group_summary(uuid, text)') is not null),
+  (19, '013 notifications and safety',  to_regclass('public.notifications') is not null
+                                           and to_regclass('public.reports') is not null
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.blocks'), 'select'), false)
+                                           and to_regprocedure('public.my_notifications(integer)') is not null
+                                           and to_regprocedure('public.report_content(uuid, text, text, uuid, uuid)') is not null
+                                           and exists (select 1 from pg_trigger where tgname = 'hike_logs_passed'))
 ) as checks (n, step, ok)
 order by n;

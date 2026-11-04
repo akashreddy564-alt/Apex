@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useHeaderHeight } from 'expo-router/build/react-navigation/elements';
 import { SendHorizontal, Trash2 } from 'lucide-react-native';
 import { useRef, useState } from 'react';
@@ -16,6 +16,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
+import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
@@ -28,14 +29,24 @@ function CommentRow({
   comment,
   canDelete,
   onDelete,
+  onMore,
 }: {
   comment: PostComment;
   canDelete: boolean;
   onDelete: () => void;
+  /** Report or block, on other people's comments (long press). */
+  onMore?: () => void;
 }) {
   const c = useColors();
   return (
-    <View className="flex-row gap-3 py-3">
+    <Pressable
+      onLongPress={onMore}
+      disabled={!onMore}
+      accessibilityHint={onMore ? 'Long press to report or block' : undefined}
+      accessibilityActions={onMore ? [{ name: 'longpress', label: 'Report or block' }] : undefined}
+      onAccessibilityAction={() => onMore?.()}
+      className="flex-row gap-3 py-3"
+    >
       <Avatar name={comment.displayName} size={30} />
       <View className="flex-1">
         <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13 }}>
@@ -59,7 +70,7 @@ function CommentRow({
           <Trash2 size={16} strokeWidth={1.6} color={c.fgFaint} />
         </Pressable>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -70,6 +81,10 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
   const { post, loading, error } = usePost(id);
   const like = useLike();
   const mine = useMyRankedTrails();
+  const router = useRouter();
+  // Blocking the author leaves their post; blocking a commenter just hides them.
+  const safety = useSafetyMenu(() => router.back());
+  const commentSafety = useSafetyMenu();
   const { uid, comments, loading: commentsLoading, add, adding, remove } = useComments(id);
   const [draft, setDraft] = useState('');
   const input = useRef<TextInput>(null);
@@ -109,7 +124,14 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
       keyboardVerticalOffset={Platform.OS === 'ios' ? headerHeight : 0}
     >
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16, paddingBottom: 24 }} keyboardShouldPersistTaps="handled">
-        <PostCard post={post} mine={mine} onLike={like} onOpen={(_, focus) => focus && input.current?.focus()} full />
+        <PostCard
+          post={post}
+          mine={mine}
+          onLike={like}
+          onOpen={(_, focus) => focus && input.current?.focus()}
+          onMore={(p) => safety({ person: p.authorId, name: p.displayName, post: p.id })}
+          full
+        />
 
         <View className="mt-6 h-px bg-raised" />
         <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 17, marginTop: 16 }}>Comments</Text>
@@ -125,6 +147,11 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
             comment={comment}
             canDelete={comment.userId === uid || post.isMine}
             onDelete={() => confirmDelete(comment)}
+            onMore={
+              comment.userId === uid
+                ? undefined
+                : () => commentSafety({ person: comment.userId, name: comment.displayName, comment: comment.id })
+            }
           />
         ))}
       </ScrollView>

@@ -1,17 +1,19 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { CircleCheck, Compass } from 'lucide-react-native';
+import { Bell, CircleCheck, Compass } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
+import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useFeed, useLike } from '@/hooks/useFeed';
 import { useFriendships } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
+import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, type FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
@@ -36,8 +38,9 @@ function CaughtUp({ end = false }: { end?: boolean }) {
 function Header() {
   const c = useColors();
   const router = useRouter();
+  const unread = useUnreadCount();
   return (
-    <View className="flex-row items-center justify-between px-4">
+    <View className="flex-row items-center px-4">
       <View className="flex-row items-center gap-3">
         <Text style={{ color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, letterSpacing: -0.4 }}>apex</Text>
       </View>
@@ -46,11 +49,27 @@ function Header() {
         accessibilityLabel="Browse trails"
         onPress={() => router.push('/trails')}
         hitSlop={8}
-        className="flex-row items-center gap-1.5 active:opacity-70"
+        className="ml-auto flex-row items-center gap-1.5 active:opacity-70"
         style={{ minHeight: 44 }}
       >
         <Compass size={18} strokeWidth={1.6} color={c.fg2} />
         <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>Trails</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={unread > 0 ? `Notifications, ${unread} new` : 'Notifications'}
+        onPress={() => router.push('/notifications')}
+        hitSlop={8}
+        className="ml-4 items-center justify-center active:opacity-70"
+        style={{ minHeight: 44, minWidth: 32 }}
+      >
+        <Bell size={20} strokeWidth={1.6} color={c.fg2} />
+        {unread > 0 ? (
+          <View
+            className="absolute rounded-full"
+            style={{ top: 9, right: 2, width: 9, height: 9, backgroundColor: c.disliked, borderWidth: 1.5, borderColor: c.bg }}
+          />
+        ) : null}
       </Pressable>
     </View>
   );
@@ -88,6 +107,7 @@ function Feed() {
   const insets = useSafeAreaInsets();
   const { posts, loading, refreshing, error, refetch, loadMore, loadingMore, hasMore } = useFeed();
   const like = useLike();
+  const safety = useSafetyMenu();
   const mine = useMyRankedTrails();
   const lastFetch = useRef(0);
 
@@ -155,7 +175,13 @@ function Feed() {
         <View>
           {index === marker ? <CaughtUp /> : null}
           <View className="px-4 pb-4 pt-5">
-            <PostCard post={item} mine={mine} onLike={like} onOpen={open} />
+            <PostCard
+              post={item}
+              mine={mine}
+              onLike={like}
+              onOpen={open}
+              onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
+            />
           </View>
         </View>
       )}
