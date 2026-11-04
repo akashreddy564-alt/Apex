@@ -6,15 +6,29 @@ The spec covers several independent subsystems, so it ships as separate plans. E
 
 | # | Plan | Depends on | Blocked by owner action | Status |
 |---|------|-----------|--------------------------|--------|
-| 0 | Launch foundation | none | Apple Developer (deferred to near launch) | **nearly done:** units (#24), Mapbox, Supabase database set up with all migrations and grants (007), Expo linked with cloud simulator builds, #20 and #21 merged, #1 and #8 closed. Open: rebuild #22 on main, `expo install --fix`, sync past-hike fields, real-device GPS test |
-| 1 | Opening screen | none | none | **done:** merged (#23); owner reviewed places (22 approved, Tour du Mont Blanc photo replaced); runs in an iPhone build. Owed: launch-screen timing on a real iPhone |
-| 2 | Trail catalog and freeform hikes | none | none | **done:** merged (#31); migration 008 and seed applied 2026-10-23. Owed: Finish → trail sheet on a phone |
-| 3 | Accounts, friends, feed, groups, leaderboards (now also the three-tab layout and new look) | 2 | none until friends test on their own phones (Apple Developer, domain, Resend) | **designed** 2026-10-23 (`docs/superpowers/specs/2026-10-23-apex-social-and-app-structure-design.md`); six steps, step 1 planned in `2026-10-23-social-step-1-app-shell.md` |
-| 4 | Habit loops: streak, goal ring, weekend pick, home | 3 for friend-facing parts | none | not started |
+| 0 | Launch foundation | none | Apple Developer (deferred to near launch) | **nearly done:** units (#24), Mapbox, Supabase with migrations and grants (007), Expo linked with cloud simulator builds, #20 and #21 merged, #1 and #8 closed. Open: rebuild #22 on main, `expo install --fix`, sync past-hike fields. Real-device GPS test moves to the plan 3 phone pass |
+| 1 | Opening screen | none | none | **done:** merged (#23). Launch-screen timing moves to the plan 3 phone pass |
+| 2 | Trail catalog and freeform hikes | none | none | **done:** merged (#31); migration 008 and seed applied 2026-10-23. Finish → trail sheet moves to the plan 3 phone pass |
+| 3 | Accounts, friends, feed, groups, leaderboards (now also the three-tab layout and new look) | 2 | none until friends test on their own phones (Apple Developer, domain, Resend) | **in progress, step 5 of 6 next.** 1 app shell (#32), 2 accounts (#33), 3 friends (#34) merged. 4 feed: code complete on `feat/feed` (feed, likes, comments, hike page, trimmed routes and friend photo access in `011`); owner runs `011` and the test-hiker seed. 5 groups and leaderboards: next. 6 notifications, report and block: after |
+| 4 | Habit loops: streak, goal ring, weekend pick, home | 3 for friend-facing parts | none | **started** on `feat/habit-loops` (stacked on the feed): weekly streak, notification ask, on-phone weekend reminders. Goal ring, weekend pick and Home layout not started |
 | 5 | Route flyover and video share | none | none | **ready to build:** spike passed; owner approved Mapbox GL JS in a WebView (option A) |
 | 6 | Visual pass and App Store submission | all | Apple Developer | **started:** cinematic look chosen; trail list, trail page hero and stats card merged (#25); first iPhone build check fixed collapsed cards and clipped names. Rest of screens, listing, TestFlight, review not started |
 
-_Status updated 2026-10-23._
+_Status updated 2026-11-04._
+
+**Current spot:** plan 3, step 4 (feed) is ready for its PR; step 5 (groups and leaderboards) is next.
+
+## How we check (from 2026-11-04)
+
+Phone checks were slowing every step down and filling the disk, so they're batched.
+
+- **Every change:** `npm run typecheck` and `npm test`. CI runs the same on each PR.
+- **UI changes:** look at the changed screens on `npm run web` at 390×844. No phone.
+- **Phone:** one pass at the end of each plan, not per step or PR. Plan 3's pass happens after step 6 and also clears everything owed below.
+- **No rebuild for JS changes.** The installed dev client loads new code over Metro. Rebuild only when a native module or `app.json` plugin changes, and batch those into the phone pass (`expo-notifications` on `feat/habit-loops` needs one).
+- **Build in the cloud, not on the Mac.** Use `eas build --profile simulator --platform ios` (or `build:dev` for the phone) instead of `npx expo run:ios`. The local `ios/` folder (about 4.5 GB, gitignored, generated) can be deleted between passes.
+
+Owed for the plan 3 phone pass: GPS recording with the screen locked, launch-screen timing, Finish → trail sheet, magic link sign-in, friend invite link and QR, the feed with test hikers.
 
 Plans 1, 2 and 5 can run in parallel; they touch separate files. Plan 3 is the critical path and the largest.
 
@@ -24,7 +38,7 @@ Plans 1, 2 and 5 can run in parallel; they touch separate files. Plan 3 is the c
 - Land #20, #21, #22 per the repo's merge rules, close #1 and #8, then `npx expo install --fix`. Recheck #22: it hides account UI when sync is off, but sync is now on at launch.
 - Supabase GRANTs (due before Oct 30, 2026) and the migration for #17's hike fields.
 - **Units: done** (#24). The app shows miles and feet; stored data stays metric.
-- Real-device test: GPS recording with the screen locked.
+- Real-device test: GPS recording with the screen locked (in the plan 3 phone pass).
 
 ## 2. Trail catalog and freeform hikes
 
