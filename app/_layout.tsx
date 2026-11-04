@@ -21,6 +21,7 @@ import { OpeningScreen } from '@/components/opening/OpeningScreen';
 import { useAuthLinks } from '@/hooks/useAuthLinks';
 import { useColors } from '@/hooks/useColors';
 import { useOpeningPlace } from '@/hooks/useOpeningPlace';
+import { usePrefetchFeed } from '@/hooks/useFeed';
 import { useRemoteSync } from '@/hooks/useRemoteSync';
 import { hydrateHike } from '@/lib/activeHike';
 import { applyNativeScheme } from '@/lib/appearance';
@@ -37,6 +38,12 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 export const unstable_settings = {
   anchor: '(tabs)',
 };
+
+/** Starts loading the feed while the opening screen plays. */
+function FeedPrefetch() {
+  usePrefetchFeed();
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -129,6 +136,7 @@ export default function RootLayout() {
               <Stack.Screen name="add-friends" options={{ title: 'Add friends', headerBackTitle: 'Social' }} />
               <Stack.Screen name="friend-requests" options={{ title: 'Friend requests', headerBackTitle: 'Social' }} />
               <Stack.Screen name="friend/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+              <Stack.Screen name="post/[id]" options={{ title: 'Hike', headerBackTitle: 'Home' }} />
               <Stack.Screen
                 name="credits"
                 options={{ title: 'Credits', headerBackTitle: 'Settings' }}
@@ -141,6 +149,7 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
+            <FeedPrefetch />
             {opening.status === 'show' && !openingDone ? (
               <OpeningScreen
                 place={opening.place}

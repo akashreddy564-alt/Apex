@@ -31,6 +31,11 @@ from (values
   (16, '010 friends',                    to_regclass('public.friendships') is not null
                                            and coalesce(has_table_privilege('authenticated', to_regclass('public.friendships'), 'select'), false)
                                            and to_regprocedure('public.send_friend_request(uuid)') is not null
-                                           and to_regprocedure('public.my_friendships()') is not null)
+                                           and to_regprocedure('public.my_friendships()') is not null),
+  (17, '011 feed',                       to_regclass('public.posts') is not null
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.posts'), 'insert'), false)
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.post_likes'), 'insert'), false)
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.post_comments'), 'insert'), false)
+                                           and to_regprocedure('public.feed_posts(timestamptz, integer, uuid)') is not null)
 ) as checks (n, step, ok)
 order by n;

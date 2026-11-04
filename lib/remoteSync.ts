@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
-import { withStoredScores } from '@/lib/ranking';
+import { shouldPost } from '@/lib/postRules';
+import { DEFAULT_HIKE_TYPE, withStoredScores } from '@/lib/ranking';
 import { supabase } from '@/lib/supabase';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
@@ -9,7 +10,7 @@ import type { HikeLog, PairwiseComparison, Trail, TrailRanking } from '@/types/t
 
 const OUTBOX_KEY = 'apex-sync-outbox';
 
-type OutboxKind = 'trail' | 'log' | 'ranking' | 'comparison';
+type OutboxKind = 'trail' | 'log' | 'ranking' | 'comparison' | 'post';
 
 interface OutboxEntry {
   kind: OutboxKind;
@@ -492,7 +493,54 @@ export async function flushOutbox(): Promise<void> {
   scheduleRetry();
 }
 
+/**
+ * Posts a ranked hike to friends' feeds. The post id is the hike's id, and it
+ * keeps the score from now. Past hikes older than a week don't post.
+ */
+export async function pushPost(logId: string): Promise<void> {
+  const log = useTrailCache.getState().logs.find((row) => row.id === logId);
+  if (!log || !shouldPost(log.created_at)) return;
+  await loadOutbox();
+  if (await sendPost(logId)) dequeue('post', logId);
+  else enqueue('post', logId);
+}
+
+async function sendPost(logId: string): Promise<boolean> {
+  if (!supabase || !isUuid(logId)) return true;
+  const log = useTrailCache.getState().logs.find((row) => row.id === logId);
+  if (!log || !isUuid(log.trail_id)) return true;
+  const rankings = useRankingStore.getState().rankings;
+  const ranking = rankings.find(
+    (row) => row.trail_id === log.trail_id && row.hike_type === DEFAULT_HIKE_TYPE,
+  );
+  if (!ranking) return true;
+  const uid = await userId();
+  if (!uid) return false;
+  // The post points at the hike, so the hike goes up first.
+  if (!(await sendLog(log))) return false;
+  dequeue('log', log.id);
+  const bucketSize = rankings.filter(
+    (row) => row.bucket === ranking.bucket && row.hike_type === ranking.hike_type,
+  ).length;
+  const { error } = await supabase.from('posts').upsert(
+    {
+      id: log.id,
+      user_id: uid,
+      trail_id: log.trail_id,
+      bucket: ranking.bucket,
+      score: Math.round(ranking.score * 10) / 10,
+      bucket_size: Math.max(1, bucketSize),
+      hiked_at: log.created_at,
+    },
+    // Re-ranking later never rewrites what friends already saw.
+    { onConflict: 'id', ignoreDuplicates: true },
+  );
+  // Without a profile yet (no username), this fails and retries until there is one.
+  return !error;
+}
+
 async function sendOutboxEntry(entry: OutboxEntry): Promise<boolean> {
+  if (entry.kind === 'post') return sendPost(entry.id);
   if (entry.kind === 'trail') {
     const trail = useTrailCache.getState().trails.find((row) => row.id === entry.id);
     return trail ? sendTrail(trail) : true;
