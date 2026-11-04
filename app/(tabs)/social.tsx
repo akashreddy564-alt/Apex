@@ -3,6 +3,7 @@ import { ChevronRight, UserPlus } from 'lucide-react-native';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GroupsSection } from '@/components/groups/GroupsSection';
 import { Avatar } from '@/components/social/Avatar';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -111,12 +112,7 @@ function FriendsSection({ profile }: { profile: Profile }) {
         </Text>
       ) : null}
 
-      <View className="mx-4 mt-8 rounded-2xl bg-surface px-5 py-6">
-        <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Groups</Text>
-        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, marginTop: 6 }}>
-          Weekly leaderboards with your crew are coming next.
-        </Text>
-      </View>
+      <GroupsSection />
     </View>
   );
 }

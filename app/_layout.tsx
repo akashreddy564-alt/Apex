@@ -139,6 +139,12 @@ export default function RootLayout() {
               <Stack.Screen name="friend-requests" options={{ title: 'Friend requests', headerBackTitle: 'Social' }} />
               <Stack.Screen name="friend/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
               <Stack.Screen name="post/[id]" options={{ title: 'Hike', headerBackTitle: 'Home' }} />
+              <Stack.Screen name="create-group" options={{ title: 'New group', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="join-group" options={{ title: 'Join a group', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="group/[id]" options={{ title: '', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="notifications" options={{ title: 'Notifications', headerBackTitle: 'Home' }} />
+              <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
+              <Stack.Screen name="blocked" options={{ title: 'Blocked people', headerBackTitle: 'Settings' }} />
               <Stack.Screen
                 name="credits"
                 options={{ title: 'Credits', headerBackTitle: 'Settings' }}

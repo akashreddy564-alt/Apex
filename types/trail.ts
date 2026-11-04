@@ -68,6 +68,8 @@ export interface HikeLog {
   conditions?: string[];
   difficulty?: string | null;
   hike_type?: string | null;
+  /** Climb the phone measured on a recorded hike. Leaderboards use it. */
+  elevation_gain_m?: number | null;
 }
 
 export interface TrailRanking {
