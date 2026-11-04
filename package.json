@@ -22,6 +22,7 @@
     "expo-image-picker": "~57.0.17",
     "expo-linking": "~57.0.10",
     "expo-location": "57.0.20",
+    "expo-notifications": "~57.0.24",
     "expo-router": "~57.0.21",
     "expo-splash-screen": "~57.0.9",
     "expo-status-bar": "~57.0.1",
@@ -58,7 +59,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts lib/trailCover.test.ts lib/trailDifficulty.test.ts lib/contrast.test.ts lib/appearance.test.ts lib/scoreBadge.test.ts lib/catalogRoute.test.ts lib/catalogBuild.test.ts lib/catalogMerge.test.ts lib/trailMatch.test.ts lib/userTrail.test.ts lib/username.test.ts lib/authLink.test.ts lib/friendRules.test.ts lib/postRules.test.ts && jest --ci",
+    "test": "node --experimental-strip-types --test lib/elevationMotion.test.ts lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts lib/trailCover.test.ts lib/trailDifficulty.test.ts lib/contrast.test.ts lib/appearance.test.ts lib/scoreBadge.test.ts lib/catalogRoute.test.ts lib/catalogBuild.test.ts lib/catalogMerge.test.ts lib/trailMatch.test.ts lib/userTrail.test.ts lib/username.test.ts lib/authLink.test.ts lib/friendRules.test.ts lib/postRules.test.ts lib/streak.test.ts lib/nudges.test.ts lib/forecast.test.ts && jest --ci",
     "start": "expo start --port 43127",
     "android": "expo run:android",
     "ios": "expo run:ios",

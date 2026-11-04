@@ -22,6 +22,7 @@ import { useAuthLinks } from '@/hooks/useAuthLinks';
 import { useColors } from '@/hooks/useColors';
 import { useOpeningPlace } from '@/hooks/useOpeningPlace';
 import { usePrefetchFeed } from '@/hooks/useFeed';
+import { useNudges } from '@/hooks/useNudges';
 import { useRemoteSync } from '@/hooks/useRemoteSync';
 import { hydrateHike } from '@/lib/activeHike';
 import { applyNativeScheme } from '@/lib/appearance';
@@ -39,8 +40,9 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-/** Starts loading the feed while the opening screen plays. */
-function FeedPrefetch() {
+/** Reminders need the router, so they start once the navigator is up. */
+function NudgeKeeper() {
+  useNudges();
   usePrefetchFeed();
   return null;
 }
@@ -149,7 +151,7 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
-            <FeedPrefetch />
+            <NudgeKeeper />
             {opening.status === 'show' && !openingDone ? (
               <OpeningScreen
                 place={opening.place}
