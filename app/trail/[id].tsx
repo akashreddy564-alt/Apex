@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Play } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
@@ -12,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DifficultyCard } from '@/components/craft/DifficultyCard';
 import { ElevationScrubber } from '@/components/craft/ElevationScrubber';
 import { RouteTracer } from '@/components/craft/RouteTracer';
-import { Eyebrow, SlideToStart } from '@/components/motion';
+import { Eyebrow, PressScale, SlideToStart } from '@/components/motion';
 import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
@@ -40,6 +41,7 @@ export default function TrailDetailScreen() {
   const insets = useSafeAreaInsets();
   const tracker = useTrailTracker();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const trailParam = id;
   const trail = useTrailCache((s) => s.getTrail(String(id)));
   const recorded = useTrailCache((s) => {
     let best: (typeof s.logs)[number] | null = null;
@@ -54,6 +56,19 @@ export default function TrailDetailScreen() {
       }
     }
     return best?.recorded_path ?? null;
+  });
+  // The newest recorded hike here, for "Play flyover".
+  const recordedLogId = useTrailCache((s) => {
+    let id: string | null = null;
+    let at = '';
+    for (const entry of s.logs) {
+      if (entry.trail_id !== String(trailParam) || !entry.recorded_path || entry.recorded_path.coordinates.length < 2) continue;
+      if (id === null || entry.created_at >= at) {
+        id = entry.id;
+        at = entry.created_at;
+      }
+    }
+    return id;
   });
   const logs = useTrailCache((s) => s.logs);
   const rankings = useRankingStore((s) => s.rankings);
@@ -164,6 +179,29 @@ export default function TrailDetailScreen() {
           ) : null}
 
           <TrailMap canonical={trail.path} recorded={recorded} />
+
+          {recordedLogId ? (
+            <PressScale
+              accessibilityRole="button"
+              accessibilityLabel="Play the flyover of your last hike here"
+              onPress={() => router.push({ pathname: '/flyover/[logId]', params: { logId: recordedLogId } })}
+              style={{
+                ...cardStyle(c),
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingVertical: 14,
+              }}
+            >
+              <Play size={18} color={c.fg} strokeWidth={1.8} fill={c.fg} />
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }}>Play flyover</Text>
+                <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
+                  Your last hike here in 3D, with a video to share
+                </Text>
+              </View>
+            </PressScale>
+          ) : null}
 
           {isCatalogTrail(trail) ? (
             <Text style={{ marginTop: -4, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>

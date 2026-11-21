@@ -28,7 +28,7 @@ function loggedIds(logs: HikeLog[]): Set<string> {
 export const useTrailCache = create<TrailCacheState>()(
   persist(
     (set, get) => ({
-      trails: mergeCatalog(MOCK_TRAILS, CATALOG_TRAILS, loggedIds([])),
+      trails: mergeCatalog(__DEV__ ? MOCK_TRAILS : [], CATALOG_TRAILS, loggedIds([])),
       logs: [],
       hydrateFromSeed: () => {
         const { trails, logs } = get();
@@ -59,7 +59,8 @@ export const useTrailCache = create<TrailCacheState>()(
         return {
           ...current,
           logs,
-          trails: mergeCatalog(saved.trails ?? [], CATALOG_TRAILS, loggedIds(logs)),
+          // Nothing saved yet (a fresh install): keep the starting list, demo trails included.
+          trails: mergeCatalog(saved.trails ?? current.trails, CATALOG_TRAILS, loggedIds(logs)),
         };
       },
     },

@@ -15,7 +15,10 @@ import type { PairwiseComparison, TrailRanking } from '@/types/trail';
 
 const SEED_KEYS = generateNKeysBetween(null, null, 6);
 
-/** Seed a few ranked trails so placement is immediately demoable. Best first. */
+/**
+ * Seed a few ranked trails so placement is immediately demoable. Best first.
+ * Dev builds only: a release build starts with no rankings and no demo trails.
+ */
 const SEED_ROWS: { trailId: string; comparisons: number; bucket: Bucket }[] = [
   { trailId: 'trail-halfdome', comparisons: 4, bucket: 'loved' },
   { trailId: 'trail-diablo', comparisons: 3, bucket: 'loved' },
@@ -51,7 +54,7 @@ interface RankingState {
 export const useRankingStore = create<RankingState>()(
   persist(
     (set, get) => ({
-      rankings: SEED_RANKINGS,
+      rankings: __DEV__ ? SEED_RANKINGS : [],
       comparisons: [],
       getRanking: (trailId, hikeType = DEFAULT_HIKE_TYPE) =>
         get().rankings.find(

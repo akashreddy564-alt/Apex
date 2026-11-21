@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { onlineManager } from '@tanstack/react-query';
 
 import { StreakGrid } from '@/components/craft/StreakGrid';
 import { SummitRegister } from '@/components/craft/SummitRegister';
@@ -26,11 +27,13 @@ import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
 import { TrailAssignSheet } from '@/components/log/TrailAssignSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
+import { PrimaryButton } from '@/components/social/Buttons';
 import { RankingsList } from '@/components/ranking/RankingsList';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
+import { shouldFly } from '@/lib/flyover/plan';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
 import { NO_REASONS, newestLog, registerRank, registerReasons } from '@/lib/logRegister';
@@ -50,6 +53,7 @@ import { usePendingStart } from '@/stores/pendingStart';
 import { useRankingStore } from '@/stores/rankingStore';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
 import { cardStyle, fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
+import { withAlpha } from '@/theme/color';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 /** Record without choosing a trail; it is settled at Finish. */
@@ -162,6 +166,16 @@ export default function LogScreen() {
     [tracker.start],
   );
 
+  // Back from the flyover that Finish opened: rank the hike now.
+  const rankAfterFlyover = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!rankAfterFlyover.current) return;
+      rankAfterFlyover.current = false;
+      setModalOpen(true);
+    }, []),
+  );
+
   // Trail detail's slider leaves a one-shot in-app request (never a URL param,
   // so a deep link can't start GPS recording). Taken on focus once hydrated.
   useFocusEffect(
@@ -206,7 +220,18 @@ export default function LogScreen() {
     if (!log) return;
     haptics.success();
     comparison.start(log.trail_id, log.id);
-    setModalOpen(true);
+    const fly = shouldFly({
+      coords: log.recorded_path?.coordinates,
+      online: onlineManager.isOnline(),
+      hasToken: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+    });
+    if (fly) {
+      // Ranking opens when Log is back in front (see the focus effect).
+      rankAfterFlyover.current = true;
+      router.push({ pathname: '/flyover/[logId]', params: { logId: log.id, rank: '1' } });
+    } else {
+      setModalOpen(true);
+    }
   };
 
   const finish = () => {
@@ -459,73 +484,61 @@ export default function LogScreen() {
 
         {!tracker.isTracking && recording ? (
           <View className="mt-6 gap-2">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cancel"
-              onPress={() => setRecording(false)}
-            >
-              <Text className="text-[13px] text-fg-muted">Cancel</Text>
-            </Pressable>
-            <Pressable
+            <View className="flex-row items-center justify-between">
+              <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 22 }}>Pick a trail</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                onPress={() => setRecording(false)}
+                hitSlop={8}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+                className="active:opacity-70"
+              >
+                <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 14 }}>Cancel</Text>
+              </Pressable>
+            </View>
+            <PrimaryButton
+              label="Start tracking"
               onPress={() => {
                 haptics.tapMedium();
                 beginTracking(selectedTrailId);
               }}
-              className="mt-2 items-center bg-fg py-3.5 active:bg-fg-2"
-              style={{ borderRadius: 12 }}
-            >
-              <Text className="font-mono text-sm font-medium text-bg">
-                Start tracking
-              </Text>
-            </Pressable>
+            />
             <View style={{ marginTop: 16, marginBottom: 4 }}>
               <Eyebrow>Select trail</Eyebrow>
             </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Name it at the end"
-              onPress={() => {
-                setSelectedTrailId(FREEFORM);
-                haptics.select();
-              }}
-            >
-              <View
-                className={`border px-3 py-3 ${
-                  selectedTrailId === FREEFORM
-                    ? 'border-accent bg-accent/10'
-                    : 'border-raised bg-surface'
-                }`}
-                style={{ borderRadius: 12 }}
-              >
-                <Text className="text-[14px] text-fg">Name it at the end</Text>
-                <Text className="mt-0.5 font-mono text-[11px] text-fg-faint">
-                  We'll suggest a trail from where you start
-                </Text>
-              </View>
-            </Pressable>
-            {trails.map((trail) => {
-              const selected = trail.id === selectedTrailId;
-              return (
-                <Pressable
-                  key={trail.id}
-                  onPress={() => {
-                    setSelectedTrailId(trail.id);
-                    haptics.select();
-                  }}
-                  className={`border px-3 py-3 ${
-                    selected
-                      ? 'border-accent bg-accent/10'
-                      : 'border-raised bg-surface'
-                  }`}
-                  style={{ borderRadius: 12 }}
-                >
-                  <Text className="text-[14px] text-fg">{trail.name}</Text>
-                  <Text className="mt-0.5 font-mono text-[11px] text-fg-faint">
-                    {trail.region}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {[{ id: FREEFORM, name: 'Name it at the end', region: 'We’ll suggest a trail from where you start' }, ...trails].map(
+              (trail) => {
+                const selected = trail.id === selectedTrailId;
+                return (
+                  <Pressable
+                    key={trail.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={trail.name}
+                    onPress={() => {
+                      setSelectedTrailId(trail.id);
+                      haptics.select();
+                    }}
+                    className="rounded-2xl border px-4 active:opacity-80"
+                    style={{
+                      minHeight: 56,
+                      justifyContent: 'center',
+                      paddingVertical: 10,
+                      borderColor: selected ? c.accent : c.border,
+                      backgroundColor: selected ? withAlpha(c.accent, 0.1) : c.surface,
+                    }}
+                  >
+                    <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }} numberOfLines={1}>
+                      {trail.name}
+                    </Text>
+                    <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                      {trail.region}
+                    </Text>
+                  </Pressable>
+                );
+              },
+            )}
           </View>
         ) : (
           <>
