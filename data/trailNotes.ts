@@ -82,9 +82,10 @@ export const TRAIL_NOTES: Record<string, TrailNote> = {
   },
 
   // Mission Peak
-  // https://ebparks.org/maps/mission-peak
+  // https://www.ebparks.org/parks/mission-peak (fetched 2026-11-21: staging area "at the east end of
+  // Stanford Avenue", "off Mission Blvd.", "steep climb to the summit")
   '6f08aebe-511b-4713-8956-dfa86e049fdd': {
-    route: 'From the east end of Stanford Avenue off Mission Boulevard up to the summit of Mission Peak.',
+    route: 'From the staging area at the east end of Stanford Avenue, off Mission Boulevard, a steep climb to the summit.',
   },
 
   // Mount Bierstadt
@@ -133,9 +134,12 @@ export const TRAIL_NOTES: Record<string, TrailNote> = {
   },
 
   // Rattlesnake Ledge
-  // https://www.seattle.gov/utilities/environment-and-conservation/our-watersheds/cedar-river-watershed/rattlesnake-ledge
+  // https://www.seattle.gov/utilities/protecting-our-environment/our-water-sources/cedar-river-watershed/recreation-areas-and-trails
+  // (Seattle Public Utilities, fetched 2026-11-21: "Beginning at Rattlesnake Lake, the first 2-mile section",
+  // "exposed cliffs and steep drops". The views claim was not on the page, so it is dropped.)
   'da0b97be-7935-4c25-b3f3-89e4eb5c2ce3': {
-    route: 'Two miles up to a ledge with views of the Cedar River watershed, Rattlesnake Lake and Chester Morse Lake.',
+    route: 'From Rattlesnake Lake, two miles up to the ledge, with exposed cliffs and steep drops.',
+    flags: ['Exposure'],
   },
 
   // Royal Arch
