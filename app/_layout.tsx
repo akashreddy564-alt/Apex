@@ -145,6 +145,7 @@ export default function RootLayout() {
               <Stack.Screen name="notifications" options={{ title: 'Notifications', headerBackTitle: 'Home' }} />
               <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
               <Stack.Screen name="blocked" options={{ title: 'Blocked people', headerBackTitle: 'Settings' }} />
+              <Stack.Screen name="goal" options={{ title: 'Weekly goal', headerBackTitle: 'Back' }} />
               <Stack.Screen
                 name="credits"
                 options={{ title: 'Credits', headerBackTitle: 'Settings' }}
