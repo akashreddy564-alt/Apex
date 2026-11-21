@@ -14,7 +14,7 @@ The spec covers several independent subsystems, so it ships as separate plans. E
 | 5 | Route flyover and video share | none | none | **code complete on `feat/flyover`; phone pass owed.** Plays after Finish (skipped offline), then hands off to ranking; Play flyover on the trail page; Share video renders a 720×1280 MP4 frame by frame with the route's first and last 300 m removed (spec `2026-11-21-route-flyover-design.md`). Owner: add `https://flyover.apex.app/` to the Mapbox token's allowed URLs |
 | 6 | Visual pass and App Store submission | all | Apple Developer | **visual pass done in code:** cinematic look, craft pass, and the last rough screens (Settings sign-in, trail picker, username and not-found) on `feat/visual-pass`. Signed-in social screens get their look check in the phone pass. Listing, TestFlight and review wait on Apple Developer |
 
-_Status updated 2026-11-21 (evening): all launch code is written. What's left is owner work: merges, migrations `011`–`015`, the phone pass, and Apple Developer for the App Store._
+_Status updated 2026-11-21 (night): all launch code is on `main` (#37–#49 merged) and migrations `011`–`015` are applied to the Apex Supabase project; `migration_status.sql` shows all 21 rows `true`. Left: the Mapbox token's allowed URL for the flyover, the phone pass, and Apple Developer for the App Store._
 
 **Weekend pick (2026-11-21):** fixed on `fix/demo-seed`: the demo trails now survive a fresh install, so dev builds show demo rankings and a pick. Release builds start with no demo data at all. Phone check: the card shows Wed–Sun, "Not this one" moves on, VoiceOver reads it as one button.
 
