@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { useColors } from '@/hooks/useColors';
+import { fonts } from '@/theme/tokens';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import type { Trail } from '@/types/trail';
 
@@ -13,10 +14,12 @@ interface TrailCardProps {
   score?: string | null;
   /** Replaces the plain score, e.g. a ScoreBadge. */
   trailing?: ReactNode;
+  /** One short reason under the meta, e.g. "Above Mission Peak". Hidden when null. */
+  reason?: string | null;
   onPress?: () => void;
 }
 
-export function TrailCard({ trail, rank, score, trailing, onPress }: TrailCardProps) {
+export function TrailCard({ trail, rank, score, trailing, reason, onPress }: TrailCardProps) {
   const c = useColors();
   return (
     <Pressable
@@ -37,6 +40,11 @@ export function TrailCard({ trail, rank, score, trailing, onPress }: TrailCardPr
           {trail.region} · {formatOptionalDistance(trail.distance_km)} · ↑
           {formatOptionalElevation(trail.elevation_gain_m)}
         </Text>
+        {reason ? (
+          <Text numberOfLines={1} style={{ marginTop: 4, fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fg2 }}>
+            {reason}
+          </Text>
+        ) : null}
       </View>
       {trailing ?? null}
       {!trailing && score ? (

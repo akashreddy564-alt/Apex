@@ -1,22 +1,35 @@
 import { useRouter } from 'expo-router';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
+import { ContourTexture, Eyebrow } from '@/components/motion';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
 import { useMyProfile } from '@/hooks/useProfile';
 import type { Profile } from '@/lib/profile';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
 
-function Card({ title, body, children }: { title: string; body: string; children?: ReactNode }) {
+/** The gate's card (also used for other empty and dead-end screens): contour lines across the whole card behind an eyebrow, title and one plain sentence. */
+export function GateCard({ eyebrow, title, body, children }: { eyebrow: string; title: string; body: string; children?: ReactNode }) {
   const c = useColors();
+  const [size, setSize] = useState({ width: 0, height: 0 });
   return (
-    <View className="mx-4 mt-6 rounded-2xl bg-surface px-5 py-6">
-      <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 20 }}>{title}</Text>
+    <View
+      onLayout={(e) =>
+        setSize({ width: Math.round(e.nativeEvent.layout.width), height: Math.round(e.nativeEvent.layout.height) })
+      }
+      style={[cardStyle(c), { marginHorizontal: 16, marginTop: 24, overflow: 'hidden', paddingTop: 28 }]}
+    >
+      {/* Sized to the card, so the rings run off its edges instead of stopping at a line. */}
+      {size.width > 0 && size.height > 0 ? (
+        <ContourTexture seed={`gate-${eyebrow}`} width={size.width} height={size.height} opacity={0.8} />
+      ) : null}
+      <Eyebrow>{eyebrow}</Eyebrow>
+      <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 22, lineHeight: 26, marginTop: 8 }}>{title}</Text>
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, marginTop: 6, lineHeight: 21 }}>
         {body}
       </Text>
-      {children ? <View className="mt-5 gap-2">{children}</View> : null}
+      {children ? <View style={{ marginTop: 20, gap: 8 }}>{children}</View> : null}
     </View>
   );
 }
@@ -38,7 +51,8 @@ export function SignInGate({
 
   if (!configured) {
     return (
-      <Card
+      <GateCard
+        eyebrow="This phone only"
         title="Friends need an account"
         body="This copy of Apex runs on this phone only. Your hikes and rankings still work in Log."
       />
@@ -49,26 +63,27 @@ export function SignInGate({
   }
   if (!session) {
     return (
-      <Card
+      <GateCard
+        eyebrow="Account"
         title="Sign in to see your friends"
         body={`Sign in to ${why}. Your hikes upload when you do, and Log keeps working signed out.`}
       >
         <PrimaryButton label="Sign in with email" onPress={() => router.push('/account')} />
-      </Card>
+      </GateCard>
     );
   }
   if (error) {
     return (
-      <Card title="Couldn’t load your profile" body={error}>
+      <GateCard eyebrow="Profile" title="Couldn’t load your profile" body={error}>
         <SecondaryButton label="Try again" onPress={() => void refetch()} />
-      </Card>
+      </GateCard>
     );
   }
   if (!profile) {
     return (
-      <Card title="Pick a username" body="Friends find you by your username. You can change it later.">
+      <GateCard eyebrow="Username" title="Pick a username" body="Friends find you by your username. You can change it later.">
         <PrimaryButton label="Choose username" onPress={() => router.push('/username')} />
-      </Card>
+      </GateCard>
     );
   }
   return <>{children(profile)}</>;

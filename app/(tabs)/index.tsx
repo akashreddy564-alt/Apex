@@ -11,10 +11,12 @@ import { PostCard } from '@/components/feed/PostCard';
 import { GoalRing } from '@/components/habit/GoalRing';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
 import { StreakChip } from '@/components/habit/StreakChip';
+import { WeekendPick } from '@/components/habit/WeekendPick';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
+import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { useFeed, useLike } from '@/hooks/useFeed';
 import { useFriendships } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
@@ -22,7 +24,7 @@ import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
-import { riseIn } from '@/components/motion';
+import { riseIn, Skeleton } from '@/components/motion';
 
 /** Coming back to Home refetches when the feed is older than this. */
 const STALE_ON_FOCUS_MS = 30_000;
@@ -121,6 +123,7 @@ function Feed() {
   const c = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
   const { posts, loading, refreshing, error, refetch, loadMore, loadingMore, hasMore } = useFeed();
   const like = useLike();
   const safety = useSafetyMenu();
@@ -174,7 +177,11 @@ function Feed() {
   let empty = null;
   if (loading) {
     // First sign-in only: the feed was prefetched during the opening screen, and is cached after.
-    empty = null;
+    empty = (
+      <View className="px-4 pt-5">
+        <Skeleton shape="post" count={3} />
+      </View>
+    );
   } else if (error) {
     empty = (
       <View className="mx-4 mt-6 gap-3 rounded-2xl bg-surface px-5 py-6">
@@ -198,6 +205,7 @@ function Feed() {
           <Animated.View entering={index < 6 ? riseIn(index) : undefined} style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 20 }}>
             <PostCard
               post={item}
+              feed={posts}
               mine={mine}
               onLike={like}
               onOpen={open}
@@ -211,6 +219,7 @@ function Feed() {
         <View>
           <Header />
           <ThisWeek />
+          <WeekendPick />
           <View className="px-4">
             <NotificationAsk />
           </View>
@@ -228,7 +237,7 @@ function Feed() {
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void refetch()} tintColor={c.fgMuted} />
       }
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32 }}
+      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}
     />
   );
 }
@@ -236,14 +245,16 @@ function Feed() {
 /** Home: your and your friends' ranked hikes, newest first. */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
   const { session, profile } = useMyProfile();
 
   if (session && profile) return <Feed />;
 
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32 }}>
+    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
       <Header />
       <ThisWeek />
+      <WeekendPick />
       <SignInGate why="see what your friends hiked">{() => null}</SignInGate>
     </ScrollView>
   );

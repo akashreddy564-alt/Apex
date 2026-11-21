@@ -4,8 +4,7 @@
  * charts (bars that grow in), built on Reanimated so they run on the UI
  * thread at 60 fps. Every piece honours Reduce Motion.
  *
- * Motion is for feedback and arrival only: something moves because the
- * person touched it or because it just appeared. Nothing loops.
+ * Motion is for feedback, arrival and a few quiet loops. Only loaders, skeleton shimmer and the start slider's sheen loop, and all of them stop under Reduce Motion.
  */
 import { cssInterop } from 'nativewind';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -148,3 +147,14 @@ export function GrowBar({
     </Animated.View>
   );
 }
+
+export { haptics } from './haptics';
+export { Odometer } from './Odometer';
+export { DrawIn } from './DrawIn';
+export { ContourTexture } from './ContourTexture';
+export { ContourLoader } from './ContourLoader';
+export { Skeleton } from './Skeleton';
+export { ReasonLine } from './ReasonLine';
+export { Eyebrow } from './Eyebrow';
+export { SlideToStart } from './SlideToStart';
+export { Glass } from './Glass';

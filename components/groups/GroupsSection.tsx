@@ -3,13 +3,14 @@ import { ArrowDown, ArrowUp, ChevronRight } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { GroupMark } from '@/components/groups/GroupMark';
+import { Eyebrow, Skeleton } from '@/components/motion';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
 import { useMyGroups, usePrefetchGroup } from '@/hooks/useGroups';
 import { movement, ordinal, type Group } from '@/lib/groupRules';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
 
-function GroupRow({ group }: { group: Group }) {
+function GroupRow({ group, first }: { group: Group; first: boolean }) {
   const c = useColors();
   const router = useRouter();
   const prefetch = usePrefetchGroup();
@@ -21,7 +22,7 @@ function GroupRow({ group }: { group: Group }) {
       accessibilityLabel={`${group.name}, ${place}${move ? `, moved ${move}` : ''}`}
       onPressIn={() => prefetch(group.id)}
       onPress={() => router.push({ pathname: '/group/[id]', params: { id: group.id } })}
-      className="flex-row items-center gap-3 py-2.5 active:opacity-80"
+      className={`flex-row items-center gap-3 py-2.5 active:opacity-80 ${first ? '' : 'border-t border-raised'}`}
     >
       <GroupMark name={group.name} color={group.color} />
       <View className="flex-1">
@@ -48,22 +49,30 @@ export function GroupsSection() {
   const { groups, loading, error, refetch } = useMyGroups();
   return (
     <View className="mx-4 mt-8">
-      <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Groups</Text>
-      {error ? (
-        <View className="mt-3 gap-2">
-          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
-          <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+      <View style={cardStyle(c)}>
+        <Eyebrow>Weekly climbs</Eyebrow>
+        <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18, marginTop: 6 }}>Groups</Text>
+        {error ? (
+          <View className="mt-3 gap-2">
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
+            <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+          </View>
+        ) : null}
+        {!loading && !error && groups.length === 0 ? (
+          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20, marginTop: 6 }}>
+            Start one with your coworkers or hiking crew and see who climbs the most each week.
+          </Text>
+        ) : null}
+        {loading && groups.length === 0 ? (
+          <View className="mt-2">
+            <Skeleton shape="row" count={2} />
+          </View>
+        ) : null}
+        <View className="mt-2">
+          {groups.map((group, i) => (
+            <GroupRow key={group.id} group={group} first={i === 0} />
+          ))}
         </View>
-      ) : null}
-      {!loading && !error && groups.length === 0 ? (
-        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20, marginTop: 6 }}>
-          Start one with your coworkers or hiking crew and see who climbs the most each week.
-        </Text>
-      ) : null}
-      <View className="mt-2">
-        {groups.map((group) => (
-          <GroupRow key={group.id} group={group} />
-        ))}
       </View>
       <View className="mt-3 flex-row gap-3">
         <View className="flex-1">

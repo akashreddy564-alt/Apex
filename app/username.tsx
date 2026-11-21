@@ -3,7 +3,9 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
+import { Skeleton } from '@/components/motion';
 import { PrimaryButton } from '@/components/social/Buttons';
+import { GateCard } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { profileKey, useMyProfile } from '@/hooks/useProfile';
 import { saveProfile } from '@/lib/profile';
@@ -40,16 +42,18 @@ export default function UsernameScreen() {
 
   if (loading || !filled) {
     return (
-      <View className="flex-1 bg-bg" />
+      <View className="flex-1 bg-bg px-5 pt-6">
+        <Skeleton shape="row" count={5} />
+      </View>
     );
   }
 
   if (!uid) {
     return (
-      <View className="flex-1 bg-bg px-5 pt-6">
-        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15 }}>
-          Sign in from Settings first.
-        </Text>
+      <View className="flex-1 bg-bg">
+        <GateCard eyebrow="Account" title="Sign in first" body="Your username lives on your account. Sign in, then pick one.">
+          <PrimaryButton label="Go to sign in" onPress={() => router.replace('/account')} />
+        </GateCard>
       </View>
     );
   }

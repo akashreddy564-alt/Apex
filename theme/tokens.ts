@@ -72,6 +72,15 @@ export const palettes: Record<'dark' | 'light', Palette> = {
 };
 
 /**
+ * The summit register's receipt paper, ink and stamp. The same in both
+ * appearances, and used only for the register.
+ */
+export const paper = '#F3EFE4';
+export const ink = '#151515';
+/** The register's summit stamp green, printed on paper in both appearances. */
+export const stamp = '#1F8F4E';
+
+/**
  * Family names registered with `useFonts` in `app/_layout.tsx`.
  * SDK 57 loads each weight as its own family, so use the weight-specific
  * name (or the matching Tailwind class) instead of `fontWeight`.
@@ -152,15 +161,6 @@ export const displayXL = {
   fontWeight: 'normal' as const,
 } as const;
 
-/** 700 display for section titles and the trail name under the map. */
-export const displayM = {
-  color: palettes.dark.fg,
-  fontFamily: fonts.display,
-  fontSize: 28,
-  lineHeight: 31,
-  fontWeight: 'normal' as const,
-} as const;
-
 /** Text styles. Titles use `heading.color` only — never a second color inside the line. */
 export const type = {
   caption: {
@@ -209,8 +209,6 @@ export function numericStyle(weight: 'regular' | 'medium' | 'semibold' = 'regula
   };
 }
 
-export const numericText = numericStyle();
-
 /** Additive NativeWind families. Does not include `mono` or `sans`. */
 export const tailwindFontFamily = {
   display: [fonts.display, 'sans-serif'],
@@ -251,16 +249,46 @@ export function cssVars(palette: Palette): Record<`--color-${string}`, string> {
 /** Tailwind color names backed by the CSS variables above. */
 export const themeColorNames = Object.keys(palettes.dark).map(kebab);
 
-/** The bottom tab bar for a palette. Hidden while a hike is recording. */
-export function tabBarStyle(palette: Palette, hidden = false) {
-  if (hidden) return { display: 'none' as const };
+/**
+ * The one card build: surface fill, a `raised` hairline, radius 22, padding 16.
+ * Only the summit register and the glass bars differ.
+ */
+export function cardStyle(palette: Palette) {
   return {
-    backgroundColor: palette.bg,
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.raised,
+    borderRadius: 22,
+    padding: 16,
+  } as const;
+}
+
+/**
+ * The tab bar's own height above the home indicator: 1 hairline + 7 + the 54 pt tab item
+ * (5 pt padding, 28 pt icon box, 16 pt label line, 5 pt padding) + 6.
+ * Shorter, and the navigator squeezes the label and clips it.
+ */
+const TAB_BAR_BODY = 68;
+
+/**
+ * The bottom tab bar for a palette. Hidden while a hike is recording.
+ * `bottomInset` is the safe-area inset, so the labels sit fully above the
+ * home indicator on device; on web it is 0.
+ */
+export function tabBarStyle(palette: Palette, hidden = false, bottomInset = 0) {
+  if (hidden) return { display: 'none' as const };
+  // Transparent and floating: the Glass background in the tabs layout frosts
+  // whatever scrolls under it. Tab screens pad by useTabBarInset(), which
+  // reports this same height.
+  return {
+    position: 'absolute' as const,
+    backgroundColor: 'transparent',
     borderTopColor: palette.raised,
     borderTopWidth: 1,
-    height: 58,
-    paddingBottom: 6,
-    paddingTop: 6,
+    height: TAB_BAR_BODY + bottomInset,
+    // 7 + the 1 pt top hairline = 8.
+    paddingTop: 7,
+    paddingBottom: 6 + bottomInset,
   };
 }
 

@@ -7,7 +7,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
 import { MISSING_METRIC, toFeet, toMiles } from '@/lib/format';
 import { climbRateFtPerMile, difficultyRating, paceLabel } from '@/lib/trailDifficulty';
-import { fonts, type Palette } from '@/theme/tokens';
+import { cardStyle, fonts, type Palette } from '@/theme/tokens';
 import type { TrailTelemetry } from '@/types/trail';
 
 /** Quick count with a short stagger; the elevation chart starts after the third. */
@@ -116,7 +116,16 @@ function Detail({ icon, label, value, children }: { icon: ReactNode; label: stri
   );
 }
 
-export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry: TrailTelemetry }) {
+export function TrailStats({
+  trailId,
+  telemetry,
+  showDifficulty = true,
+}: {
+  trailId: string;
+  telemetry: TrailTelemetry;
+  /** False where a DifficultyCard already shows the rating. */
+  showDifficulty?: boolean;
+}) {
   const styles = useStyles();
   const c = useColors();
   const { distance_km, elevation_gain_m, peak_elevation_m, avg_moving_time_seconds } = telemetry;
@@ -157,26 +166,30 @@ export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry:
         />
       </View>
 
-      <View style={styles.rule} />
+      {showDifficulty ? (
+        <>
+          <View style={styles.rule} />
 
-      <View style={styles.difficulty} accessible accessibilityRole="text"
-        accessibilityLabel={`Difficulty, ${rating ? rating.label : 'unknown'}`}>
-        <View style={styles.difficultyTop}>
-          <Text style={styles.label}>DIFFICULTY</Text>
-          <Text style={[styles.difficultyLabel, rating && { color: levelColors(c)[rating.level] }]}>
-            {rating ? rating.label : 'Not rated'}
-          </Text>
-        </View>
-        <View style={styles.meter}>
-          {levelColors(c).map((color, i) => (
-            <View
-              key={color}
-              style={[styles.segment, { backgroundColor: rating && i <= rating.level ? color : c.raised }]}
-            />
-          ))}
-        </View>
-        <Text style={styles.footnote}>NPS Shenandoah rating{rating ? ` · ${Math.round(rating.score)}` : ''}</Text>
-      </View>
+          <View style={styles.difficulty} accessible accessibilityRole="text"
+            accessibilityLabel={`Difficulty, ${rating ? rating.label : 'unknown'}`}>
+            <View style={styles.difficultyTop}>
+              <Text style={styles.label}>DIFFICULTY</Text>
+              <Text style={[styles.difficultyLabel, rating && { color: levelColors(c)[rating.level] }]}>
+                {rating ? rating.label : 'Not rated'}
+              </Text>
+            </View>
+            <View style={styles.meter}>
+              {levelColors(c).map((color, i) => (
+                <View
+                  key={color}
+                  style={[styles.segment, { backgroundColor: rating && i <= rating.level ? color : c.raised }]}
+                />
+              ))}
+            </View>
+            <Text style={styles.footnote}>NPS Shenandoah rating{rating ? ` · ${Math.round(rating.score)}` : ''}</Text>
+          </View>
+        </>
+      ) : null}
 
       <View style={styles.rule} />
 
@@ -199,16 +212,11 @@ export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry:
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-  card: {
-    borderRadius: 22,
-    backgroundColor: c.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: c.raised,
-    paddingVertical: 18,
-  },
-  headlines: { flexDirection: 'row', alignItems: 'stretch', paddingHorizontal: 6 },
+  // The card rule; the columns pull out so their gutters meet the 16 pt edge.
+  card: cardStyle(c),
+  headlines: { flexDirection: 'row', alignItems: 'stretch', marginHorizontal: -12 },
   headline: { flex: 1, paddingHorizontal: 12 },
-  vrule: { width: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.12)', marginVertical: 2 },
+  vrule: { width: StyleSheet.hairlineWidth, backgroundColor: c.border, marginVertical: 2 },
   label: { color: c.fgFaint, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.6 },
   bigLine: { marginTop: 6 },
   big: {
@@ -219,20 +227,20 @@ const makeStyles = (c: Palette) =>
     fontVariant: ['tabular-nums'],
   },
   unit: { color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 },
-  rule: { height: StyleSheet.hairlineWidth, backgroundColor: 'rgba(255,255,255,0.08)', marginVertical: 16, marginHorizontal: 18 },
-  difficulty: { paddingHorizontal: 18 },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: c.border, marginVertical: 16 },
+  difficulty: {},
   difficultyTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   difficultyLabel: { color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 15 },
   meter: { flexDirection: 'row', gap: 4, marginTop: 10 },
   segment: { flex: 1, height: 6, borderRadius: 3 },
   footnote: { marginTop: 8, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 },
-  details: { flexDirection: 'row', paddingHorizontal: 12 },
+  details: { flexDirection: 'row', marginHorizontal: -6 },
   detail: { flex: 1, flexDirection: 'row', gap: 8, paddingHorizontal: 6 },
   detailIcon: {
     width: 28,
     height: 28,
     borderRadius: 9,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: c.raised,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -1,43 +1,69 @@
 import { ScrollView, Text, View } from 'react-native';
 
+import { Eyebrow, Skeleton } from '@/components/motion';
+import { SecondaryButton } from '@/components/social/Buttons';
 import { PersonRow } from '@/components/social/PersonRow';
 import { RelationButton } from '@/components/social/RelationButton';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useFriendships } from '@/hooks/useFriends';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
 
 function Requests() {
   const c = useColors();
-  const { incoming, outgoing } = useFriendships();
-  const label = { color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 20 } as const;
+  const { incoming, outgoing, loading, error, refetch } = useFriendships();
+  if (loading) {
+    return (
+      <View style={{ paddingTop: 16 }}>
+        <Skeleton shape="row" count={5} />
+      </View>
+    );
+  }
+  if (error) {
+    // Never say "No requests" when we couldn't ask.
+    return (
+      <View style={[cardStyle(c), { marginTop: 16, gap: 12 }]}>
+        <Eyebrow>Friend requests</Eyebrow>
+        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 }}>
+          Couldn’t load your requests. {error}
+        </Text>
+        <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+      </View>
+    );
+  }
   return (
     <View>
-      <Text style={label}>Asked you</Text>
-      {incoming.length === 0 ? (
-        <Text style={{ color: c.fgFaint, fontFamily: fonts.ui, fontSize: 14, marginTop: 8 }}>
-          No requests right now.
-        </Text>
-      ) : (
-        incoming.map((person) => (
-          <PersonRow
-            key={person.id}
-            person={person}
-            action={<RelationButton personId={person.id} name={person.display_name} username={person.username} relation="incoming" />}
-          />
-        ))
-      )}
+      <View style={[cardStyle(c), { marginTop: 16, paddingBottom: incoming.length > 0 ? 6 : 16 }]}>
+        <Eyebrow>Asked you</Eyebrow>
+        {incoming.length === 0 ? (
+          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, marginTop: 8 }}>
+            No requests right now.
+          </Text>
+        ) : (
+          <View style={{ marginTop: 4 }}>
+            {incoming.map((person) => (
+              <PersonRow
+                key={person.id}
+                person={person}
+                action={<RelationButton personId={person.id} name={person.display_name} username={person.username} relation="incoming" />}
+              />
+            ))}
+          </View>
+        )}
+      </View>
       {outgoing.length > 0 ? (
-        <>
-          <Text style={label}>You asked</Text>
-          {outgoing.map((person) => (
-            <PersonRow
-              key={person.id}
-              person={person}
-              action={<RelationButton personId={person.id} name={person.display_name} username={person.username} relation="outgoing" />}
-            />
-          ))}
-        </>
+        <View style={[cardStyle(c), { marginTop: 16, paddingBottom: 6 }]}>
+          <Eyebrow>You asked</Eyebrow>
+          <View style={{ marginTop: 4 }}>
+            {outgoing.map((person) => (
+              <PersonRow
+                key={person.id}
+                person={person}
+                action={<RelationButton personId={person.id} name={person.display_name} username={person.username} relation="outgoing" />}
+              />
+            ))}
+          </View>
+        </View>
       ) : null}
     </View>
   );

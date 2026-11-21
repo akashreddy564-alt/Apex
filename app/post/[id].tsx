@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Skeleton } from '@/components/motion';
 import { PostCard } from '@/components/feed/PostCard';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
@@ -90,7 +91,13 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
   const input = useRef<TextInput>(null);
 
   // The feed already holds this post, so this only shows for a cold link.
-  if (loading) return <View className="flex-1 bg-bg" />;
+  if (loading) {
+    return (
+      <View className="flex-1 bg-bg px-4 pt-4">
+        <Skeleton shape="post" />
+      </View>
+    );
+  }
   if (error || !post) {
     return (
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, margin: 20 }}>

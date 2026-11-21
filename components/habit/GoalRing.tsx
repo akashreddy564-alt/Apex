@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, Text } from 'react-native';
@@ -15,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Circle, Path, Svg } from 'react-native-svg';
 
+import { haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
 import { formatAmount, formatProgress, type GoalMetric } from '@/lib/weeklyGoal';
@@ -107,7 +107,7 @@ export function GoalRing() {
     void AsyncStorage.getItem(CELEBRATED_KEY)
       .then((seen) => {
         if (cancelled || seen === progress.weekOf) return;
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+        haptics.success();
         if (!reduceMotion) {
           scale.value = withSequence(withSpring(1.2, { damping: 6, stiffness: 260 }), withTiming(1, { duration: 220 }));
         }

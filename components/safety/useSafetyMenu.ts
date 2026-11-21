@@ -1,7 +1,7 @@
-import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
 import { Alert } from 'react-native';
 
+import { haptics } from '@/components/motion';
 import { useSafetyActions } from '@/hooks/useSafety';
 
 export interface SafetyTarget {
@@ -31,7 +31,7 @@ export function useSafetyMenu(onBlocked?: () => void) {
           style: 'destructive',
           onPress: () => {
             block(target.person);
-            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            haptics.success();
             onBlocked?.();
           },
         },
@@ -39,7 +39,7 @@ export function useSafetyMenu(onBlocked?: () => void) {
     );
 
   return (target: SafetyTarget) => {
-    void Haptics.selectionAsync();
+    haptics.select();
     const what = target.comment ? 'this comment' : target.post ? 'this hike' : first(target.name);
     Alert.alert(target.name, undefined, [
       {

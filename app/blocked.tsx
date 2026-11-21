@@ -1,5 +1,6 @@
 import { ScrollView, Text, View } from 'react-native';
 
+import { Skeleton } from '@/components/motion';
 import { PersonRow } from '@/components/social/PersonRow';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -11,7 +12,7 @@ function BlockedList() {
   const c = useColors();
   const { people, loading, error } = useBlocked();
   const { unblock } = useSafetyActions();
-  if (loading) return null;
+  if (loading) return <Skeleton shape="row" count={5} />;
   if (error) return <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>;
   if (people.length === 0) {
     return (

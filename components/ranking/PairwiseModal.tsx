@@ -1,9 +1,9 @@
-import * as Haptics from 'expo-haptics';
 import { Undo2, X } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ContourLoader, haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
 import { ElevationStrip, RouteThumb } from '@/components/ranking/RouteFigure';
@@ -221,7 +221,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
   };
 
   const pick = (choice: 'challenger' | 'opponent' | 'too_close' | 'skip') => {
-    void Haptics.selectionAsync();
+    haptics.select();
     choose(choice);
   };
 
@@ -279,7 +279,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                 <Pressable
                   key={item}
                   onPress={() => {
-                    void Haptics.selectionAsync();
+                    haptics.select();
                     pickBucket(item);
                   }}
                   style={{
@@ -406,9 +406,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
           </View>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-              Preparing comparison
-            </Text>
+            <ContourLoader size="screen" label="Preparing comparison" />
           </View>
         )}
       </View>
