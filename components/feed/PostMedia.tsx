@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { Heart } from 'lucide-react-native';
 import { useState } from 'react';
@@ -12,8 +11,9 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import { Circle, Polyline, Svg } from 'react-native-svg';
+import { Circle, Svg } from 'react-native-svg';
 
+import { DrawIn, haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { usePhotoUri } from '@/hooks/usePhotoUri';
 import { projectPoints } from '@/lib/projectPath';
@@ -47,13 +47,17 @@ function RouteSlide({ route, width, height }: { route: [number, number][]; width
 
   // No map key: the line alone, drawn the way Rankings draws routes.
   const points = projectPoints(route, width, height, 28);
-  const line = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const d = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  // DrawIn wants an overestimate of the path's length.
+  let length = 0;
+  for (let i = 1; i < points.length; i++) length += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
+  length = Math.ceil(length * 1.05) + 8;
   const start = points[0];
   const end = points[points.length - 1];
   return (
     <View accessible accessibilityLabel="Route" style={{ width, height, backgroundColor: c.surface }}>
       <Svg width={width} height={height}>
-        <Polyline points={line} fill="none" stroke={c.mapLine} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+        <DrawIn d={d} stroke={c.mapLine} strokeWidth={2.6} length={length} />
         {start ? <Circle cx={start.x} cy={start.y} r={4} fill={c.surface} stroke={c.mapLine} strokeWidth={2} /> : null}
         {end ? <Circle cx={end.x} cy={end.y} r={3.5} fill={c.mapLine} /> : null}
       </Svg>
@@ -119,7 +123,7 @@ export function PostMedia({
     .onEnd((_event, success) => {
       if (!success || !onDoubleTap) return;
       onDoubleTap();
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      haptics.tapLight();
       burst.value = reduceMotion
         ? withSequence(withTiming(1, { duration: 80 }), withTiming(0, { duration: 500 }))
         : withSequence(withSpring(1, { damping: 9, stiffness: 320 }), withTiming(0, { duration: 420 }));

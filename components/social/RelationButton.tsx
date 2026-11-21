@@ -11,16 +11,19 @@ import type { Relation } from '@/lib/friends';
 export function RelationButton({
   personId,
   name,
+  username = '',
   relation,
   compact = true,
 }: {
   personId: string;
   name: string;
+  /** Shown in your lists until the server's copy arrives. */
+  username?: string;
   relation: Relation;
   compact?: boolean;
 }) {
   const actions = useFriendActions();
-  const busy = actions.pendingFor === personId;
+  const person = { id: personId, display_name: name, username };
 
   if (relation === 'self') return null;
   if (relation === 'none') {
@@ -29,8 +32,7 @@ export function RelationButton({
         compact={compact}
         label="Add"
         a11y={`Add ${name}`}
-        busy={busy}
-        onPress={() => actions.add(personId)}
+        onPress={() => actions.add(person)}
       />
     );
   }
@@ -41,15 +43,13 @@ export function RelationButton({
           compact={compact}
           label="Accept"
           a11y={`Accept ${name}`}
-          busy={busy}
-          onPress={() => actions.accept(personId)}
+          onPress={() => actions.accept(person)}
         />
         <SecondaryButton
           compact={compact}
           label="Decline"
           a11y={`Decline ${name}`}
-          disabled={busy}
-          onPress={() => actions.decline(personId)}
+          onPress={() => actions.decline(person)}
         />
       </View>
     );
@@ -60,11 +60,10 @@ export function RelationButton({
         compact={compact}
         label="Requested"
         a11y={`Cancel request to ${name}`}
-        busy={busy}
         onPress={() =>
           Alert.alert(`Cancel your request to ${name}?`, undefined, [
             { text: 'Keep', style: 'cancel' },
-            { text: 'Cancel request', style: 'destructive', onPress: () => actions.remove(personId) },
+            { text: 'Cancel request', style: 'destructive', onPress: () => actions.remove(person) },
           ])
         }
       />
@@ -75,11 +74,10 @@ export function RelationButton({
       compact={compact}
       label="Friends"
       a11y={`Friends with ${name}. Unfriend`}
-      busy={busy}
       onPress={() =>
         Alert.alert(`Unfriend ${name}?`, 'You’ll stop seeing each other’s hikes.', [
           { text: 'Keep', style: 'cancel' },
-          { text: 'Unfriend', style: 'destructive', onPress: () => actions.remove(personId) },
+          { text: 'Unfriend', style: 'destructive', onPress: () => actions.remove(person) },
         ])
       }
     />

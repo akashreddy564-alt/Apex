@@ -1,9 +1,11 @@
+import { useMemo } from 'react';
 import { Text, View } from 'react-native';
 
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { TrailCard } from '@/components/trail/TrailCard';
 import { useColors } from '@/hooks/useColors';
 import { useRankings } from '@/hooks/useRankings';
+import { rankReason } from '@/lib/reasons';
 import { SHORT_LABELS } from '@/lib/scoreBadge';
 import { fonts } from '@/theme/tokens';
 
@@ -15,6 +17,13 @@ interface RankingsListProps {
 export function RankingsList({ onOpenTrail }: RankingsListProps) {
   const c = useColors();
   const { sections } = useRankings();
+  // Neighbours by the order shown: Loved, then Fine, then Nope, best first.
+  const reasons = useMemo(() => {
+    const order = sections.flatMap((section) => section.entries.map((entry) => entry.trail));
+    return new Map(
+      order.map((trail, i) => [trail.id, rankReason(order[i + 1]?.name ?? null, order[i - 1]?.name ?? null)]),
+    );
+  }, [sections]);
 
   if (sections.length === 0) {
     return (
@@ -52,6 +61,7 @@ export function RankingsList({ onOpenTrail }: RankingsListProps) {
               key={entry.trail.id}
               trail={entry.trail}
               rank={entry.ordinal}
+              reason={reasons.get(entry.trail.id) ?? null}
               trailing={
                 <ScoreBadge bucket={section.bucket} count={section.count} score={entry.score} size="sm" />
               }

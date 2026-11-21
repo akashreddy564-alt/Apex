@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
 import { Flame } from 'lucide-react-native';
 import { useEffect, useMemo } from 'react';
 import { Text } from 'react-native';
@@ -12,6 +11,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { weeklyStreak } from '@/lib/streak';
 import { useTrailCache } from '@/stores/trailCache';
@@ -39,7 +39,7 @@ export function StreakChip() {
         if (cancelled) return;
         const seen = Number(raw ?? 0);
         if (streak.weeks > seen && streak.hikedThisWeek) {
-          void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
+          haptics.success();
           if (!reduceMotion) {
             scale.value = withSequence(withSpring(1.25, { damping: 6, stiffness: 260 }), withTiming(1, { duration: 220 }));
           }

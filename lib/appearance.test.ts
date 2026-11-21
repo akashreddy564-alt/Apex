@@ -56,8 +56,23 @@ import { tabBarStyle } from '../theme/tokens.ts';
 
 describe('tabBarStyle', () => {
   it('follows the palette so the Log tab bar repaints on a switch', () => {
-    assert.equal(tabBarStyle(palettes.light).backgroundColor, '#FFFFFF');
+    assert.equal(tabBarStyle(palettes.light).borderTopColor, palettes.light.raised);
     assert.equal(tabBarStyle(palettes.dark).borderTopColor, palettes.dark.raised);
+  });
+
+  it('floats with a clear fill, so the glass background shows through', () => {
+    const style = tabBarStyle(palettes.light);
+    assert.equal(style.backgroundColor, 'transparent');
+    assert.equal(style.position, 'absolute');
+  });
+
+  it('grows by the bottom safe-area inset so the labels clear the home indicator', () => {
+    const flat = tabBarStyle(palettes.dark);
+    const inset = tabBarStyle(palettes.dark, false, 34);
+    assert.equal(inset.height - flat.height, 34);
+    assert.equal(inset.paddingBottom - flat.paddingBottom, 34);
+    // Room for the 54 pt tab item (icon box plus a full label line) inside the padding.
+    assert.ok(flat.height - flat.paddingTop - flat.paddingBottom >= 54);
   });
 
   it('hides the bar while recording', () => {

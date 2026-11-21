@@ -1,24 +1,30 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useQueryClient } from '@tanstack/react-query';
 import { Bell, CircleCheck, Compass } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
+import { GoalRing } from '@/components/habit/GoalRing';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
 import { StreakChip } from '@/components/habit/StreakChip';
+import { WeekendPick } from '@/components/habit/WeekendPick';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
+import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { useFeed, useLike } from '@/hooks/useFeed';
 import { useFriendships } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
 import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
-import { caughtUpIndex, type FeedPost } from '@/lib/feed';
+import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
+import { riseIn, Skeleton } from '@/components/motion';
 
 /** Coming back to Home refetches when the feed is older than this. */
 const STALE_ON_FOCUS_MS = 30_000;
@@ -45,7 +51,6 @@ function Header() {
     <View className="flex-row items-center px-4">
       <View className="flex-row items-center gap-3">
         <Text style={{ color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 22, letterSpacing: -0.4 }}>apex</Text>
-        <StreakChip />
       </View>
       <Pressable
         accessibilityRole="button"
@@ -74,6 +79,16 @@ function Header() {
           />
         ) : null}
       </Pressable>
+    </View>
+  );
+}
+
+/** This week at a glance: the streak and the goal ring. Each hides until the first hike. */
+function ThisWeek() {
+  return (
+    <View className="mt-2 flex-row flex-wrap items-center gap-2 px-4">
+      <StreakChip />
+      <GoalRing />
     </View>
   );
 }
@@ -108,6 +123,7 @@ function Feed() {
   const c = useColors();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
   const { posts, loading, refreshing, error, refetch, loadMore, loadingMore, hasMore } = useFeed();
   const like = useLike();
   const safety = useSafetyMenu();
@@ -148,15 +164,24 @@ function Feed() {
     }, [refetch]),
   );
 
+  const queryClient = useQueryClient();
   const open = useCallback(
-    (post: FeedPost, focusComment?: boolean) =>
-      router.push({ pathname: '/post/[id]', params: focusComment ? { id: post.id, comment: '1' } : { id: post.id } }),
-    [router],
+    (post: FeedPost, focusComment?: boolean) => {
+      // The post itself comes from the feed; start the comments now so they're there on arrival.
+      void queryClient.prefetchQuery({ queryKey: ['comments', post.id], queryFn: () => fetchComments(post.id) });
+      router.push({ pathname: '/post/[id]', params: focusComment ? { id: post.id, comment: '1' } : { id: post.id } });
+    },
+    [queryClient, router],
   );
 
   let empty = null;
   if (loading) {
-    empty = <ActivityIndicator color={c.fgMuted} style={{ marginTop: 48 }} />;
+    // First sign-in only: the feed was prefetched during the opening screen, and is cached after.
+    empty = (
+      <View className="px-4 pt-5">
+        <Skeleton shape="post" count={3} />
+      </View>
+    );
   } else if (error) {
     empty = (
       <View className="mx-4 mt-6 gap-3 rounded-2xl bg-surface px-5 py-6">
@@ -177,21 +202,24 @@ function Feed() {
       renderItem={({ item, index }) => (
         <View>
           {index === marker ? <CaughtUp /> : null}
-          <View className="px-4 pb-4 pt-5">
+          <Animated.View entering={index < 6 ? riseIn(index) : undefined} style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 20 }}>
             <PostCard
               post={item}
+              feed={posts}
               mine={mine}
               onLike={like}
               onOpen={open}
               onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
             />
-          </View>
+          </Animated.View>
         </View>
       )}
       ItemSeparatorComponent={() => <View className="mx-4 h-px bg-raised" />}
       ListHeaderComponent={
         <View>
           <Header />
+          <ThisWeek />
+          <WeekendPick />
           <View className="px-4">
             <NotificationAsk />
           </View>
@@ -199,18 +227,17 @@ function Feed() {
       }
       ListEmptyComponent={empty}
       ListFooterComponent={
-        loadingMore ? (
-          <ActivityIndicator color={c.fgMuted} style={{ marginVertical: 20 }} />
-        ) : posts.length > 0 && !hasMore && marker === null ? (
+        loadingMore ? null : posts.length > 0 && !hasMore && marker === null ? (
           <CaughtUp end />
         ) : null
       }
       onEndReached={loadMore}
-      onEndReachedThreshold={0.6}
+      // Fetch the next page well before the end, so scrolling never waits.
+      onEndReachedThreshold={2}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => void refetch()} tintColor={c.fgMuted} />
       }
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32 }}
+      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}
     />
   );
 }
@@ -218,13 +245,16 @@ function Feed() {
 /** Home: your and your friends' ranked hikes, newest first. */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
   const { session, profile } = useMyProfile();
 
   if (session && profile) return <Feed />;
 
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32 }}>
+    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
       <Header />
+      <ThisWeek />
+      <WeekendPick />
       <SignInGate why="see what your friends hiked">{() => null}</SignInGate>
     </ScrollView>
   );

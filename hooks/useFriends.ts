@@ -9,11 +9,13 @@ import {
   fetchPerson,
   groupFriendships,
   relationTo,
-  removeFriend,
-  respondToRequest,
   searchPeople,
-  sendFriendRequest,
+  type Friendship,
+  type PersonSummary,
 } from '@/lib/friends';
+import { apiError } from '@/lib/apiError';
+import { applyFriendAction } from '@/lib/optimistic';
+import { M, type FriendVars } from '@/lib/queryClient';
 
 export const friendshipsKey = (uid: string | null) => ['friendships', uid] as const;
 
@@ -38,39 +40,37 @@ export function useFriendships() {
   };
 }
 
-/** Send, accept, decline, cancel and unfriend. Each refreshes the list. */
+/**
+ * Send, accept, decline, cancel and unfriend. The button flips the moment
+ * it's tapped; the write goes out now or when back online, and is undone
+ * only if the server refuses it.
+ */
 export function useFriendActions() {
   const queryClient = useQueryClient();
-  const refresh = () => queryClient.invalidateQueries({ queryKey: ['friendships'] });
-  const onError = (error: Error) => Alert.alert('Something went wrong', error.message);
-  const add = useMutation({ mutationFn: sendFriendRequest, onSuccess: refresh, onError });
-  const respond = useMutation({
-    mutationFn: ({ id, accept }: { id: string; accept: boolean }) => respondToRequest(id, accept),
-    onSuccess: async () => {
-      await refresh();
-      await queryClient.invalidateQueries({ queryKey: ['friendCount'] });
+  const { session } = useAuth();
+  const uid = session?.user.id ?? null;
+  const mutation = useMutation<void, Error, FriendVars & { person: PersonSummary }, Friendship[] | undefined>({
+    mutationKey: M.friend,
+    onMutate: async ({ person, action }) => {
+      await queryClient.cancelQueries({ queryKey: friendshipsKey(uid) });
+      const before = queryClient.getQueryData<Friendship[]>(friendshipsKey(uid));
+      queryClient.setQueryData<Friendship[]>(friendshipsKey(uid), (rows) =>
+        applyFriendAction(rows ?? [], person, action, new Date().toISOString()),
+      );
+      return before;
     },
-    onError,
-  });
-  const remove = useMutation({
-    mutationFn: removeFriend,
-    onSuccess: async () => {
-      await refresh();
-      await queryClient.invalidateQueries({ queryKey: ['friendCount'] });
+    onError: (error, _vars, before) => {
+      queryClient.setQueryData(friendshipsKey(uid), before);
+      Alert.alert('Something went wrong', apiError(error).message);
     },
-    onError,
   });
+  const run = (action: FriendVars['action']) => (person: PersonSummary) =>
+    mutation.mutate({ personId: person.id, action, person });
   return {
-    add: (id: string) => add.mutate(id),
-    accept: (id: string) => respond.mutate({ id, accept: true }),
-    decline: (id: string) => respond.mutate({ id, accept: false }),
-    remove: (id: string) => remove.mutate(id),
-    /** The person a request is in flight for, so only their button shows busy. */
-    pendingFor:
-      (add.isPending ? add.variables : null) ??
-      (respond.isPending ? respond.variables?.id : null) ??
-      (remove.isPending ? remove.variables : null) ??
-      null,
+    add: run('add'),
+    accept: run('accept'),
+    decline: run('decline'),
+    remove: run('remove'),
   };
 }
 
@@ -100,10 +100,23 @@ export function usePeopleSearch(query: string) {
 export function usePerson(id: string | undefined) {
   const { session } = useAuth();
   const enabled = Boolean(id) && session !== null;
+  const queryClient = useQueryClient();
   const person = useQuery({
     queryKey: ['person', id],
     queryFn: () => fetchPerson(id as string),
     enabled,
+    // Opened from a list we already have: show them at once, then refresh.
+    placeholderData: () => {
+      for (const [, rows] of queryClient.getQueriesData<PersonSummary[]>({ queryKey: ['friendships'] })) {
+        const found = rows?.find((row) => row.id === id);
+        if (found) return { id: found.id, username: found.username, display_name: found.display_name };
+      }
+      for (const [, rows] of queryClient.getQueriesData<PersonSummary[]>({ queryKey: ['peopleSearch'] })) {
+        const found = rows?.find((row) => row.id === id);
+        if (found) return found;
+      }
+      return undefined;
+    },
   });
   const count = useQuery({
     queryKey: ['friendCount', id],

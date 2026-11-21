@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/hooks/useAuth';
-import { fetchNotifications, fetchUnreadCount, markNotificationsRead } from '@/lib/safety';
+import { fetchNotifications, fetchUnreadCount } from '@/lib/safety';
+import { M } from '@/lib/queryClient';
 
 /** The bell's dot. Checks every minute while the app is open. */
 export function useUnreadCount() {
@@ -24,8 +25,8 @@ export function useNotifications() {
   const queryClient = useQueryClient();
   const query = useQuery({ queryKey: ['notifications', uid], queryFn: fetchNotifications, enabled: uid !== null });
   const markRead = useMutation({
-    mutationFn: markNotificationsRead,
-    onSuccess: () => queryClient.setQueryData(['unread', uid], 0),
+    mutationKey: M.markRead,
+    onMutate: () => queryClient.setQueryData(['unread', uid], 0),
   });
   return {
     notifications: query.data ?? [],

@@ -1,5 +1,6 @@
 import { MOCK_USER_ID } from '@/data/mockTrails';
 import { DEFAULT_HIKE_TYPE } from '@/lib/ranking';
+import { LIMITS, sanitizeOptional } from '@/lib/sanitize';
 import type { HikeLog } from '@/types/trail';
 
 export interface PastHikeDraft {
@@ -58,7 +59,7 @@ export function hikeTimestamp(date: Date): string {
 export function buildPastHikeLog(draft: PastHikeDraft): HikeLog | null {
   if (!draft.trailId) return null;
   if (isFutureDay(draft.hikedOn, draft.now ?? new Date())) return null;
-  const notes = (draft.notes ?? '').trim();
+  const notes = sanitizeOptional(draft.notes, LIMITS.notes) ?? '';
   const distance = draft.distanceKm;
   return {
     id: draft.id ?? `log-${Date.now()}`,

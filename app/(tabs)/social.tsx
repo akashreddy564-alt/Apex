@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ChevronRight, UserPlus } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GroupsSection } from '@/components/groups/GroupsSection';
@@ -8,6 +8,7 @@ import { Avatar } from '@/components/social/Avatar';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
+import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { useFriendships } from '@/hooks/useFriends';
 import type { Profile } from '@/lib/profile';
 import { displayXL, fonts } from '@/theme/tokens';
@@ -87,7 +88,6 @@ function FriendsSection({ profile }: { profile: Profile }) {
               Add
             </Text>
           </Pressable>
-          {loading ? <ActivityIndicator color={c.fgMuted} style={{ height: TILE }} /> : null}
           {friends.map((friend) => (
             <Pressable
               key={friend.id}
@@ -119,11 +119,12 @@ function FriendsSection({ profile }: { profile: Profile }) {
 
 export default function SocialScreen() {
   const insets = useSafeAreaInsets();
+  const tabInset = useTabBarInset();
   const c = useColors();
   return (
     <ScrollView
       className="flex-1 bg-bg"
-      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 32 }}
+      contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}
     >
       <Text className="px-4" style={{ ...displayXL, color: c.fg }}>
         Social

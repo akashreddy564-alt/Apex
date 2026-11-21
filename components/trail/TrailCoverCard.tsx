@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
-import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useId, useMemo, useState } from 'react';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   cancelAnimation,
@@ -12,12 +12,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { PressScale } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import { cardTitleLayout } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
 import { fonts, type Palette, photoPill } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
+import { withAlpha } from '@/theme/color';
 
 const CARD_HEIGHT = 184;
 const DRIFT_MS = 14_000;
@@ -75,8 +77,11 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
     `▲${formatOptionalElevation(trail.elevation_gain_m).toUpperCase()}`,
   ].join(' · ');
 
+  // One gradient id per card: on web, duplicate ids resolve to the first.
+  const shadeId = `cardShade${useId().replace(/:/g, '')}`;
   return (
-    <Pressable
+    <PressScale
+      to={0.985}
       onPress={onPress}
       onLayout={(e) => setCardWidth(Math.round(e.nativeEvent.layout.width))}
       accessibilityRole="button"
@@ -84,60 +89,58 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
     >
       {/* Layout lives on a plain View: NativeWind drops function styles on
           Pressable on iOS, which collapsed the card to zero height. */}
-      {({ pressed }) => (
-        <View style={[styles.card, pressed && styles.pressed]}>
-          {cover ? (
-            <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
-              <Image
-                source={{ uri: cover.uri }}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-                transition={250}
-                accessible={false}
-              />
-            </Animated.View>
-          ) : null}
+      <View style={styles.card}>
+        {cover ? (
+          <Animated.View style={[StyleSheet.absoluteFill, photoStyle]}>
+            <Image
+              source={{ uri: cover.uri }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={250}
+              accessible={false}
+            />
+          </Animated.View>
+        ) : null}
 
-          <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
-            <Defs>
-              <LinearGradient id="cardShade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0.3" stopColor={c.bg} stopOpacity={0} />
-                <Stop offset="1" stopColor={c.bg} stopOpacity={0.88} />
-              </LinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#cardShade)" />
-          </Svg>
+        <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" pointerEvents="none">
+          <Defs>
+            <LinearGradient id={shadeId} x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0.3" stopColor={c.bg} stopOpacity={0} />
+              <Stop offset="1" stopColor={c.bg} stopOpacity={0.88} />
+            </LinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill={`url(#${shadeId})`} />
+        </Svg>
 
-          <View style={styles.info} pointerEvents="none">
-            <View style={styles.text}>
-              {title.lines.map((line) => (
-                <Text
-                  key={line}
-                  style={[styles.name, { fontSize: title.fontSize, lineHeight: Math.round(title.fontSize * 1.08) }]}
-                  numberOfLines={1}
-                >
-                  {line}
-                </Text>
-              ))}
-              <Text style={styles.meta} numberOfLines={1}>
-                {meta}
+        <View style={styles.info} pointerEvents="none">
+          <View style={styles.text}>
+            {title.lines.map((line) => (
+              <Text
+                key={line}
+                style={[styles.name, { fontSize: title.fontSize, lineHeight: Math.round(title.fontSize * 1.08) }]}
+                numberOfLines={1}
+              >
+                {line}
               </Text>
-            </View>
-            {score ? (
-              <View style={styles.scorePill}>
-                <Text style={[styles.score, top && styles.scoreTop]}>{score}</Text>
-              </View>
-            ) : null}
+            ))}
+            <Text style={styles.meta} numberOfLines={1}>
+              {meta}
+            </Text>
           </View>
+          {score ? (
+            <View style={styles.scorePill}>
+              <Text style={[styles.score, top && styles.scoreTop]}>{score}</Text>
+            </View>
+          ) : null}
         </View>
-      )}
-    </Pressable>
+      </View>
+    </PressScale>
   );
 }
 
 /** A soft halo in the page color, so text over photos reads in Dark and Light. */
 const textShadow = (c: Palette) => ({
-  textShadowColor: `${c.bg}8C`,
+  textShadowColor: withAlpha(c.bg, 0.55),
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 10,
 });
@@ -152,7 +155,6 @@ const makeStyles = (c: Palette) =>
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: c.raised,
   },
-  pressed: { opacity: 0.85, transform: [{ scale: 0.985 }] },
   info: {
     position: 'absolute',
     left: 16,

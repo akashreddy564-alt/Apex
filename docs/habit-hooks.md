@@ -38,6 +38,14 @@ Rules every reminder follows (the Duolingo-style details):
 - The first time it shows a bigger number, it pops with a success haptic.
 - Known gap: a backdated past hike counts toward the week it's dated in. The spec wants backdating not to repair a broken streak, but logs don't record when they were entered yet.
 
+## Weekly goal (`lib/weeklyGoal.ts`, `components/habit/GoalRing.tsx`, `app/goal.tsx`)
+
+- A ring that fills toward a weekly target of elevation gain (default 3,000 ft) or distance (default 10 mi). Same Monday–Sunday local week as the streak.
+- Sits beside the streak: in the Log header, and in a "this week" row under the Home header (the header was too narrow for both plus Trails and the bell).
+- Every hike dated this week counts, including past hikes, because the goal is personal. A hike's own measurement wins; one without it uses its trail's catalog figure. Leaderboards still count recorded hikes only.
+- Hidden until the first hike. The first time it fills in a week it pops with a success haptic, once per week.
+- Tapping it opens Weekly goal: the big ring, how much is left, and the metric and target choices. Switching metric resets the target to that metric's default. Stored on the phone only.
+
 ## Feed
 
 - **Loads during the opening screen**, so Home is full when it appears.

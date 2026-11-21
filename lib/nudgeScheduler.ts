@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { currentHike } from '@/lib/activeHike';
-import { forecastUrl, hikingArea, weekendFromResponse } from '@/lib/forecast';
+import { FORECAST_KEY, forecastUrl, hikingArea, weekendFromResponse } from '@/lib/forecast';
 import {
   EMPTY_NUDGE_STATE,
   planNudges,
@@ -19,7 +19,7 @@ import { useSavedTrails } from '@/stores/savedTrailsStore';
 import { useTrailCache } from '@/stores/trailCache';
 
 const STATE_KEY = 'apex-nudges';
-const FORECAST_KEY = 'apex-forecast';
+// FORECAST_KEY lives in lib/forecast so the weekend pick can read the cache too.
 const ASK_KEY = 'apex-notification-ask';
 /** Weather is re-fetched at most this often. */
 const FORECAST_TTL_MS = 6 * 3_600_000;

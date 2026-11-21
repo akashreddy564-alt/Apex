@@ -1,5 +1,7 @@
 import { mapFeedPost, type FeedPost } from '@/lib/postRules';
 import { supabase } from '@/lib/supabase';
+import { apiError } from '@/lib/apiError';
+import { LIMITS, sanitizeText } from '@/lib/sanitize';
 
 export * from '@/lib/postRules';
 
@@ -23,13 +25,13 @@ export async function fetchFeedPage(before: string | null): Promise<FeedPost[]> 
     max_rows: FEED_PAGE_SIZE,
     only_post: null,
   });
-  if (error) throw new Error(error.message);
+  if (error) throw apiError(error);
   return rows(data);
 }
 
 export async function fetchPost(id: string): Promise<FeedPost | null> {
   const { data, error } = await client().rpc('feed_posts', { before: null, max_rows: 1, only_post: id });
-  if (error) throw new Error(error.message);
+  if (error) throw apiError(error);
   return rows(data)[0] ?? null;
 }
 
@@ -38,7 +40,7 @@ export async function setLiked(postId: string, userId: string, liked: boolean): 
   const { error } = liked
     ? await table.upsert({ post_id: postId, user_id: userId }, { onConflict: 'post_id,user_id', ignoreDuplicates: true })
     : await table.delete().eq('post_id', postId).eq('user_id', userId);
-  if (error) throw new Error(error.message);
+  if (error) throw apiError(error);
 }
 
 export interface PostComment {
@@ -57,7 +59,7 @@ export async function fetchComments(postId: string): Promise<PostComment[]> {
     .eq('post_id', postId)
     .order('created_at', { ascending: true })
     .limit(200);
-  if (error) throw new Error(error.message);
+  if (error) throw apiError(error);
   return ((data ?? []) as Record<string, unknown>[]).map((row) => {
     const author = (Array.isArray(row.author) ? row.author[0] : row.author) as
       | { username?: string; display_name?: string }
@@ -76,15 +78,15 @@ export async function fetchComments(postId: string): Promise<PostComment[]> {
 export const COMMENT_MAX = 500;
 
 export async function addComment(postId: string, userId: string, body: string): Promise<void> {
-  const text = body.trim();
+  const text = sanitizeText(body, LIMITS.comment);
   if (!text) return;
   const { error } = await client()
     .from('post_comments')
-    .insert({ post_id: postId, user_id: userId, body: text.slice(0, COMMENT_MAX) });
-  if (error) throw new Error(error.message);
+    .insert({ post_id: postId, user_id: userId, body: text });
+  if (error) throw apiError(error);
 }
 
 export async function deleteComment(commentId: string): Promise<void> {
   const { error } = await client().from('post_comments').delete().eq('id', commentId);
-  if (error) throw new Error(error.message);
+  if (error) throw apiError(error);
 }

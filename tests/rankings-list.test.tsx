@@ -51,3 +51,50 @@ it('groups trails by bucket and hides the number in a one-hike bucket', () => {
   expect(shown.filter((t) => t === 'Fine').length).toBeGreaterThanOrEqual(1);
   expect(shown.some((t) => /^[4-6]\.\d$/.test(t))).toBe(false);
 });
+
+it('gives each row one reason naming its neighbours in the list', () => {
+  const trails = useTrailCache.getState().trails.slice(0, 3);
+  act(() => {
+    useRankingStore.getState().setRankings([
+      ranking(trails[0]!.id, 'loved', 'a0'),
+      ranking(trails[1]!.id, 'loved', 'a1'),
+      ranking(trails[2]!.id, 'fine', 'a0'),
+    ]);
+  });
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(
+      <QueryClientProvider client={new QueryClient()}>
+        <RankingsList onOpenTrail={() => {}} />
+      </QueryClientProvider>,
+    );
+  });
+  const shown = tree.root.findAllByType(Text).map((n) => String([n.props.children].flat().join('')));
+  const reasons = shown.filter((t) => /^(Above|Below) /.test(t));
+  // Rows in the order shown; each names the trail below it and the one above.
+  const names = new Set(trails.map((t) => t.name));
+  const order = shown.filter((t) => names.has(t));
+  expect(order).toHaveLength(3);
+  expect(reasons).toEqual([
+    `Above ${order[1]}`,
+    `Above ${order[2]}, below ${order[0]}`,
+    `Below ${order[1]}`,
+  ]);
+});
+
+it('shows no reason when a trail is ranked alone', () => {
+  const trails = useTrailCache.getState().trails.slice(0, 1);
+  act(() => {
+    useRankingStore.getState().setRankings([ranking(trails[0]!.id, 'loved', 'a0')]);
+  });
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(
+      <QueryClientProvider client={new QueryClient()}>
+        <RankingsList onOpenTrail={() => {}} />
+      </QueryClientProvider>,
+    );
+  });
+  const shown = tree.root.findAllByType(Text).map((n) => String([n.props.children].flat().join('')));
+  expect(shown.filter((t) => /^(Above|Below) /.test(t))).toHaveLength(0);
+});

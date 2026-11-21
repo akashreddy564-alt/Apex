@@ -1,9 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   PermissionsAndroid,
@@ -12,25 +11,37 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { onlineManager } from '@tanstack/react-query';
 
+import { StreakGrid } from '@/components/craft/StreakGrid';
+import { SummitRegister } from '@/components/craft/SummitRegister';
+import { ContourTexture, Eyebrow, haptics, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
 import { TrailAssignSheet } from '@/components/log/TrailAssignSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
+import { PrimaryButton } from '@/components/social/Buttons';
 import { RankingsList } from '@/components/ranking/RankingsList';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
+import { shouldFly } from '@/lib/flyover/plan';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
+import { NO_REASONS, newestLog, registerRank, registerReasons } from '@/lib/logRegister';
+import { weeklyStreak } from '@/lib/streak';
+import { streakGrid } from '@/lib/streakGrid';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
+import { startPlan } from '@/lib/pendingStartPlan';
 import { pushTrail } from '@/lib/remoteSync';
 import { matchTrails } from '@/lib/trailMatch';
 import { buildUserTrail } from '@/lib/userTrail';
@@ -38,13 +49,20 @@ import {
   LOCK_SCREEN_NOTIFICATION_NOTE,
   notificationPermissionRequired,
 } from '@/lib/notificationPermission';
+import { usePendingStart } from '@/stores/pendingStart';
+import { useRankingStore } from '@/stores/rankingStore';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
-import { fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
+import { cardStyle, fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
+import { withAlpha } from '@/theme/color';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 /** Record without choosing a trail; it is settled at Finish. */
 const FREEFORM = '';
 const GEOCODE_WAIT_MS = 2500;
+/** SlideToStart's track height, and its gap above the tab bar. */
+const SLIDER_H = 62;
+const SLIDER_GAP = 16;
+const CONTOUR_H = 300;
 
 /** "Boulder, CO" for a new trail's subtitle, or null when offline or unsupported. */
 async function placeName(latitude: number, longitude: number): Promise<string | null> {
@@ -77,7 +95,10 @@ export default function LogScreen() {
   }>();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
+  const rankings = useRankingStore((s) => s.rankings);
+  const { width: screenWidth } = useWindowDimensions();
   const tracker = useTrailTracker();
+  const barInset = useTabBarInset();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
   const params = useLocalSearchParams<{ recording?: string; view?: string }>();
   const router = useRouter();
@@ -107,15 +128,17 @@ export default function LogScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
-      tabBarStyle: tabBarStyle(c, tracker.isTracking),
+      tabBarStyle: tabBarStyle(c, tracker.isTracking, insets.bottom),
     });
-  }, [navigation, tracker.isTracking, c]);
+  }, [navigation, tracker.isTracking, c, insets.bottom]);
 
   const activeTrail = useMemo(
     () => trails.find((t) => t.id === tracker.session?.trailId) ?? null,
     [trails, tracker.session?.trailId],
   );
 
+  // The trail the location explainer starts once accepted.
+  const pendingTrailId = useRef(FREEFORM);
   const acceptLocation = async () => {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
@@ -128,8 +151,49 @@ export default function LogScreen() {
         // A declined or missing notification prompt does not block the hike.
       }
     }
-    tracker.start(selectedTrailId);
+    tracker.start(pendingTrailId.current);
   };
+
+  /** Explainer check, then start recording on `trailId` (FREEFORM for none). */
+  const beginTracking = useCallback(
+    (trailId: string) => {
+      pendingTrailId.current = trailId;
+      void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
+        if (seen === '1') tracker.start(trailId);
+        else setExplainer(true);
+      });
+    },
+    [tracker.start],
+  );
+
+  // Back from the flyover that Finish opened: rank the hike now.
+  const rankAfterFlyover = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!rankAfterFlyover.current) return;
+      rankAfterFlyover.current = false;
+      setModalOpen(true);
+    }, []),
+  );
+
+  // Trail detail's slider leaves a one-shot in-app request (never a URL param,
+  // so a deep link can't start GPS recording). Taken on focus once hydrated.
+  useFocusEffect(
+    useCallback(() => {
+      if (!tracker.hydrated) return;
+      const pending = usePendingStart.getState().take();
+      const plan = startPlan({
+        pending,
+        knownIds: new Set(trails.map((t) => t.id)),
+        hydrated: tracker.hydrated,
+        tracking: tracker.isTracking,
+      });
+      if (plan.start) {
+        setSelectedTrailId(plan.start);
+        beginTracking(plan.start);
+      }
+    }, [beginTracking, trails, tracker.hydrated, tracker.isTracking]),
+  );
 
   useEffect(() => {
     if (!tracker.isTracking || !notificationPermissionRequired(Platform.OS, Platform.Version)) {
@@ -154,9 +218,20 @@ export default function LogScreen() {
     setAssignOpen(false);
     setRecording(false);
     if (!log) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
     comparison.start(log.trail_id, log.id);
-    setModalOpen(true);
+    const fly = shouldFly({
+      coords: log.recorded_path?.coordinates,
+      online: onlineManager.isOnline(),
+      hasToken: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+    });
+    if (fly) {
+      // Ranking opens when Log is back in front (see the focus effect).
+      rankAfterFlyover.current = true;
+      router.push({ pathname: '/flyover/[logId]', params: { logId: log.id, rank: '1' } });
+    } else {
+      setModalOpen(true);
+    }
   };
 
   const finish = () => {
@@ -256,11 +331,27 @@ export default function LogScreen() {
     }
     const log = tracker.logPast({ ...draft, trailId });
     if (!log) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
     comparison.start(log.trail_id, log.id);
     setPastOpen(false);
     setModalOpen(true);
   };
+
+  // The 12-week grid, the streak, and the latest hike's register.
+  const craft = useMemo(() => {
+    const byId = new Map(trails.map((t) => [t.id, t]));
+    const trailOf = (id: string) => byId.get(id);
+    const streak = weeklyStreak(logs.map((l) => l.created_at));
+    const latest = newestLog(logs);
+    return {
+      grid: streakGrid(logs, trailOf),
+      streak,
+      latest,
+      trail: latest ? (byId.get(latest.trail_id) ?? null) : null,
+      reasons: latest ? registerReasons(latest, logs, trailOf) : NO_REASONS,
+      rank: latest ? registerRank(rankings, latest.trail_id, trailOf) : null,
+    };
+  }, [logs, rankings, trails]);
 
   if (tracker.isTracking) {
     return (
@@ -284,12 +375,12 @@ export default function LogScreen() {
           notificationNote={notificationNote}
           finishSheetOpen={finishOpen}
           onPause={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            haptics.tapLight();
             tracker.dismissRecovery();
             tracker.pause();
           }}
           onResume={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            haptics.tapLight();
             tracker.dismissRecovery();
             tracker.resume();
           }}
@@ -360,9 +451,17 @@ export default function LogScreen() {
     );
   }
 
+  const showSlider = tracker.hydrated && !recording && !explainer;
+  // The glass tab bar floats over the screen. (Recording returns its own screen above.)
+  const tabInset = barInset;
+  const card = cardStyle(c);
+
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 12 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CONTOUR_H }}>
+        <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} />
+      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: tabInset + (showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40) }}>
         <LogHeader
           view={view}
           onView={setView}
@@ -375,6 +474,7 @@ export default function LogScreen() {
             setPastOpen(true);
           }}
           onProfile={() => router.push('/account')}
+          onGoal={() => router.push('/goal')}
         />
 
         {view === 'rankings' ? (
@@ -384,116 +484,131 @@ export default function LogScreen() {
 
         {!tracker.isTracking && recording ? (
           <View className="mt-6 gap-2">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Cancel"
-              onPress={() => setRecording(false)}
-            >
-              <Text className="text-[13px] text-fg-muted">Cancel</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
-                  if (seen === '1') tracker.start(selectedTrailId);
-                  else setExplainer(true);
-                });
-              }}
-              className="mt-2 items-center bg-fg py-3.5 active:bg-fg-2"
-              style={{ borderRadius: 12 }}
-            >
-              <Text className="font-mono text-sm font-medium text-bg">
-                Start tracking
-              </Text>
-            </Pressable>
-            <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-              Select trail
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Name it at the end"
-              onPress={() => {
-                setSelectedTrailId(FREEFORM);
-                void Haptics.selectionAsync();
-              }}
-            >
-              <View
-                className={`border px-3 py-3 ${
-                  selectedTrailId === FREEFORM
-                    ? 'border-accent bg-accent/10'
-                    : 'border-raised bg-surface'
-                }`}
-                style={{ borderRadius: 12 }}
+            <View className="flex-row items-center justify-between">
+              <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 22 }}>Pick a trail</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Cancel"
+                onPress={() => setRecording(false)}
+                hitSlop={8}
+                style={{ minHeight: 44, justifyContent: 'center' }}
+                className="active:opacity-70"
               >
-                <Text className="text-[14px] text-fg">Name it at the end</Text>
-                <Text className="mt-0.5 font-mono text-[11px] text-fg-faint">
-                  We'll suggest a trail from where you start
-                </Text>
-              </View>
-            </Pressable>
-            {trails.map((trail) => {
-              const selected = trail.id === selectedTrailId;
-              return (
-                <Pressable
-                  key={trail.id}
-                  onPress={() => {
-                    setSelectedTrailId(trail.id);
-                    void Haptics.selectionAsync();
-                  }}
-                  className={`border px-3 py-3 ${
-                    selected
-                      ? 'border-accent bg-accent/10'
-                      : 'border-raised bg-surface'
-                  }`}
-                  style={{ borderRadius: 12 }}
-                >
-                  <Text className="text-[14px] text-fg">{trail.name}</Text>
-                  <Text className="mt-0.5 font-mono text-[11px] text-fg-faint">
-                    {trail.region}
-                  </Text>
-                </Pressable>
-              );
-            })}
-
-
+                <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 14 }}>Cancel</Text>
+              </Pressable>
+            </View>
+            <PrimaryButton
+              label="Start tracking"
+              onPress={() => {
+                haptics.tapMedium();
+                beginTracking(selectedTrailId);
+              }}
+            />
+            <View style={{ marginTop: 16, marginBottom: 4 }}>
+              <Eyebrow>Select trail</Eyebrow>
+            </View>
+            {[{ id: FREEFORM, name: 'Name it at the end', region: 'We’ll suggest a trail from where you start' }, ...trails].map(
+              (trail) => {
+                const selected = trail.id === selectedTrailId;
+                return (
+                  <Pressable
+                    key={trail.id}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={trail.name}
+                    onPress={() => {
+                      setSelectedTrailId(trail.id);
+                      haptics.select();
+                    }}
+                    className="rounded-2xl border px-4 active:opacity-80"
+                    style={{
+                      minHeight: 56,
+                      justifyContent: 'center',
+                      paddingVertical: 10,
+                      borderColor: selected ? c.accent : c.border,
+                      backgroundColor: selected ? withAlpha(c.accent, 0.1) : c.surface,
+                    }}
+                  >
+                    <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }} numberOfLines={1}>
+                      {trail.name}
+                    </Text>
+                    <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
+                      {trail.region}
+                    </Text>
+                  </Pressable>
+                );
+              },
+            )}
           </View>
-        ) : null}
+        ) : (
+          <>
+            <View style={{ marginTop: 18 }}>
+              <StreakGrid grid={craft.grid} streakWeeks={craft.streak.weeks} atRisk={craft.streak.atRisk} />
+            </View>
+            <View style={{ marginTop: 26 }}>
+              <View style={{ marginBottom: 12 }}>
+                <Eyebrow>Latest · Summit register</Eyebrow>
+              </View>
+              <SummitRegister
+                key={craft.latest?.id ?? 'empty'}
+                log={craft.latest}
+                trail={craft.trail}
+                number={logs.length}
+                reasons={craft.reasons}
+                rank={craft.rank}
+                onOpen={craft.trail ? () => router.push(`/trail/${craft.trail?.id}`) : undefined}
+              />
+            </View>
+          </>
+        )}
 
-        <View className="mt-8 border-t border-raised pt-4">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-            Log history
-          </Text>
-          {logs.length === 0 ? (
-            <Text className="mt-3 font-mono text-[11px] text-fg-faint">
-              No hikes logged yet.
-            </Text>
-          ) : (
-            logs.map((log) => {
-              const trail = trails.find((t) => t.id === log.trail_id);
-              return (
-                <View key={log.id} className="mt-3 border-b border-raised pb-3">
-                  <View className="flex-row items-baseline justify-between gap-3">
-                    <Text className="flex-1 text-[14px] text-fg" numberOfLines={1}>
-                      {trail?.name ?? 'Trail'}
-                    </Text>
-                    <Text className="font-mono text-[11px] text-fg-muted">
-                      {formatDuration(log.duration_seconds)}
-                    </Text>
+        <View style={{ marginTop: 26 }}>
+          <Eyebrow>Log history</Eyebrow>
+          <View style={{ ...card, marginTop: 12, paddingVertical: logs.length === 0 ? 16 : 4 }}>
+            {logs.length === 0 ? (
+              <Text style={{ fontFamily: fonts.ui, fontSize: 13, color: c.fgFaint }}>No hikes logged yet.</Text>
+            ) : (
+              logs.map((log, i) => {
+                const trail = trails.find((t) => t.id === log.trail_id);
+                return (
+                  <View
+                    key={log.id}
+                    style={{ paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: c.raised }}
+                  >
+                    <View className="flex-row items-baseline justify-between gap-3">
+                      <Text style={{ flex: 1, fontFamily: fonts.uiMedium, fontSize: 15, color: c.fg }} numberOfLines={1}>
+                        {trail?.name ?? 'Trail'}
+                      </Text>
+                      <Text style={{ ...numericStyle(), fontSize: 13, color: c.fgMuted }}>
+                        {formatDuration(log.duration_seconds)}
+                      </Text>
+                    </View>
+                    {log.notes ? (
+                      <Text style={{ fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fgFaint, marginTop: 4 }} numberOfLines={2}>
+                        {log.notes}
+                      </Text>
+                    ) : null}
+                    <PhotoStrip photos={log.photos} />
                   </View>
-                  {log.notes ? (
-                    <Text className="mt-1 font-mono text-[11px] text-fg-faint" numberOfLines={2}>
-                      {log.notes}
-                    </Text>
-                  ) : null}
-                  <PhotoStrip photos={log.photos} />
-                </View>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </View>
         </View>
         </View>
         )}
       </ScrollView>
+
+      {showSlider ? (
+        <View style={{ position: 'absolute', left: 16, right: 16, bottom: tabInset + SLIDER_GAP }}>
+          <SlideToStart
+            label="Slide to start a hike"
+            a11yLabel="Start a hike"
+            // An in-app gesture; recording never starts from a URL.
+            onComplete={() => beginTracking(FREEFORM)}
+          />
+        </View>
+      ) : null}
 
       <PastHikeSheet
         visible={pastOpen}
