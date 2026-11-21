@@ -14,6 +14,7 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { onlineManager } from '@tanstack/react-query';
 
 import { StreakGrid } from '@/components/craft/StreakGrid';
 import { SummitRegister } from '@/components/craft/SummitRegister';
@@ -31,6 +32,7 @@ import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
+import { shouldFly } from '@/lib/flyover/plan';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
 import { NO_REASONS, newestLog, registerRank, registerReasons } from '@/lib/logRegister';
@@ -162,6 +164,16 @@ export default function LogScreen() {
     [tracker.start],
   );
 
+  // Back from the flyover that Finish opened: rank the hike now.
+  const rankAfterFlyover = useRef(false);
+  useFocusEffect(
+    useCallback(() => {
+      if (!rankAfterFlyover.current) return;
+      rankAfterFlyover.current = false;
+      setModalOpen(true);
+    }, []),
+  );
+
   // Trail detail's slider leaves a one-shot in-app request (never a URL param,
   // so a deep link can't start GPS recording). Taken on focus once hydrated.
   useFocusEffect(
@@ -206,7 +218,18 @@ export default function LogScreen() {
     if (!log) return;
     haptics.success();
     comparison.start(log.trail_id, log.id);
-    setModalOpen(true);
+    const fly = shouldFly({
+      coords: log.recorded_path?.coordinates,
+      online: onlineManager.isOnline(),
+      hasToken: Boolean(process.env.EXPO_PUBLIC_MAPBOX_TOKEN),
+    });
+    if (fly) {
+      // Ranking opens when Log is back in front (see the focus effect).
+      rankAfterFlyover.current = true;
+      router.push({ pathname: '/flyover/[logId]', params: { logId: log.id, rank: '1' } });
+    } else {
+      setModalOpen(true);
+    }
   };
 
   const finish = () => {
