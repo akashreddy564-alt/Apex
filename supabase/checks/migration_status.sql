@@ -48,6 +48,9 @@ from (values
                                            and coalesce(has_table_privilege('authenticated', to_regclass('public.blocks'), 'select'), false)
                                            and to_regprocedure('public.my_notifications(integer)') is not null
                                            and to_regprocedure('public.report_content(uuid, text, text, uuid, uuid)') is not null
-                                           and exists (select 1 from pg_trigger where tgname = 'hike_logs_passed'))
+                                           and exists (select 1 from pg_trigger where tgname = 'hike_logs_passed')),
+  (20, '014 rate limits and input checks', to_regclass('apex_private.rate_limits') is not null
+                                           and exists (select 1 from pg_trigger where tgname = 'post_likes_rate')
+                                           and exists (select 1 from pg_constraint where conname = 'hike_logs_notes_check'))
 ) as checks (n, step, ok)
 order by n;

@@ -16,6 +16,8 @@ The spec covers several independent subsystems, so it ships as separate plans. E
 
 _Status updated 2026-11-21._
 
+**Hardening (2026-11-21, `feat/hardening`, stacked on `feat/habit-loops`):** migration `014` (tiered rate limits, input checks), input cleaning, instant social actions that queue offline, cached screens with no spinners, tab animations, a motion kit, and a security audit (`docs/security.md`, with owner dashboard steps).
+
 **Current spot:** plan 3. Step 4 (feed) and step 5 (groups) are built and waiting on PRs and on `011` and `012` being run. Step 6 (notifications, report and block) is built too. Next is plan 3's phone pass, after `011`–`013` run.
 
 ## How we check (from 2026-11-04)
