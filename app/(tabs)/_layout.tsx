@@ -3,6 +3,7 @@ import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
 import { Tabs } from 'expo-router';
 import { Footprints, House, Users } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Glass, haptics } from '@/components/motion';
 import { TabIcon } from '@/components/TabIcon';
@@ -16,6 +17,7 @@ function TabButton(props: BottomTabBarButtonProps) {
 
 export default function TabsLayout() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
@@ -23,7 +25,7 @@ export default function TabsLayout() {
         headerTintColor: c.fg,
         headerTitleStyle: { ...navTitle, color: c.fg },
         headerShadowVisible: false,
-        tabBarStyle: tabBarStyle(c),
+        tabBarStyle: tabBarStyle(c, false, insets.bottom),
         // Frosted, floating bar. Content scrolls under it; tab screens pad by its height.
         tabBarBackground: () => <Glass />,
         tabBarActiveTintColor: c.fg,
@@ -31,6 +33,7 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarLabelStyle: {
           fontSize: 12,
+          lineHeight: 16,
           fontFamily: fonts.uiMedium,
         },
         tabBarButton: (props) => <TabButton {...props} />,

@@ -274,19 +274,32 @@ export function cardStyle(palette: Palette) {
   } as const;
 }
 
-/** The bottom tab bar for a palette. Hidden while a hike is recording. */
-export function tabBarStyle(palette: Palette, hidden = false) {
+/**
+ * The tab bar's own height above the home indicator: 1 hairline + 7 + the 54 pt tab item
+ * (5 pt padding, 28 pt icon box, 16 pt label line, 5 pt padding) + 6.
+ * Shorter, and the navigator squeezes the label and clips it.
+ */
+export const TAB_BAR_BODY = 68;
+
+/**
+ * The bottom tab bar for a palette. Hidden while a hike is recording.
+ * `bottomInset` is the safe-area inset, so the labels sit fully above the
+ * home indicator on device; on web it is 0.
+ */
+export function tabBarStyle(palette: Palette, hidden = false, bottomInset = 0) {
   if (hidden) return { display: 'none' as const };
   // Transparent and floating: the Glass background in the tabs layout frosts
-  // whatever scrolls under it. Tab screens pad by useTabBarInset().
+  // whatever scrolls under it. Tab screens pad by useTabBarInset(), which
+  // reports this same height.
   return {
     position: 'absolute' as const,
     backgroundColor: 'transparent',
     borderTopColor: palette.raised,
     borderTopWidth: 1,
-    height: 58,
-    paddingBottom: 6,
-    paddingTop: 6,
+    height: TAB_BAR_BODY + bottomInset,
+    // 7 + the 1 pt top hairline = 8.
+    paddingTop: 7,
+    paddingBottom: 6 + bottomInset,
   };
 }
 

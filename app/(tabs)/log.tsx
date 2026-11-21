@@ -124,9 +124,9 @@ export default function LogScreen() {
   useLayoutEffect(() => {
     navigation.setOptions({
       headerShown: false,
-      tabBarStyle: tabBarStyle(c, tracker.isTracking),
+      tabBarStyle: tabBarStyle(c, tracker.isTracking, insets.bottom),
     });
-  }, [navigation, tracker.isTracking, c]);
+  }, [navigation, tracker.isTracking, c, insets.bottom]);
 
   const activeTrail = useMemo(
     () => trails.find((t) => t.id === tracker.session?.trailId) ?? null,

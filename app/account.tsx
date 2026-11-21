@@ -10,6 +10,7 @@ import { PhotoCreditsLink } from '@/components/opening/PhotoCreditsLink';
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { ChoiceRow } from '@/components/settings/ChoiceRow';
 import { Avatar } from '@/components/social/Avatar';
+import { PrimaryButton } from '@/components/social/Buttons';
 import { useMyProfile } from '@/hooks/useProfile';
 import { cardStyle, fonts } from '@/theme/tokens';
 import type { Appearance, ScoreStyle } from '@/lib/appearance';
@@ -216,17 +217,9 @@ export default function AccountScreen() {
               className="mt-4 border border-raised bg-bg px-3 py-3 font-mono text-sm text-fg"
               style={{ borderRadius: 12 }}
             />
-            <Pressable
-              accessibilityLabel="Send magic link"
-              disabled={busy}
-              onPress={() => {
-                void sendLink();
-              }}
-              className="mt-3 items-center border border-accent bg-accent/15 py-3 active:bg-accent/25"
-              style={{ borderRadius: 12, opacity: busy ? 0.5 : 1 }}
-            >
-              <Text className="font-mono text-sm text-accent">Send magic link</Text>
-            </Pressable>
+            <View className="mt-3">
+              <PrimaryButton label="Send magic link" busy={busy} onPress={() => void sendLink()} />
+            </View>
             {sentTo ? (
               <View className="mt-4 flex-row gap-2">
                 <TextInput

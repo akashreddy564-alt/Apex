@@ -1,6 +1,7 @@
 import { ScrollView, Text, View } from 'react-native';
 
 import { Eyebrow, Skeleton } from '@/components/motion';
+import { SecondaryButton } from '@/components/social/Buttons';
 import { PersonRow } from '@/components/social/PersonRow';
 import { RelationButton } from '@/components/social/RelationButton';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -10,11 +11,23 @@ import { cardStyle, fonts } from '@/theme/tokens';
 
 function Requests() {
   const c = useColors();
-  const { incoming, outgoing, loading } = useFriendships();
+  const { incoming, outgoing, loading, error, refetch } = useFriendships();
   if (loading) {
     return (
       <View style={{ paddingTop: 16 }}>
         <Skeleton shape="row" count={5} />
+      </View>
+    );
+  }
+  if (error) {
+    // Never say "No requests" when we couldn't ask.
+    return (
+      <View style={[cardStyle(c), { marginTop: 16, gap: 12 }]}>
+        <Eyebrow>Friend requests</Eyebrow>
+        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 }}>
+          Couldn’t load your requests. {error}
+        </Text>
+        <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
       </View>
     );
   }

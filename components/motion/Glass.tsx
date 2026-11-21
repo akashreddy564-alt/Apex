@@ -13,9 +13,11 @@ function withAlpha(hex: string, alpha: number): string {
 
 /**
  * A frosted surface for the tab bar and bottom sheets only. Cards stay solid.
- * iOS and web blur what sits behind it and lay a thin `surface` wash on top so
- * it keeps the palette. Android gets a plain fill at 85% (or the wash, if higher), since a
- * real blur there needs a BlurTargetView around the content behind it.
+ * iOS and web blur what sits behind it and lay a palette wash on top: `fill`
+ * picks the color (`surface` for the tab bar, `bg` for sheets, so their
+ * controls keep page contrast) and `wash` its opacity. Android gets a plain
+ * `fill` at 85% (or the wash, if higher), since a real blur there needs a
+ * BlurTargetView around the content behind it.
  */
 export function Glass({
   style,

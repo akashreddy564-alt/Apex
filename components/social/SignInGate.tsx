@@ -9,21 +9,20 @@ import { useMyProfile } from '@/hooks/useProfile';
 import type { Profile } from '@/lib/profile';
 import { cardStyle, fonts } from '@/theme/tokens';
 
-const TEXTURE_H = 120;
-
-/** The gate's card: a contour header behind an eyebrow, title and one plain sentence. */
+/** The gate's card: contour lines across the whole card behind an eyebrow, title and one plain sentence. */
 function Card({ eyebrow, title, body, children }: { eyebrow: string; title: string; body: string; children?: ReactNode }) {
   const c = useColors();
-  const [width, setWidth] = useState(0);
+  const [size, setSize] = useState({ width: 0, height: 0 });
   return (
     <View
-      onLayout={(e) => setWidth(Math.round(e.nativeEvent.layout.width))}
+      onLayout={(e) =>
+        setSize({ width: Math.round(e.nativeEvent.layout.width), height: Math.round(e.nativeEvent.layout.height) })
+      }
       style={[cardStyle(c), { marginHorizontal: 16, marginTop: 24, overflow: 'hidden', paddingTop: 28 }]}
     >
-      {width > 0 ? (
-        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, height: TEXTURE_H }}>
-          <ContourTexture seed={`gate-${eyebrow}`} width={width} height={TEXTURE_H} />
-        </View>
+      {/* Sized to the card, so the rings run off its edges instead of stopping at a line. */}
+      {size.width > 0 && size.height > 0 ? (
+        <ContourTexture seed={`gate-${eyebrow}`} width={size.width} height={size.height} opacity={0.8} />
       ) : null}
       <Eyebrow>{eyebrow}</Eyebrow>
       <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 22, lineHeight: 26, marginTop: 8 }}>{title}</Text>
