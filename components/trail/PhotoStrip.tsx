@@ -1,35 +1,13 @@
-import { useEffect, useState } from 'react';
 import { Image, View } from 'react-native';
 
-import { resolvePhotoUri } from '@/lib/hikePhotos';
+import { usePhotoUri } from '@/hooks/usePhotoUri';
 
 interface PhotoStripProps {
   photos: string[];
 }
 
 function Thumb({ stored }: { stored: string }) {
-  const [uri, setUri] = useState(stored.startsWith('sb:') ? '' : stored);
-
-  useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    if (!stored.startsWith('sb:')) {
-      setUri(stored);
-      return;
-    }
-    const load = () => {
-      void resolvePhotoUri(stored).then((next) => {
-        if (cancelled) return;
-        setUri(next);
-        timer = setTimeout(load, 50 * 60 * 1000);
-      });
-    };
-    load();
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-    };
-  }, [stored]);
+  const uri = usePhotoUri(stored);
 
   if (!uri) {
     return <View className="h-14 w-14 border border-raised bg-surface" />;
@@ -56,4 +34,3 @@ export function PhotoStrip({ photos }: PhotoStripProps) {
     </View>
   );
 }
-

@@ -243,10 +243,16 @@ export default function AccountScreen() {
       ) : null}
 
       {session ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/blocked')} className="mt-8 py-3">
+          <Text className="text-[15px] text-fg-2">Blocked people</Text>
+        </Pressable>
+      ) : null}
+
+      {session ? (
         <Pressable
           accessibilityLabel="Delete account"
           onPress={() => router.push('/delete-account')}
-          className="mt-8 py-3"
+          className="py-3"
         >
           <Text className="text-[15px] text-fg-2">Delete account</Text>
         </Pressable>

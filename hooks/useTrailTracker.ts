@@ -166,6 +166,12 @@ export function useTrailTracker(): UseTrailTrackerResult {
             }
           : null,
       created_at: new Date().toISOString(),
+      ...(hike.points.length >= 2
+        ? {
+            distance_km: hike.distanceM > 0 ? Math.round(hike.distanceM / 10) / 100 : null,
+            elevation_gain_m: Math.max(0, Math.round(hike.elevationGainM)),
+          }
+        : {}),
     };
     upsertLog(log);
     void pushLog(log);

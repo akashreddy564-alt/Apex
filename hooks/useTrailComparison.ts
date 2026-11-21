@@ -2,7 +2,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { MOCK_USER_ID } from '@/data/mockTrails';
 import { newId } from '@/lib/geo';
-import { pushComparison, pushRankings } from '@/lib/remoteSync';
+import { pushComparison, pushPost, pushRankings } from '@/lib/remoteSync';
 import {
   answer,
   bandScore,
@@ -272,6 +272,9 @@ export function useTrailComparison(): UseTrailComparisonResult {
     const after = useRankingStore.getState().rankings;
     void pushRankings(rankingsToSync(before, after));
     for (const comparison of comparisons) void pushComparison(comparison);
+    // Ranking a hike posts it to friends (recent hikes only; see shouldPost).
+    const logId = contextLogIdRef.current;
+    if (logId) void pushPost(logId);
   }, [bucket, placeRanking, trailId]);
 
   const reset = useCallback(() => {

@@ -39,3 +39,104 @@ select '7e570000-0000-4000-8000-000000000001', p.id
 from public.profiles p
 where p.id::text not like '7e570000-%'
 on conflict do nothing;
+
+-- Feed (needs 011): Maya and Jordan each ranked a recent hike on a catalog
+-- trail, with a like and a comment, so Home has posts once you accept Maya.
+-- Their hikes and posts go when the accounts are removed (both cascade).
+with picks as (
+  select id, distance_km, row_number() over (order by name) as n
+  from public.trails
+  where source = 'catalog' and path is not null
+  order by name
+  limit 3
+),
+hikes (log_id, user_id, n, days_ago, duration_seconds, notes, bucket, score, bucket_size) as (
+  values
+    ('7e570000-0000-4000-8000-0000000000a1'::uuid, '7e570000-0000-4000-8000-000000000001'::uuid, 1, 1, 15300,
+     'Clear all the way up. Last mile is steep but the view is worth every step.', 'loved', 8.9, 5),
+    ('7e570000-0000-4000-8000-0000000000a2'::uuid, '7e570000-0000-4000-8000-000000000001'::uuid, 2, 4, 9800,
+     'Muddy after the rain. Fine for a short one.', 'fine', 5.8, 3),
+    ('7e570000-0000-4000-8000-0000000000a3'::uuid, '7e570000-0000-4000-8000-000000000002'::uuid, 3, 2, 12600,
+     null, 'loved', 0, 1)
+),
+logs as (
+  insert into public.hike_logs (id, user_id, trail_id, duration_seconds, notes, distance_km, created_at)
+  select h.log_id, h.user_id, p.id, h.duration_seconds, h.notes, p.distance_km, now() - make_interval(days => h.days_ago)
+  from hikes h join picks p on p.n = h.n
+  on conflict (id) do nothing
+  returning id, user_id, trail_id, created_at
+)
+insert into public.posts (id, user_id, trail_id, bucket, score, bucket_size, hiked_at, created_at)
+select l.id, l.user_id, l.trail_id, h.bucket, h.score, h.bucket_size, l.created_at, l.created_at + interval '3 hours'
+from logs l join hikes h on h.log_id = l.id
+on conflict (id) do nothing;
+
+insert into public.post_likes (post_id, user_id)
+select '7e570000-0000-4000-8000-0000000000a1', '7e570000-0000-4000-8000-000000000002'
+where exists (select 1 from public.posts where id = '7e570000-0000-4000-8000-0000000000a1')
+on conflict do nothing;
+
+insert into public.post_comments (id, post_id, user_id, body)
+select '7e570000-0000-4000-8000-0000000000c1', '7e570000-0000-4000-8000-0000000000a1',
+       '7e570000-0000-4000-8000-000000000002', 'Adding this to the list for next weekend.'
+where exists (select 1 from public.posts where id = '7e570000-0000-4000-8000-0000000000a1')
+on conflict (id) do nothing;
+
+-- Groups (needs 012): a "Test crew" with Maya, Jordan and Sam. Join it from
+-- Social with the code TESTUP. Their earlier hikes become recordings with a
+-- measured climb, and Sam records one now, so the board has numbers this
+-- week. Run this file again any week to refresh Sam's climb. Maya and Jordan
+-- also rank the three trails, for the group favorite and taste match.
+update public.hike_logs l
+set recorded_path = t.path,
+    elevation_gain_m = round(t.elevation_gain_m * 0.95)::integer
+from public.trails t
+where t.id = l.trail_id
+  and l.id in ('7e570000-0000-4000-8000-0000000000a1', '7e570000-0000-4000-8000-0000000000a2', '7e570000-0000-4000-8000-0000000000a3')
+  and l.recorded_path is null;
+
+with pick as (
+  select id, distance_km, elevation_gain_m, path
+  from public.trails
+  where source = 'catalog' and path is not null
+  order by name
+  limit 1
+)
+insert into public.hike_logs (id, user_id, trail_id, duration_seconds, distance_km, recorded_path, elevation_gain_m, created_at)
+select '7e570000-0000-4000-8000-0000000000a4', '7e570000-0000-4000-8000-000000000003', p.id, 11000,
+       p.distance_km, p.path, round(p.elevation_gain_m * 1.02)::integer, now() - interval '1 hour'
+from pick p
+on conflict (id) do update set created_at = excluded.created_at;
+
+insert into public.groups (id, name, color, code, owner_id, time_zone)
+values ('7e570000-0000-4000-8000-0000000000f1', 'Test crew', 'green', 'TESTUP',
+        '7e570000-0000-4000-8000-000000000001', 'America/New_York')
+on conflict (id) do nothing;
+
+insert into public.group_members (group_id, user_id)
+values
+  ('7e570000-0000-4000-8000-0000000000f1', '7e570000-0000-4000-8000-000000000001'),
+  ('7e570000-0000-4000-8000-0000000000f1', '7e570000-0000-4000-8000-000000000002'),
+  ('7e570000-0000-4000-8000-0000000000f1', '7e570000-0000-4000-8000-000000000003')
+on conflict do nothing;
+
+with picks as (
+  select id, row_number() over (order by name) as n
+  from public.trails
+  where source = 'catalog' and path is not null
+  order by name
+  limit 3
+),
+ranks (user_id, n, bucket, position, score) as (
+  values
+    ('7e570000-0000-4000-8000-000000000001'::uuid, 1, 'loved', 'a0', 8.9),
+    ('7e570000-0000-4000-8000-000000000001'::uuid, 2, 'fine', 'a0', 5.8),
+    ('7e570000-0000-4000-8000-000000000001'::uuid, 3, 'loved', 'a1', 7.6),
+    ('7e570000-0000-4000-8000-000000000002'::uuid, 1, 'loved', 'a1', 7.9),
+    ('7e570000-0000-4000-8000-000000000002'::uuid, 2, 'disliked', 'a0', 2.4),
+    ('7e570000-0000-4000-8000-000000000002'::uuid, 3, 'loved', 'a0', 9.1)
+)
+insert into public.trail_rankings (user_id, trail_id, hike_type, bucket, position, score)
+select r.user_id, p.id, 'hike', r.bucket, r.position, r.score
+from ranks r join picks p on p.n = r.n
+on conflict (user_id, trail_id, hike_type) do nothing;
