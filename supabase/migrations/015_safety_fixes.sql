@@ -7,7 +7,9 @@
 --    can run.
 -- 2. report_content() saved a report even when the post or comment didn't
 --    belong to the person reported, so a report could point at someone
---    else's content. It now refuses that.
+--    else's content. It now refuses that, and only for posts and comments you
+--    can see, with one error either way so it can't be used to probe who
+--    wrote what.
 -- 3. Hikes on your own trails (not the catalog) counted whatever gain the
 --    phone sent, so one edited upload could top a group board. Every
 --    recorded hike is now capped by its recorded length (450 m of gain per
@@ -85,13 +87,15 @@ begin
   if comment is not null then
     select c.body into snap from public.post_comments c
     where c.id = comment and c.user_id = person
-      and (post is null or c.post_id = post);
-    if not found then raise exception 'That comment isn''t theirs'; end if;
+      and (post is null or c.post_id = post)
+      and public.can_see_post(c.post_id);
+    if not found then raise exception 'Can''t report that'; end if;
   elsif post is not null then
     select coalesce(l.notes, '') into snap
     from public.posts p join public.hike_logs l on l.id = p.id
-    where p.id = post and p.user_id = person;
-    if not found then raise exception 'That post isn''t theirs'; end if;
+    where p.id = post and p.user_id = person
+      and public.can_see_post(p.id);
+    if not found then raise exception 'Can''t report that'; end if;
   end if;
   if (select count(*) from public.reports where reporter_id = uid and created_at > now() - interval '1 day') >= 20 then
     raise exception 'That''s a lot of reports today. Try again tomorrow.';
