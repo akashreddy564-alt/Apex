@@ -10,10 +10,11 @@ jest.mock('react-native-gesture-handler', () => {
 });
 
 const mockPush = jest.fn();
+const mockDismissTo = jest.fn();
 let mockId = '';
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: mockId }),
-  useRouter: () => ({ push: mockPush }),
+  useRouter: () => ({ push: mockPush, dismissTo: mockDismissTo }),
   useIsFocused: () => true,
 }));
 
@@ -21,7 +22,6 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 
 // Skia has no jest runtime; the full map is not under test here.
 jest.mock('@/components/trail/TrailMap', () => ({ TrailMap: () => null }));
-jest.mock('@/components/trail/ElevationSparkline', () => ({ ElevationSparkline: () => null }));
 
 const mockTrails = [...CATALOG_TRAILS, ...MOCK_TRAILS];
 jest.mock('@/stores/trailCache', () => {
@@ -34,8 +34,9 @@ jest.mock('@/stores/trailCache', () => {
 });
 
 let mockTracking = false;
+let mockHydrated = true;
 jest.mock('@/hooks/useTrailTracker', () => ({
-  useTrailTracker: () => ({ isTracking: mockTracking, hydrated: true }),
+  useTrailTracker: () => ({ isTracking: mockTracking, hydrated: mockHydrated }),
 }));
 
 import TrailDetailScreen from '@/app/trail/[id]';
@@ -63,7 +64,9 @@ const slider = (t: ReactTestRenderer) =>
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockDismissTo.mockClear();
   mockTracking = false;
+  mockHydrated = true;
 });
 
 describe('Trail detail', () => {
@@ -84,8 +87,17 @@ describe('Trail detail', () => {
     const t = render(ANGELS);
     const [node] = slider(t);
     act(() => node.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
-    expect(mockPush).toHaveBeenCalledWith('/log');
+    // Pops back to the tabs under Trail detail rather than pushing a second tab navigator.
+    expect(mockDismissTo).toHaveBeenCalledWith('/log');
+    expect(mockPush).not.toHaveBeenCalled();
     expect(usePendingStart.getState().take()).toBe(ANGELS);
+  });
+
+  it('holds the slider back until the saved hike has been read', () => {
+    mockHydrated = false;
+    expect(slider(render(ANGELS))).toHaveLength(0);
+    mockHydrated = true;
+    expect(slider(render(ANGELS)).length).toBeGreaterThan(0);
   });
 
   it('keeps each difficulty reason reachable by screen readers', () => {

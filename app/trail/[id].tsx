@@ -26,7 +26,7 @@ import { trailCover } from '@/lib/trailCover';
 import { useRankingStore } from '@/stores/rankingStore';
 import { usePendingStart } from '@/stores/pendingStart';
 import { useTrailCache } from '@/stores/trailCache';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
 
 const ENTRANCE = { damping: 20, stiffness: 240, mass: 0.85 };
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
@@ -92,19 +92,13 @@ export default function TrailDetailScreen() {
     height: Math.min(640, heroHeight(windowHeight)),
   });
   const sliderBottom = insets.bottom + SLIDER_GAP;
-  const showSlider = !tracker.isTracking;
+  const showSlider = tracker.hydrated && !tracker.isTracking;
   const routeHeading =
     trail.distance_km != null
       ? `${formatDistance(trail.distance_km)}${trail.shape === 'out-and-back' ? ' round trip' : ''}`
       : null;
   const hasRoute = (trail.path?.coordinates?.length ?? 0) >= 2;
-  const card = {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.raised,
-    borderRadius: 22,
-    padding: 16,
-  } as const;
+  const card = cardStyle(c);
 
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -207,7 +201,9 @@ export default function TrailDetailScreen() {
             a11yLabel="Start this hike"
             onComplete={() => {
               usePendingStart.getState().request(trail.id);
-              router.push('/log');
+              // Pop back to the tabs already under this screen and land on Log.
+              // A push would stack a second tab navigator over Trail detail.
+              router.dismissTo('/log');
             }}
           />
         </View>
