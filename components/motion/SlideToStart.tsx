@@ -1,5 +1,5 @@
 import { ArrowRight } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -45,6 +45,8 @@ export function SlideToStart({
   disabled?: boolean;
 }) {
   const c = useColors();
+  // Unique per instance: duplicate ids on web would all resolve to the first gradient.
+  const gid = `sheen-${useId().replace(/:/g, '')}`;
   const reduceMotion = useReducedMotion();
   const [width, setWidth] = useState(0);
   const max = Math.max(0, width - KNOB - INSET * 2);
@@ -111,6 +113,7 @@ export function SlideToStart({
     .onEnd((_e, success) => {
       if (done.value) return;
       if (success && x.value >= max * THRESHOLD) {
+        done.value = true;
         x.value = withSpring(max, SPRING);
         scheduleOnRN(complete);
       } else {
@@ -166,13 +169,13 @@ export function SlideToStart({
           <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: 0, bottom: 0, width: 90 }, sheenStyle]}>
             <Svg width="100%" height="100%" preserveAspectRatio="none">
               <Defs>
-                <LinearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+                <LinearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
                   <Stop offset="0" stopColor={c.fg} stopOpacity={0} />
                   <Stop offset="0.5" stopColor={c.fg} stopOpacity={0.35} />
                   <Stop offset="1" stopColor={c.fg} stopOpacity={0} />
                 </LinearGradient>
               </Defs>
-              <Rect x="0" y="0" width="100%" height="100%" fill="url(#sheen)" />
+              <Rect x="0" y="0" width="100%" height="100%" fill={`url(#${gid})`} />
             </Svg>
           </Animated.View>
         </Animated.View>

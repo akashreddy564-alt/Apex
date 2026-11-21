@@ -57,4 +57,13 @@ describe('SlideToStart', () => {
     expect(onComplete).toHaveBeenCalledTimes(2);
     jest.useRealTimers();
   });
+
+  it('gives each instance its own gradient id', () => {
+    const { LinearGradient } = require('react-native-svg');
+    const ids = [render({ onComplete: jest.fn() }), render({ onComplete: jest.fn() })].map(
+      (t) => t.root.findByType(LinearGradient).props.id,
+    );
+    expect(ids[0]).not.toBe(ids[1]);
+    expect(ids[0]).not.toMatch(/:/);
+  });
 });
