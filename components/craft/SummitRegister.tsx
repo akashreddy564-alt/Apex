@@ -18,6 +18,7 @@ import { useColors } from '@/hooks/useColors';
 import { useSettings } from '@/stores/settingsStore';
 import { fonts, ink, minTypeSize, paper, stamp as STAMP } from '@/theme/tokens';
 import type { HikeLog, Trail } from '@/types/trail';
+import { withAlpha } from '@/theme/color';
 
 const EDGE = 8;
 const BITE = 5;
@@ -29,16 +30,9 @@ const TRACE_H = 46;
 /** Logs that have already printed this session, so returning to the tab doesn't reprint. */
 const printed = new Set<string>();
 
-/** `#RRGGBB` at an alpha from 0 to 1. */
-function alpha(hex: string, a: number): string {
-  return `${hex}${Math.round(a * 255)
-    .toString(16)
-    .padStart(2, '0')}`;
-}
-
-const MUTED = alpha(ink, 0.67);
-const WHY = alpha(ink, 0.6);
-const RULE = alpha(ink, 0.4);
+const MUTED = withAlpha(ink, 0.67);
+const WHY = withAlpha(ink, 0.6);
+const RULE = withAlpha(ink, 0.4);
 
 const DAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -225,7 +219,7 @@ export function SummitRegister({
       </View>
       <View style={{ paddingRight: peak != null ? 84 : 0, marginTop: 10 }}>
         <Text
-          accessibilityRole="link"
+          accessibilityRole={onOpen ? 'link' : undefined}
           accessibilityHint={onOpen ? 'Opens the trail' : undefined}
           onPress={onOpen}
           style={{
@@ -259,13 +253,13 @@ export function SummitRegister({
             height: 74,
             borderRadius: 37,
             borderWidth: 2,
-            borderColor: alpha(STAMP, 0.55),
+            borderColor: withAlpha(STAMP, 0.55),
             alignItems: 'center',
             justifyContent: 'center',
             transform: [{ rotate: '-14deg' }],
           }}
         >
-          <Text style={{ fontFamily: fonts.mono, fontSize: 9, letterSpacing: 0.9, color: alpha(STAMP, 0.75) }}>
+          <Text style={{ fontFamily: fonts.mono, fontSize: 9, letterSpacing: 0.9, color: withAlpha(STAMP, 0.75) }}>
             SUMMIT
           </Text>
           <Text
@@ -273,7 +267,7 @@ export function SummitRegister({
               fontFamily: fonts.mono,
               fontSize: 9,
               letterSpacing: 0.9,
-              color: alpha(STAMP, 0.75),
+              color: withAlpha(STAMP, 0.75),
               fontVariant: ['tabular-nums'],
             }}
           >

@@ -4,11 +4,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
 import { contourPaths } from '@/lib/contours';
-
-/** Accent at 10% alpha, from a #RRGGBB palette color. */
-function tenPercent(hex: string): string {
-  return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex}1A` : hex;
-}
+import { withAlpha } from '@/theme/color';
 
 /** Faint topographic rings behind a screen's header. Decorative only. */
 export function ContourTexture({
@@ -32,7 +28,7 @@ export function ContourTexture({
     >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         {paths.map((d, i) => (
-          <Path key={i} d={d} fill="none" stroke={tenPercent(c.accent)} strokeWidth={1} />
+          <Path key={i} d={d} fill="none" stroke={withAlpha(c.accent, 0.1)} strokeWidth={1} />
         ))}
       </Svg>
     </View>

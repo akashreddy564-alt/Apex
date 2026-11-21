@@ -22,6 +22,7 @@ import { formatDistance, formatOptionalDistance, formatOptionalElevation } from 
 import { mapCoverUrl } from '@/lib/trailCover';
 import { fonts, type Palette } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
+import { withAlpha } from '@/theme/color';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 /** Under this the start is "at the trailhead". */
@@ -143,7 +144,7 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
 
 /** A soft halo in the page color, so text over photos reads in Dark and Light. */
 const textShadow = (c: Palette) => ({
-  textShadowColor: `${c.bg}99`,
+  textShadowColor: withAlpha(c.bg, 0.6),
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 10,
 });

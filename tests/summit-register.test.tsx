@@ -58,6 +58,12 @@ describe('SummitRegister', () => {
     expect(all).toEqual(expect.arrayContaining(['No. 0007', 'Angels Landing', '5.6 MI', '1,942 FT']));
   });
 
+  it('calls the trail name a link only when the register can open it', () => {
+    const name = (t: ReactTestRenderer) => t.root.findAllByType(Text).find((n) => n.props.children === 'Angels Landing')!;
+    expect(name(render()).props.accessibilityRole).toBeUndefined();
+    expect(name(render({ onOpen: () => {} })).props.accessibilityRole).toBe('link');
+  });
+
   it('stamps the summit only when the trail has a peak elevation', () => {
     expect(texts(render())).toContain('5,791 FT');
     const flat = texts(render({ trail: { ...TRAIL, peak_elevation_m: null } }));

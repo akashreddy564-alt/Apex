@@ -19,6 +19,7 @@ import { cardTitleLayout } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
 import { fonts, type Palette, photoPill } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
+import { withAlpha } from '@/theme/color';
 
 const CARD_HEIGHT = 184;
 const DRIFT_MS = 14_000;
@@ -139,7 +140,7 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
 
 /** A soft halo in the page color, so text over photos reads in Dark and Light. */
 const textShadow = (c: Palette) => ({
-  textShadowColor: `${c.bg}8C`,
+  textShadowColor: withAlpha(c.bg, 0.55),
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 10,
 });

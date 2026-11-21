@@ -4,12 +4,7 @@ import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'reac
 
 import { useColors } from '@/hooks/useColors';
 import { useSettings } from '@/stores/settingsStore';
-
-/** `#RRGGBB` plus an opacity, as an rgba() string. */
-function withAlpha(hex: string, alpha: number): string {
-  const n = parseInt(hex.slice(1, 7), 16);
-  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
-}
+import { withAlpha } from '@/theme/color';
 
 /**
  * A frosted surface for the tab bar and bottom sheets only. Cards stay solid.

@@ -20,6 +20,7 @@ import { useColors } from '@/hooks/useColors';
 import type { TrailCover } from '@/lib/trailCover';
 import { fonts, type Palette } from '@/theme/tokens';
 import type { TrailShape } from '@/types/trail';
+import { withAlpha } from '@/theme/color';
 
 const DRIFT_MS = 18_000;
 const SIDE = 18;
@@ -179,14 +180,9 @@ export function TrailHero({
   );
 }
 
-/** #RRGGBB plus a two-digit alpha; other formats pass through. */
-function alpha(hex: string, a: string): string {
-  return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex}${a}` : hex;
-}
-
 /** A soft halo in the page color, so text over photos reads in Dark and Light. */
 const textShadow = (c: Palette) => ({
-  textShadowColor: alpha(c.bg, '8C'),
+  textShadowColor: withAlpha(c.bg, 0.55),
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 14,
 });
@@ -219,11 +215,11 @@ const makeStyles = (c: Palette) =>
       paddingHorizontal: 10,
       paddingVertical: 5,
       borderRadius: 99,
-      backgroundColor: alpha(c.fg, '14'),
+      backgroundColor: withAlpha(c.fg, 0.08),
       borderWidth: 1,
-      borderColor: alpha(c.fg, '1F'),
+      borderColor: withAlpha(c.fg, 0.12),
     },
     // Flags: the `fine` color at 35% border and 8% fill.
-    flag: { backgroundColor: alpha(c.fine, '14'), borderColor: alpha(c.fine, '59') },
+    flag: { backgroundColor: withAlpha(c.fine, 0.08), borderColor: withAlpha(c.fine, 0.35) },
     chipText: { color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 11 },
   });
