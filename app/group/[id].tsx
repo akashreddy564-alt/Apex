@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -23,7 +22,7 @@ import {
   type Period,
 } from '@/lib/groups';
 import { fonts, numericStyle } from '@/theme/tokens';
-import { CountUp, GrowBar } from '@/components/motion';
+import { CountUp, GrowBar, haptics } from '@/components/motion';
 
 const PERIOD_NAMES: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year' };
 
@@ -39,7 +38,7 @@ function PeriodSwitch({ period, onChange }: { period: Period; onChange: (p: Peri
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             onPress={() => {
-              void Haptics.selectionAsync();
+              haptics.select();
               onChange(option);
             }}
             className={`flex-1 items-center rounded-lg py-2 ${on ? 'bg-fg' : ''}`}
@@ -126,7 +125,7 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
 
   const confirmRemove = (row: BoardRow) => {
     if (!group?.isOwner || row.isMe) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.tapMedium();
     Alert.alert(`Remove ${row.displayName}?`, 'They can join again with the code.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => group && remove(group.id, row.userId) },

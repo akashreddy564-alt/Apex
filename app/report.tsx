@@ -1,9 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { haptics } from '@/components/motion';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
@@ -32,7 +32,7 @@ function ReportForm() {
     if (!person || !reason) return;
     setError(null);
     report({ person, reason, details, post, comment });
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
     Alert.alert('Thanks for telling us', 'We review every report within 24 hours. Want to block them too?', [
       { text: 'Not now', style: 'cancel', onPress: () => router.back() },
       {
@@ -65,7 +65,7 @@ function ReportForm() {
               accessibilityRole="radio"
               accessibilityState={{ selected: on }}
               onPress={() => {
-                void Haptics.selectionAsync();
+                haptics.select();
                 setReason(option.value);
               }}
               className="flex-row items-center justify-between border-b border-raised py-3.5 active:opacity-70"

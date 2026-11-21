@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -18,7 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StreakGrid } from '@/components/craft/StreakGrid';
 import { SummitRegister } from '@/components/craft/SummitRegister';
-import { ContourTexture, Eyebrow, SlideToStart } from '@/components/motion';
+import { ContourTexture, Eyebrow, haptics, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
@@ -205,7 +204,7 @@ export default function LogScreen() {
     setAssignOpen(false);
     setRecording(false);
     if (!log) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
     comparison.start(log.trail_id, log.id);
     setModalOpen(true);
   };
@@ -307,7 +306,7 @@ export default function LogScreen() {
     }
     const log = tracker.logPast({ ...draft, trailId });
     if (!log) return;
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
     comparison.start(log.trail_id, log.id);
     setPastOpen(false);
     setModalOpen(true);
@@ -351,12 +350,12 @@ export default function LogScreen() {
           notificationNote={notificationNote}
           finishSheetOpen={finishOpen}
           onPause={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            haptics.tapLight();
             tracker.dismissRecovery();
             tracker.pause();
           }}
           onResume={() => {
-            void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            haptics.tapLight();
             tracker.dismissRecovery();
             tracker.resume();
           }}
@@ -469,7 +468,7 @@ export default function LogScreen() {
             </Pressable>
             <Pressable
               onPress={() => {
-                void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                haptics.tapMedium();
                 beginTracking(selectedTrailId);
               }}
               className="mt-2 items-center bg-fg py-3.5 active:bg-fg-2"
@@ -487,7 +486,7 @@ export default function LogScreen() {
               accessibilityLabel="Name it at the end"
               onPress={() => {
                 setSelectedTrailId(FREEFORM);
-                void Haptics.selectionAsync();
+                haptics.select();
               }}
             >
               <View
@@ -511,7 +510,7 @@ export default function LogScreen() {
                   key={trail.id}
                   onPress={() => {
                     setSelectedTrailId(trail.id);
-                    void Haptics.selectionAsync();
+                    haptics.select();
                   }}
                   className={`border px-3 py-3 ${
                     selected

@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { Heart } from 'lucide-react-native';
 import { useState } from 'react';
@@ -14,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { Circle, Polyline, Svg } from 'react-native-svg';
 
+import { haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { usePhotoUri } from '@/hooks/usePhotoUri';
 import { projectPoints } from '@/lib/projectPath';
@@ -119,7 +119,7 @@ export function PostMedia({
     .onEnd((_event, success) => {
       if (!success || !onDoubleTap) return;
       onDoubleTap();
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
+      haptics.tapLight();
       burst.value = reduceMotion
         ? withSequence(withTiming(1, { duration: 80 }), withTiming(0, { duration: 500 }))
         : withSequence(withSpring(1, { damping: 9, stiffness: 320 }), withTiming(0, { duration: 420 }));

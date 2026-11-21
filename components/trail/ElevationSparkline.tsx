@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useIsFocused } from 'expo-router';
 import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
@@ -28,6 +27,7 @@ import {
   SHAPE_EASE_MS,
   shapeEase,
 } from '@/lib/elevationMotion';
+import { haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { formatChartDistance, formatChartElevation, formatDistance } from '@/lib/format';
 import { numericStyle, typeScale } from '@/theme/tokens';
@@ -369,7 +369,7 @@ export function ElevationSparkline({
         onCurrentIndexChange={(index) => {
           if (lastIndex.current !== index) {
             lastIndex.current = index;
-            void Haptics.selectionAsync();
+            haptics.select();
           }
         }}
       >
