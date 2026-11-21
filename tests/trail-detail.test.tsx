@@ -88,6 +88,31 @@ describe('Trail detail', () => {
     expect(usePendingStart.getState().take()).toBe(ANGELS);
   });
 
+  it('keeps each difficulty reason reachable by screen readers', () => {
+    const t = render(ANGELS);
+    const reasons = t.root.findAllByType(Text).filter((n) => {
+      const kids = n.props.children;
+      return typeof kids === 'string' && /^(of climbing|feet of climb per mile|at the summit)/.test(kids);
+    });
+    expect(reasons).toHaveLength(3);
+    for (const node of reasons) {
+      // No ancestor merges it into one labelled element.
+      for (let p = node.parent; p; p = p.parent) {
+        expect(Boolean(p.props.accessible && p.props.accessibilityLabel)).toBe(false);
+      }
+    }
+    // The bar alone carries the rating.
+    const bar = t.root.find((n) => n.props.accessibilityRole === 'progressbar' && typeof n.type === 'string');
+    expect(bar.props.accessibilityLabel).toBe('Difficulty: Moderately strenuous');
+  });
+
+  it('shows difficulty once: the card, not TrailStats', () => {
+    const all = texts(render(ANGELS));
+    expect(all.filter((s) => s.startsWith('NPS SHENANDOAH RATING'))).toHaveLength(1);
+    expect(all).not.toContain('DIFFICULTY');
+    expect(all.some((s) => s.startsWith('NPS Shenandoah rating'))).toBe(false);
+  });
+
   it('hides the slider while a hike is recording', () => {
     mockTracking = true;
     expect(slider(render(ANGELS))).toHaveLength(0);

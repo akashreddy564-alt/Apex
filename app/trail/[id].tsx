@@ -182,6 +182,7 @@ export default function TrailDetailScreen() {
           <View style={{ marginTop: 10 }}>
             <TrailStats
               trailId={trail.id}
+              showDifficulty={false}
               telemetry={{
                 peak_elevation_m: trail.peak_elevation_m,
                 elevation_gain_m: trail.elevation_gain_m,

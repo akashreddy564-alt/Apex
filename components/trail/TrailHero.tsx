@@ -134,8 +134,11 @@ export function TrailHero({
         <Defs>
           <LinearGradient id="heroShade" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={c.bg} stopOpacity={0.55} />
-            <Stop offset="0.25" stopColor={c.bg} stopOpacity={0} />
-            <Stop offset="0.55" stopColor={c.bg} stopOpacity={0.1} />
+            <Stop offset="0.22" stopColor={c.bg} stopOpacity={0} />
+            <Stop offset="0.4" stopColor={c.bg} stopOpacity={0.05} />
+            {/* Deeper where the eyebrow and name sit, so they read in both appearances. */}
+            <Stop offset="0.6" stopColor={c.bg} stopOpacity={0.5} />
+            <Stop offset="0.8" stopColor={c.bg} stopOpacity={0.85} />
             <Stop offset="1" stopColor={c.bg} stopOpacity={1} />
           </LinearGradient>
         </Defs>
@@ -198,7 +201,10 @@ const makeStyles = (c: Palette) =>
       fontSize: 10,
       letterSpacing: 1.6,
       textTransform: 'uppercase',
-      ...textShadow(c),
+      // A tighter, solid halo than the name's: mono 10 px needs more separation.
+      textShadowColor: c.bg,
+      textShadowOffset: { width: 0, height: 0 },
+      textShadowRadius: 6,
     },
     name: {
       marginTop: 6,

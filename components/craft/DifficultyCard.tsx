@@ -30,12 +30,17 @@ export function DifficultyCard({
 
   return (
     <View
-      accessible
-      accessibilityLabel={`Difficulty: ${rating.label}, ${rating.level + 1} of ${STEPS}. NPS Shenandoah rating ${Math.round(rating.score)}.`}
       style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 }}
     >
       <Eyebrow>{`Why it's ${rating.label.toLowerCase()}`}</Eyebrow>
-      <View style={{ flexDirection: 'row', gap: 4, marginTop: 10, marginBottom: 6 }}>
+      {/* Only the bar is one element; the rating line and reasons stay readable on their own. */}
+      <View
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={`Difficulty: ${rating.label}`}
+        accessibilityValue={{ min: 1, max: STEPS, now: rating.level + 1, text: `${rating.level + 1} of ${STEPS}` }}
+        style={{ flexDirection: 'row', gap: 4, marginTop: 10, marginBottom: 6 }}
+      >
         {Array.from({ length: STEPS }, (_, i) => (
           <View
             key={i}

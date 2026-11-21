@@ -116,7 +116,16 @@ function Detail({ icon, label, value, children }: { icon: ReactNode; label: stri
   );
 }
 
-export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry: TrailTelemetry }) {
+export function TrailStats({
+  trailId,
+  telemetry,
+  showDifficulty = true,
+}: {
+  trailId: string;
+  telemetry: TrailTelemetry;
+  /** False where a DifficultyCard already shows the rating. */
+  showDifficulty?: boolean;
+}) {
   const styles = useStyles();
   const c = useColors();
   const { distance_km, elevation_gain_m, peak_elevation_m, avg_moving_time_seconds } = telemetry;
@@ -157,26 +166,30 @@ export function TrailStats({ trailId, telemetry }: { trailId: string; telemetry:
         />
       </View>
 
-      <View style={styles.rule} />
+      {showDifficulty ? (
+        <>
+          <View style={styles.rule} />
 
-      <View style={styles.difficulty} accessible accessibilityRole="text"
-        accessibilityLabel={`Difficulty, ${rating ? rating.label : 'unknown'}`}>
-        <View style={styles.difficultyTop}>
-          <Text style={styles.label}>DIFFICULTY</Text>
-          <Text style={[styles.difficultyLabel, rating && { color: levelColors(c)[rating.level] }]}>
-            {rating ? rating.label : 'Not rated'}
-          </Text>
-        </View>
-        <View style={styles.meter}>
-          {levelColors(c).map((color, i) => (
-            <View
-              key={color}
-              style={[styles.segment, { backgroundColor: rating && i <= rating.level ? color : c.raised }]}
-            />
-          ))}
-        </View>
-        <Text style={styles.footnote}>NPS Shenandoah rating{rating ? ` · ${Math.round(rating.score)}` : ''}</Text>
-      </View>
+          <View style={styles.difficulty} accessible accessibilityRole="text"
+            accessibilityLabel={`Difficulty, ${rating ? rating.label : 'unknown'}`}>
+            <View style={styles.difficultyTop}>
+              <Text style={styles.label}>DIFFICULTY</Text>
+              <Text style={[styles.difficultyLabel, rating && { color: levelColors(c)[rating.level] }]}>
+                {rating ? rating.label : 'Not rated'}
+              </Text>
+            </View>
+            <View style={styles.meter}>
+              {levelColors(c).map((color, i) => (
+                <View
+                  key={color}
+                  style={[styles.segment, { backgroundColor: rating && i <= rating.level ? color : c.raised }]}
+                />
+              ))}
+            </View>
+            <Text style={styles.footnote}>NPS Shenandoah rating{rating ? ` · ${Math.round(rating.score)}` : ''}</Text>
+          </View>
+        </>
+      ) : null}
 
       <View style={styles.rule} />
 

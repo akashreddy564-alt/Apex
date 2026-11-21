@@ -123,8 +123,7 @@ export const TRAIL_NOTES: Record<string, TrailNote> = {
   // Navajo Loop and Queen's Garden
   // https://home.nps.gov/brca/planyourvisit/qgnavajocombo.htm
   'a2f99a1d-e220-4f2c-bc23-855786ef9b8e': {
-    route: "Down Queen's Garden from Sunrise Point, up the Navajo Loop to Sunset Point, then the Rim Trail back.",
-    flags: ['Seasonal closure'],
+    route: "Down Queen's Garden, up the Navajo Loop to Sunset Point; its Wall Street side closes in freeze-thaw months, Two Bridges stays open.",
   },
 
   // Quandary Peak
@@ -149,7 +148,7 @@ export const TRAIL_NOTES: Record<string, TrailNote> = {
   // https://www.nps.gov/romo/planyourvisit/exploring-the-bear-lake-road-corridor.htm
   // https://www.nps.gov/romo/learn/news/two-incidents-in-loch-vale-area-early-this-week-related-to-falls-on-snow.htm
   '33b2c0f7-6a3d-4302-bb8e-0cc5d4089928': {
-    route: 'From the Glacier Gorge Trailhead past The Loch and Timberline Falls, 4.2 miles to Sky Pond.',
+    route: 'From the Glacier Gorge Trailhead, 4.2 miles and 1,726 feet up to Sky Pond, beyond Loch Vale.',
   },
 
   // Skyline Trail
