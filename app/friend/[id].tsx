@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { Skeleton } from '@/components/motion';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
 import { RelationButton } from '@/components/social/RelationButton';
@@ -18,8 +19,8 @@ function PersonPage({ id }: { id: string }) {
 
   if (loading) {
     return (
-      <View className="mt-16 items-center">
-        <ActivityIndicator color={c.fgMuted} />
+      <View style={{ paddingTop: 16 }}>
+        <Skeleton shape="row" count={5} />
       </View>
     );
   }
@@ -58,7 +59,7 @@ function PersonPage({ id }: { id: string }) {
         </Text>
       ) : null}
       <View className="mt-6">
-        <RelationButton personId={person.id} name={person.display_name} relation={relation} compact={false} />
+        <RelationButton personId={person.id} name={person.display_name} username={person.username} relation={relation} compact={false} />
       </View>
       {note ? (
         <Text

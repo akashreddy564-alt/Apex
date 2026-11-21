@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { Check } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { haptics } from '@/components/motion';
 import { GroupMark, groupColor } from '@/components/groups/GroupMark';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -25,7 +25,7 @@ function CreateForm() {
     setError(null);
     try {
       const id = await create(name, color);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       router.replace({ pathname: '/group/[id]', params: { id, fresh: '1' } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Couldn’t create the group.');
@@ -62,7 +62,7 @@ function CreateForm() {
               accessibilityLabel={option}
               accessibilityState={{ selected: on }}
               onPress={() => {
-                void Haptics.selectionAsync();
+                haptics.select();
                 setColor(option);
               }}
               hitSlop={4}

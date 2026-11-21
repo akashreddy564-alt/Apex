@@ -7,7 +7,7 @@ import {
 } from '@expo-google-fonts/bricolage-grotesque';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -22,12 +22,17 @@ import { useAuthLinks } from '@/hooks/useAuthLinks';
 import { useColors } from '@/hooks/useColors';
 import { useOpeningPlace } from '@/hooks/useOpeningPlace';
 import { usePrefetchFeed } from '@/hooks/useFeed';
+import { useNudges } from '@/hooks/useNudges';
 import { useRemoteSync } from '@/hooks/useRemoteSync';
 import { hydrateHike } from '@/lib/activeHike';
 import { applyNativeScheme } from '@/lib/appearance';
 import { reconcileTracking } from '@/lib/locationTask';
 import { useSettings } from '@/stores/settingsStore';
 import { cssVars, fonts, navTitle } from '@/theme/tokens';
+import { watchConnectivity } from '@/lib/connectivity';
+import { persistOptions, queryClient } from '@/lib/queryClient';
+
+watchConnectivity();
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
@@ -39,8 +44,9 @@ export const unstable_settings = {
   anchor: '(tabs)',
 };
 
-/** Starts loading the feed while the opening screen plays. */
-function FeedPrefetch() {
+/** Reminders need the router, so they start once the navigator is up. */
+function NudgeKeeper() {
+  useNudges();
   usePrefetchFeed();
   return null;
 }
@@ -78,18 +84,6 @@ export default function RootLayout() {
     });
   }, [hikeReady]);
 
-  const [queryClient] = useState(
-    () =>
-      new QueryClient({
-        defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            retry: 1,
-          },
-        },
-      }),
-  );
-
   const fontsSettled = fontsLoaded || Boolean(fontError);
   const openingSettled = opening.status === 'skip' || (opening.status === 'show' && photoShown);
 
@@ -106,7 +100,12 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <View style={[{ flex: 1, backgroundColor: c.bg }, vars(cssVars(c))]}>
-        <QueryClientProvider client={queryClient}>
+        <PersistQueryClientProvider
+          client={queryClient}
+          persistOptions={persistOptions}
+          // Writes queued while offline (or before the app closed) go out once the cache is back.
+          onSuccess={() => void queryClient.resumePausedMutations()}
+        >
           <BottomSheetModalProvider>
             <StatusBar style={appearance === 'dark' ? 'light' : 'dark'} />
             <Stack
@@ -143,6 +142,11 @@ export default function RootLayout() {
               <Stack.Screen name="notifications" options={{ title: 'Notifications', headerBackTitle: 'Home' }} />
               <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
               <Stack.Screen name="blocked" options={{ title: 'Blocked people', headerBackTitle: 'Settings' }} />
+              <Stack.Screen name="goal" options={{ title: 'Weekly goal', headerBackTitle: 'Back' }} />
+              <Stack.Screen
+                name="flyover/[logId]"
+                options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade', gestureEnabled: false }}
+              />
               <Stack.Screen
                 name="credits"
                 options={{ title: 'Credits', headerBackTitle: 'Settings' }}
@@ -155,7 +159,7 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
-            <FeedPrefetch />
+            <NudgeKeeper />
             {opening.status === 'show' && !openingDone ? (
               <OpeningScreen
                 place={opening.place}
@@ -165,7 +169,7 @@ export default function RootLayout() {
               />
             ) : null}
           </BottomSheetModalProvider>
-        </QueryClientProvider>
+        </PersistQueryClientProvider>
       </View>
     </GestureHandlerRootView>
   );

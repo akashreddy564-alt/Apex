@@ -20,6 +20,7 @@ import { buildPastHikeLog, type PastHikeDraft } from '@/lib/pastHike';
 import { pushLog } from '@/lib/remoteSync';
 import { useTrailCache } from '@/stores/trailCache';
 import type { GeoJSONLineString, HikeLog } from '@/types/trail';
+import { LIMITS, sanitizeOptional } from '@/lib/sanitize';
 
 export type TrackPoint = PersistedHike['points'][number];
 export type ActiveSession = PersistedHike;
@@ -153,7 +154,7 @@ export function useTrailTracker(): UseTrailTrackerResult {
       trail_id: trail,
       duration_seconds: duration,
       photos: hike.photos,
-      notes: hike.notes.trim() || null,
+      notes: sanitizeOptional(hike.notes, LIMITS.notes),
       recorded_path:
         hike.points.length >= 2
           ? {

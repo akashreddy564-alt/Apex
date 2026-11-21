@@ -1,8 +1,7 @@
-import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 
 import { GroupMark, groupColor } from '@/components/groups/GroupMark';
 import { Avatar } from '@/components/social/Avatar';
@@ -23,6 +22,7 @@ import {
   type Period,
 } from '@/lib/groups';
 import { fonts, numericStyle } from '@/theme/tokens';
+import { CountUp, GrowBar, haptics } from '@/components/motion';
 
 const PERIOD_NAMES: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year' };
 
@@ -38,7 +38,7 @@ function PeriodSwitch({ period, onChange }: { period: Period; onChange: (p: Peri
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
             onPress={() => {
-              void Haptics.selectionAsync();
+              haptics.select();
               onChange(option);
             }}
             className={`flex-1 items-center rounded-lg py-2 ${on ? 'bg-fg' : ''}`}
@@ -60,12 +60,12 @@ function Together({ summary, period }: { summary: GroupSummary; period: Period }
       <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 }}>
         Together {periodLabel(period)}
       </Text>
-      <Text
+      <CountUp
         accessibilityRole="header"
+        value={summary.totalGainM}
+        format={formatElevation}
         style={{ ...numericStyle('semibold'), color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 44, letterSpacing: -1, marginTop: 2 }}
-      >
-        {formatElevation(summary.totalGainM)}
-      </Text>
+      />
       <Text style={{ color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 15, marginTop: 2 }}>
         {togetherLine(summary.totalGainM)}
       </Text>
@@ -120,12 +120,12 @@ function StatCards({ summary }: { summary: GroupSummary }) {
 
 function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) {
   const c = useColors();
-  const { remove, removingFor } = useGroupActions();
+  const { remove } = useGroupActions();
   const top = Math.max(1, ...rows.map((row) => row.gainM));
 
   const confirmRemove = (row: BoardRow) => {
     if (!group?.isOwner || row.isMe) return;
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptics.tapMedium();
     Alert.alert(`Remove ${row.displayName}?`, 'They can join again with the code.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Remove', style: 'destructive', onPress: () => group && remove(group.id, row.userId) },
@@ -136,14 +136,13 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
     <View className="mt-7">
       <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Elevation</Text>
       <View className="mt-2">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <Pressable
             key={row.userId}
             accessibilityLabel={`${row.place}. ${row.isMe ? 'You' : row.displayName}, ${formatElevation(row.gainM)}`}
             accessibilityHint={group?.isOwner && !row.isMe ? 'Long press to remove from the group' : undefined}
             onLongPress={() => confirmRemove(row)}
             className="flex-row items-center gap-3 py-2"
-            style={{ opacity: removingFor === row.userId ? 0.4 : 1 }}
           >
             <Text style={{ ...numericStyle('semibold'), width: 22, color: c.fgMuted, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
               {row.place}
@@ -158,11 +157,8 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
                   {formatElevation(row.gainM)}
                 </Text>
               </View>
-              <View className="mt-1.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: c.raised }}>
-                <View
-                  className="h-full rounded-full"
-                  style={{ width: `${(row.gainM / top) * 100}%`, backgroundColor: row.isMe ? c.accent : c.fgFaint }}
-                />
+              <View className="mt-1.5">
+                <GrowBar fraction={row.gainM / top} index={index} color={row.isMe ? c.accent : c.fgFaint} track={c.raised} />
               </View>
             </View>
           </Pressable>
@@ -216,7 +212,7 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
   const { groups, loading: groupsLoading } = useMyGroups();
   const group = groups.find((row) => row.id === id);
   const { board, summary, loading, refreshing, error, refetch } = useGroupPage(id, period);
-  const { leave, leaving } = useGroupActions();
+  const { leave } = useGroupActions();
 
   const confirmLeave = () => {
     if (!group) return;
@@ -233,7 +229,10 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
         {
           text: last ? 'Leave and delete' : 'Leave',
           style: 'destructive',
-          onPress: () => void leave(group.id).then(() => router.back()),
+          onPress: () => {
+            leave(group.id);
+            router.back();
+          },
         },
       ],
     );
@@ -273,7 +272,6 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
 
       <PeriodSwitch period={period} onChange={setPeriod} />
 
-      {loading ? <ActivityIndicator color={c.fgMuted} style={{ marginTop: 32 }} /> : null}
       {error ? (
         <View className="mt-6 gap-2">
           <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
@@ -292,7 +290,7 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
 
       {group ? (
         <View className="mt-8">
-          <SecondaryButton label="Leave group" onPress={confirmLeave} busy={leaving} />
+          <SecondaryButton label="Leave group" onPress={confirmLeave} />
         </View>
       ) : null}
     </ScrollView>

@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { Glass } from '@/components/motion';
 import { HikeDateField } from '@/components/log/HikeDateField';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import {
@@ -168,11 +169,13 @@ export function PastHikeSheet({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}>
-        <View
+        <Glass
+          intensity={60}
+          fill="bg"
+          wash={0.82}
           style={{
             flex: 1,
             marginTop: insets.top + 8,
-            backgroundColor: c.bg,
             borderTopLeftRadius: 30,
             borderTopRightRadius: 30,
             borderTopWidth: 1,
@@ -387,6 +390,7 @@ export function PastHikeSheet({
                       {editingDistance ? (
                         <TextInput
                           value={distanceText}
+                          maxLength={6}
                           onChangeText={(value) => {
                             setDistanceTouched(true);
                             setDistanceText(value.replace(/[^0-9.]/g, ''));
@@ -512,6 +516,7 @@ export function PastHikeSheet({
                   <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Notes</Text>
                   <TextInput
                     value={notes}
+                    maxLength={2000}
                     onChangeText={setNotes}
                     placeholder="Snow patches, pace, who you went with"
                     placeholderTextColor={c.fgFaint}
@@ -560,13 +565,16 @@ export function PastHikeSheet({
             )}
           </ScrollView>
 
-          <View
+          <Glass
+            intensity={60}
+            fill="bg"
+            wash={0.9}
             style={{
+              flex: 0,
               position: 'absolute',
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: c.bg,
               borderTopWidth: 1,
               borderTopColor: c.raised,
               paddingHorizontal: 16,
@@ -615,8 +623,8 @@ export function PastHikeSheet({
                 Continue
               </Text>
             </Pressable>
-          </View>
-        </View>
+          </Glass>
+        </Glass>
       </View>
     </Modal>
   );

@@ -5,6 +5,7 @@
 import type { ElevationSample, Trail } from '@/types/trail';
 
 import { distanceM, simplify, type LonLat } from './catalogRoute.ts';
+import { sanitizeText } from './sanitize.ts';
 
 export const TRAIL_NAME_MAX = 60;
 /** Shown where a user trail has no place name. */
@@ -14,7 +15,7 @@ const PROFILE_MAX = 120;
 const MIN_DISTANCE_M = 10;
 
 export function cleanTrailName(raw: string): string | null {
-  const name = raw.replace(/\s+/g, ' ').trim().slice(0, TRAIL_NAME_MAX).trim();
+  const name = sanitizeText(raw, { max: TRAIL_NAME_MAX });
   return name.length > 0 ? name : null;
 }
 

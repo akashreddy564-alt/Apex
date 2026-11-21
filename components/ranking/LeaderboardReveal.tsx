@@ -1,4 +1,3 @@
-import * as Haptics from 'expo-haptics';
 import { useEffect } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import Animated, {
@@ -9,6 +8,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 
+import { haptics } from '@/components/motion';
 import { BUCKET_BANDS, placementScoreLabel, type Bucket } from '@/lib/ranking';
 import type { LeaderboardEntry } from '@/types/trail';
 
@@ -91,7 +91,7 @@ export function LeaderboardReveal({
   onPlace,
 }: LeaderboardRevealProps) {
   useEffect(() => {
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    haptics.success();
   }, []);
 
   const label = BUCKET_BANDS[bucket].label;
@@ -124,7 +124,7 @@ export function LeaderboardReveal({
         </Pressable>
         <Pressable
           onPress={() => {
-            void Haptics.selectionAsync();
+            haptics.select();
             onPlace();
           }}
           className="flex-1 items-center border border-accent bg-accent/15 py-3 active:bg-accent/25"

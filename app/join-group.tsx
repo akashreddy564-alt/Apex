@@ -1,8 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
+import { haptics } from '@/components/motion';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
@@ -23,7 +23,7 @@ function JoinForm({ initial }: { initial: string }) {
     setError(null);
     try {
       const id = await join(value);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptics.success();
       router.replace({ pathname: '/group/[id]', params: { id } });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Couldn’t join the group.');
