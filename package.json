@@ -27,6 +27,7 @@
     "expo-location": "57.0.23",
     "expo-notifications": "~57.0.25",
     "expo-router": "~57.0.21",
+    "expo-sharing": "~57.0.26",
     "expo-splash-screen": "~57.0.11",
     "expo-status-bar": "~57.0.1",
     "expo-symbols": "~57.0.3",
@@ -47,6 +48,7 @@
     "react-native-svg": "15.15.4",
     "react-native-wagmi-charts": "^3.0.1",
     "react-native-web": "~0.21.0",
+    "react-native-webview": "13.16.1",
     "react-native-worklets": "0.10.1",
     "tailwindcss": "^3.4.19",
     "zustand": "^5.0.15"
@@ -62,7 +64,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "test": "node --experimental-strip-types --test lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts lib/trailCover.test.ts lib/trailDifficulty.test.ts lib/contrast.test.ts lib/appearance.test.ts lib/scoreBadge.test.ts lib/catalogRoute.test.ts lib/catalogBuild.test.ts lib/catalogMerge.test.ts lib/trailMatch.test.ts lib/userTrail.test.ts lib/username.test.ts lib/authLink.test.ts lib/friendRules.test.ts lib/postRules.test.ts lib/groupRules.test.ts lib/safetyRules.test.ts lib/streak.test.ts lib/nudges.test.ts lib/forecast.test.ts lib/weeklyGoal.test.ts lib/sanitize.test.ts lib/optimistic.test.ts lib/scrub.test.ts lib/reasons.test.ts lib/streakGrid.test.ts lib/goalDial.test.ts lib/weekendPick.test.ts lib/contours.test.ts lib/odometerStrip.test.ts lib/logRegister.test.ts lib/color.test.ts && jest --ci",
+    "test": "node --experimental-strip-types --test lib/format.test.ts lib/photoEncode.test.ts lib/ranking.test.ts lib/hikeStats.test.ts lib/notificationPermission.test.ts lib/recordingLink.test.ts lib/heroFormat.test.ts lib/heroRotation.test.ts lib/posterFit.test.ts lib/openingClock.test.ts lib/trailCover.test.ts lib/trailDifficulty.test.ts lib/contrast.test.ts lib/appearance.test.ts lib/scoreBadge.test.ts lib/catalogRoute.test.ts lib/catalogBuild.test.ts lib/catalogMerge.test.ts lib/trailMatch.test.ts lib/userTrail.test.ts lib/username.test.ts lib/authLink.test.ts lib/friendRules.test.ts lib/postRules.test.ts lib/groupRules.test.ts lib/safetyRules.test.ts lib/streak.test.ts lib/nudges.test.ts lib/forecast.test.ts lib/weeklyGoal.test.ts lib/sanitize.test.ts lib/optimistic.test.ts lib/scrub.test.ts lib/reasons.test.ts lib/streakGrid.test.ts lib/goalDial.test.ts lib/weekendPick.test.ts lib/flyover/plan.test.ts lib/flyover/page.test.ts lib/contours.test.ts lib/odometerStrip.test.ts lib/logRegister.test.ts lib/color.test.ts && jest --ci",
     "start": "expo start --port 43127",
     "android": "expo run:android",
     "ios": "expo run:ios",

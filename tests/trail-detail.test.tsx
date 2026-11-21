@@ -24,10 +24,11 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 jest.mock('@/components/trail/TrailMap', () => ({ TrailMap: () => null }));
 
 const mockTrails = [...CATALOG_TRAILS, ...MOCK_TRAILS];
+let mockLogs: unknown[] = [];
 jest.mock('@/stores/trailCache', () => {
   const state = () => ({
     trails: mockTrails,
-    logs: [],
+    logs: mockLogs,
     getTrail: (id: string) => mockTrails.find((t) => t.id === id),
   });
   return { useTrailCache: (select: (s: unknown) => unknown) => select(state()) };
@@ -67,6 +68,7 @@ beforeEach(() => {
   mockDismissTo.mockClear();
   mockTracking = false;
   mockHydrated = true;
+  mockLogs = [];
 });
 
 describe('Trail detail', () => {
@@ -128,5 +130,26 @@ describe('Trail detail', () => {
   it('hides the slider while a hike is recording', () => {
     mockTracking = true;
     expect(slider(render(ANGELS))).toHaveLength(0);
+  });
+
+  it('offers the flyover of your last recorded hike on that trail', () => {
+    expect(texts(render(ANGELS))).not.toContain('Play flyover');
+    mockLogs = [
+      {
+        id: 'log-1',
+        user_id: 'u',
+        trail_id: ANGELS,
+        duration_seconds: 3600,
+        photos: [],
+        notes: null,
+        created_at: '2026-11-20T10:00:00Z',
+        recorded_path: { type: 'LineString', coordinates: [[-112.95, 37.26], [-112.94, 37.27]] },
+      },
+    ];
+    const tree = render(ANGELS);
+    expect(texts(tree)).toContain('Play flyover');
+    const button = tree.root.find((n) => n.props.accessibilityLabel === 'Play the flyover of your last hike here' && typeof n.props.onPress === 'function');
+    act(() => button.props.onPress());
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/flyover/[logId]', params: { logId: 'log-1' } });
   });
 });
