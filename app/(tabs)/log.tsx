@@ -12,9 +12,13 @@ import {
   ScrollView,
   Text,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { StreakGrid } from '@/components/craft/StreakGrid';
+import { SummitRegister, type RegisterRank } from '@/components/craft/SummitRegister';
+import { ContourTexture, Eyebrow, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
@@ -29,6 +33,10 @@ import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
+import { describePlacement, overallByScore } from '@/lib/ranking';
+import { hikeReasons, rankReason } from '@/lib/reasons';
+import { weeklyStreak } from '@/lib/streak';
+import { streakGrid } from '@/lib/streakGrid';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
 import { startPlan } from '@/lib/startLink';
@@ -40,6 +48,7 @@ import {
   notificationPermissionRequired,
 } from '@/lib/notificationPermission';
 import { usePendingStart } from '@/stores/pendingStart';
+import { useRankingStore } from '@/stores/rankingStore';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
 
@@ -47,6 +56,11 @@ const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 /** Record without choosing a trail; it is settled at Finish. */
 const FREEFORM = '';
 const GEOCODE_WAIT_MS = 2500;
+/** SlideToStart's track height, and its gap above the tab bar. */
+const SLIDER_H = 62;
+const SLIDER_GAP = 16;
+const CONTOUR_H = 300;
+const NO_REASONS = { distance: null, climb: null, time: null };
 
 /** "Boulder, CO" for a new trail's subtitle, or null when offline or unsupported. */
 async function placeName(latitude: number, longitude: number): Promise<string | null> {
@@ -79,6 +93,8 @@ export default function LogScreen() {
   }>();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
+  const rankings = useRankingStore((s) => s.rankings);
+  const { width: screenWidth } = useWindowDimensions();
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
   const params = useLocalSearchParams<{ recording?: string; view?: string }>();
@@ -297,6 +313,51 @@ export default function LogScreen() {
     setModalOpen(true);
   };
 
+  // The 12-week grid, the streak, and the latest hike's register.
+  const craft = useMemo(() => {
+    const byId = new Map(trails.map((t) => [t.id, t]));
+    const grid = streakGrid(logs, (id) => byId.get(id));
+    const streakWeeks = weeklyStreak(logs.map((l) => l.created_at)).weeks;
+    let latest: (typeof logs)[number] | null = null;
+    for (const log of logs) {
+      if (!latest || Date.parse(log.created_at) > Date.parse(latest.created_at)) latest = log;
+    }
+    const newest = latest;
+    if (!newest) return { grid, streakWeeks, latest: null, trail: null, reasons: NO_REASONS, rank: null };
+    // A hike's own numbers win; its trail's catalog figures fill the gaps, as in weeklyProgress.
+    const input = (log: (typeof logs)[number]) => {
+      const trail = byId.get(log.trail_id);
+      return {
+        id: log.id,
+        distance_km: log.distance_km ?? trail?.distance_km ?? null,
+        elevation_gain_m: log.elevation_gain_m ?? trail?.elevation_gain_m ?? null,
+        duration_seconds: log.duration_seconds,
+      };
+    };
+    const reasons = hikeReasons(input(newest), logs.map(input));
+    let rank: RegisterRank | null = null;
+    const placement = describePlacement(rankings, newest.trail_id);
+    if (placement) {
+      const overall = overallByScore(
+        rankings.filter(
+          (r) => r.user_id === placement.ranking.user_id && r.hike_type === placement.ranking.hike_type,
+        ),
+      );
+      const at = overall.findIndex((r) => r.trail_id === newest.trail_id);
+      const nameAt = (i: number) => (overall[i] ? (byId.get(overall[i].trail_id)?.name ?? null) : null);
+      rank = {
+        bucket: placement.ranking.bucket,
+        count: placement.count,
+        score: placement.score,
+        ordinal: at + 1,
+        total: overall.length,
+        // The one ranked just below this hike, then the one just above it.
+        reason: rankReason(nameAt(at + 1), nameAt(at - 1)),
+      };
+    }
+    return { grid, streakWeeks, latest: newest, trail: byId.get(newest.trail_id) ?? null, reasons, rank };
+  }, [logs, rankings, trails]);
+
   if (tracker.isTracking) {
     return (
       <View style={{ flex: 1, backgroundColor: c.bg }}>
@@ -395,9 +456,15 @@ export default function LogScreen() {
     );
   }
 
+  const showSlider = !recording && !explainer;
+  const card = { backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 } as const;
+
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 12 }}>
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CONTOUR_H }}>
+        <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} />
+      </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40 }}>
         <LogHeader
           view={view}
           onView={setView}
@@ -486,46 +553,76 @@ export default function LogScreen() {
                 </Pressable>
               );
             })}
-
-
           </View>
-        ) : null}
+        ) : (
+          <>
+            <View style={{ marginTop: 18 }}>
+              <StreakGrid grid={craft.grid} streakWeeks={craft.streakWeeks} />
+            </View>
+            <View style={{ marginTop: 26 }}>
+              <View style={{ marginBottom: 12 }}>
+                <Eyebrow>Latest · Summit register</Eyebrow>
+              </View>
+              <SummitRegister
+                key={craft.latest?.id ?? 'empty'}
+                log={craft.latest}
+                trail={craft.trail}
+                number={logs.length}
+                reasons={craft.reasons}
+                rank={craft.rank}
+                onOpen={craft.trail ? () => router.push(`/trail/${craft.trail?.id}`) : undefined}
+              />
+            </View>
+          </>
+        )}
 
-        <View className="mt-8 border-t border-raised pt-4">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-            Log history
-          </Text>
-          {logs.length === 0 ? (
-            <Text className="mt-3 font-mono text-[11px] text-fg-faint">
-              No hikes logged yet.
-            </Text>
-          ) : (
-            logs.map((log) => {
-              const trail = trails.find((t) => t.id === log.trail_id);
-              return (
-                <View key={log.id} className="mt-3 border-b border-raised pb-3">
-                  <View className="flex-row items-baseline justify-between gap-3">
-                    <Text className="flex-1 text-[14px] text-fg" numberOfLines={1}>
-                      {trail?.name ?? 'Trail'}
-                    </Text>
-                    <Text className="font-mono text-[11px] text-fg-muted">
-                      {formatDuration(log.duration_seconds)}
-                    </Text>
+        <View style={{ marginTop: 26 }}>
+          <Eyebrow>Log history</Eyebrow>
+          <View style={{ ...card, marginTop: 12, paddingVertical: logs.length === 0 ? 16 : 4 }}>
+            {logs.length === 0 ? (
+              <Text style={{ fontFamily: fonts.ui, fontSize: 13, color: c.fgFaint }}>No hikes logged yet.</Text>
+            ) : (
+              logs.map((log, i) => {
+                const trail = trails.find((t) => t.id === log.trail_id);
+                return (
+                  <View
+                    key={log.id}
+                    style={{ paddingVertical: 12, borderTopWidth: i === 0 ? 0 : 1, borderTopColor: c.raised }}
+                  >
+                    <View className="flex-row items-baseline justify-between gap-3">
+                      <Text style={{ flex: 1, fontFamily: fonts.uiMedium, fontSize: 15, color: c.fg }} numberOfLines={1}>
+                        {trail?.name ?? 'Trail'}
+                      </Text>
+                      <Text style={{ ...numericStyle(), fontSize: 13, color: c.fgMuted }}>
+                        {formatDuration(log.duration_seconds)}
+                      </Text>
+                    </View>
+                    {log.notes ? (
+                      <Text style={{ fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fgFaint, marginTop: 4 }} numberOfLines={2}>
+                        {log.notes}
+                      </Text>
+                    ) : null}
+                    <PhotoStrip photos={log.photos} />
                   </View>
-                  {log.notes ? (
-                    <Text className="mt-1 font-mono text-[11px] text-fg-faint" numberOfLines={2}>
-                      {log.notes}
-                    </Text>
-                  ) : null}
-                  <PhotoStrip photos={log.photos} />
-                </View>
-              );
-            })
-          )}
+                );
+              })
+            )}
+          </View>
         </View>
         </View>
         )}
       </ScrollView>
+
+      {showSlider ? (
+        <View style={{ position: 'absolute', left: 16, right: 16, bottom: SLIDER_GAP }}>
+          <SlideToStart
+            label="Slide to start a hike"
+            a11yLabel="Start a hike"
+            // An in-app gesture; recording never starts from a URL.
+            onComplete={() => beginTracking(FREEFORM)}
+          />
+        </View>
+      ) : null}
 
       <PastHikeSheet
         visible={pastOpen}

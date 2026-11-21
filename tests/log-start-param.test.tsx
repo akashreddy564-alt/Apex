@@ -148,3 +148,31 @@ describe('Log start hand-off', () => {
     expect(usePendingStart.getState().pending).toBeNull();
   });
 });
+
+describe('Log slider', () => {
+  beforeAll(async () => {
+    await AsyncStorage.setItem('apex-location-explainer-accepted', '1');
+  });
+  beforeEach(() => {
+    mockStart.mockClear();
+    mockParams = {};
+    mockTracker = mockIdle;
+    usePendingStart.setState({ pending: null });
+  });
+
+  it('starts a freeform hike from the slide, with no trail picked', async () => {
+    let tree!: ReturnType<typeof create>;
+    await act(async () => {
+      tree = create(<LogScreen />);
+    });
+    const slider = tree.root.find(
+      (n) => n.props.accessibilityLabel === 'Start a hike' && typeof n.type === 'string',
+    );
+    await act(async () => {
+      slider.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } });
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(mockStart).toHaveBeenCalledWith('');
+    act(() => tree.unmount());
+  });
+});

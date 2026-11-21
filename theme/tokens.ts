@@ -72,6 +72,13 @@ export const palettes: Record<'dark' | 'light', Palette> = {
 };
 
 /**
+ * The summit register's receipt paper and ink. The same in both appearances,
+ * and used only for the register.
+ */
+export const paper = '#F3EFE4';
+export const ink = '#151515';
+
+/**
  * Family names registered with `useFonts` in `app/_layout.tsx`.
  * SDK 57 loads each weight as its own family, so use the weight-specific
  * name (or the matching Tailwind class) instead of `fontWeight`.
