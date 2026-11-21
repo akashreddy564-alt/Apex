@@ -125,8 +125,10 @@ export type PostReasonKind = 'distance' | 'climb' | 'time';
 
 /**
  * Up to two reasons for a feed post, against the same author's other posts in
- * `feed` only (never the viewer's hikes). Someone else's post says whose it is:
- * "Sam’s longest hike yet", "12 min faster than their usual pace".
+ * `feed` only (never the viewer's hikes). `feed` is one loaded page, not the
+ * author's whole history, so the lines claim no more than that: "Longest of
+ * Sam’s recent hikes", never "longest hike yet". Someone else's post says whose
+ * it is: "12 min faster than their usual pace".
  */
 export function postReasons(
   post: PostInput,
@@ -141,12 +143,16 @@ export function postReasons(
   });
   const theirs = feed.filter((p) => p.authorId === post.authorId);
   const found = hikeReasons(input(post), theirs.map(input));
-  const voice = (text: string) =>
-    who.mine ? text : text.replace(/^Your /, `${who.name}’s `).replace(/ your usual /, ' their usual ');
+  const whose = who.mine ? 'your' : `${who.name}’s`;
+  const text: Record<PostReasonKind, string | null> = {
+    distance: found.distance ? `Longest of ${whose} recent hikes` : null,
+    climb: found.climb ? `Biggest climb of ${whose} recent hikes` : null,
+    time: found.time && !who.mine ? found.time.replace(/ your usual /, ' their usual ') : found.time,
+  };
   const out: { kind: PostReasonKind; text: string }[] = [];
   for (const kind of ['distance', 'climb', 'time'] as const) {
-    const text = found[kind];
-    if (text) out.push({ kind, text: voice(text) });
+    const line = text[kind];
+    if (line) out.push({ kind, text: line });
   }
   return out.slice(0, 2);
 }

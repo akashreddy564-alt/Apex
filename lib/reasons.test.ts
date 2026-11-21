@@ -142,20 +142,27 @@ describe('postReasons', () => {
     ];
     const out = postReasons(feed[0], feed, { mine: false, name: 'Sam' });
     assert.deepEqual(out.map((r) => r.kind), ['distance', 'climb']);
-    assert.equal(out[0].text, 'Sam’s longest hike yet');
-    assert.equal(out[1].text, 'Sam’s biggest climb yet');
+    assert.equal(out[0].text, 'Longest of Sam’s recent hikes');
+    assert.equal(out[1].text, 'Biggest climb of Sam’s recent hikes');
   });
 
-  it('keeps "your" on your own posts', () => {
+  it('says "your" on your own posts, scoped to recent hikes', () => {
     const feed = [post('a', 'me', 20, 100, null), post('b', 'me', 8, 400, null), post('c', 'me', 10, 500, null)];
     const out = postReasons(feed[0], feed, { mine: true, name: 'Akash' });
-    assert.deepEqual(out, [{ kind: 'distance', text: 'Your longest hike yet' }]);
+    assert.deepEqual(out, [{ kind: 'distance', text: 'Longest of your recent hikes' }]);
   });
 
   it('gives at most two, and none without enough of their own posts', () => {
     const feed = [post('a', 'sam', 20, 1200, 3600), post('b', 'sam', 8, 400, 4 * 3600), post('c', 'sam', 10, 500, 5 * 3600)];
     assert.equal(postReasons(feed[0], feed, { mine: false, name: 'Sam' }).length, 2);
     assert.deepEqual(postReasons(feed[0], feed.slice(0, 2), { mine: false, name: 'Sam' }), []);
+  });
+
+  it('never claims an all-time best from one feed page', () => {
+    const feed = [post('a', 'sam', 20, 1200, null), post('b', 'sam', 8, 400, null), post('c', 'sam', 10, 500, null)];
+    for (const mine of [true, false]) {
+      for (const r of postReasons(feed[0], feed, { mine, name: 'Sam' })) assert.doesNotMatch(r.text, /yet|ever/);
+    }
   });
 
   it('turns the pace line to their usual pace', () => {
