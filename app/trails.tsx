@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Skeleton } from '@/components/motion';
+import { Eyebrow, Skeleton } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { TrailCoverCard } from '@/components/trail/TrailCoverCard';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
@@ -47,9 +47,7 @@ export default function TrailsScreen() {
         </View>
 
         <View className="flex-row border-b border-raised px-4 py-2">
-          <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-            {ready ? `${trails.length} trails · ${rankings.length} ranked` : 'Loading trails'}
-          </Text>
+          <Eyebrow>{ready ? `${trails.length} trails · ${rankings.length} ranked` : 'Loading trails'}</Eyebrow>
         </View>
 
         <View style={{ gap: 12, paddingHorizontal: 14, paddingTop: 14 }}>

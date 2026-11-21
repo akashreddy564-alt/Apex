@@ -4,15 +4,11 @@ import { Eyebrow } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { weekStart } from '@/lib/streak';
 import type { DayLevel } from '@/lib/streakGrid';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
+import { withAlpha } from '@/theme/color';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 const GAP = 5;
-
-/** Accent at 35% alpha, from a #RRGGBB palette color. */
-function faded(hex: string): string {
-  return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex}59` : hex;
-}
 
 /** "AUG 31": the Monday that starts the oldest column. */
 export function firstMonday(weeks: number, now: Date = new Date()): string {
@@ -39,11 +35,11 @@ export function StreakGrid({
 }) {
   const c = useColors();
   const days = grid.reduce((n, week) => n + week.filter((d) => d > 0).length, 0);
-  const color = (level: DayLevel) => (level === 2 ? c.accent : level === 1 ? faded(c.accent) : c.raised);
+  const color = (level: DayLevel) => (level === 2 ? c.accent : level === 1 ? withAlpha(c.accent, 0.35) : c.raised);
   const legend = { fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1, color: c.fgFaint } as const;
 
   return (
-    <View style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 }}>
+    <View style={cardStyle(c)}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Eyebrow>Last 12 weeks</Eyebrow>
         {streakWeeks > 0 ? (

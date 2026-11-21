@@ -11,7 +11,8 @@ import { dailyTotals, DIAL_RANGE, paceLine } from '@/lib/goalDial';
 import { formatAmount, toDisplay, toStored, type GoalMetric } from '@/lib/weeklyGoal';
 import { useGoal } from '@/stores/goalStore';
 import { useTrailCache } from '@/stores/trailCache';
-import { fonts, numericStyle } from '@/theme/tokens';
+import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
+import { withAlpha } from '@/theme/color';
 
 const METRICS: { value: GoalMetric; label: string }[] = [
   { value: 'elevation', label: 'Elevation' },
@@ -56,13 +57,7 @@ export default function GoalScreen() {
   }, [logs, trails, metric]);
   const pace = paceLine(metric, progress.done, targetStored);
 
-  const card: ViewStyle = {
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.raised,
-    borderRadius: 22,
-    padding: 16,
-  };
+  const card: ViewStyle = cardStyle(c);
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerClassName="pb-12 pt-6">
@@ -163,7 +158,7 @@ function PaceDot({ color }: { color: string }) {
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: /^#[0-9a-f]{6}$/i.test(color) ? `${color}26` : 'transparent',
+        backgroundColor: /^#[0-9a-f]{6}$/i.test(color) ? withAlpha(color, 0.15) : 'transparent',
       }}
     >
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: color }} />

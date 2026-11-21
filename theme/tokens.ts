@@ -161,15 +161,6 @@ export const displayXL = {
   fontWeight: 'normal' as const,
 } as const;
 
-/** 700 display for section titles and the trail name under the map. */
-export const displayM = {
-  color: palettes.dark.fg,
-  fontFamily: fonts.display,
-  fontSize: 28,
-  lineHeight: 31,
-  fontWeight: 'normal' as const,
-} as const;
-
 /** Text styles. Titles use `heading.color` only — never a second color inside the line. */
 export const type = {
   caption: {
@@ -217,8 +208,6 @@ export function numericStyle(weight: 'regular' | 'medium' | 'semibold' = 'regula
     fontVariant: tabularNums,
   };
 }
-
-export const numericText = numericStyle();
 
 /** Additive NativeWind families. Does not include `mono` or `sans`. */
 export const tailwindFontFamily = {
@@ -279,7 +268,7 @@ export function cardStyle(palette: Palette) {
  * (5 pt padding, 28 pt icon box, 16 pt label line, 5 pt padding) + 6.
  * Shorter, and the navigator squeezes the label and clips it.
  */
-export const TAB_BAR_BODY = 68;
+const TAB_BAR_BODY = 68;
 
 /**
  * The bottom tab bar for a palette. Hidden while a hike is recording.

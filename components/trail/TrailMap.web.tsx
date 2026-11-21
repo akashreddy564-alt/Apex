@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 import Animated, { useAnimatedProps } from 'react-native-reanimated';
 import { Path, Svg } from 'react-native-svg';
 
+import { Eyebrow } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useMovingDash } from '@/components/trail/useMovingDash';
 import { buildTrailMap } from '@/lib/projectPath';
@@ -29,9 +30,7 @@ export function TrailMap({ canonical, recorded = null }: TrailMapProps) {
       className="overflow-hidden rounded-xl border border-raised bg-surface"
     >
       <View className="border-b border-raised px-3 py-2">
-        <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-          Path
-        </Text>
+        <Eyebrow>Path</Eyebrow>
       </View>
       <View
         onLayout={(event) => {

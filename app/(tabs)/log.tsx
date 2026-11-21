@@ -49,7 +49,7 @@ import {
 import { usePendingStart } from '@/stores/pendingStart';
 import { useRankingStore } from '@/stores/rankingStore';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
-import { fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
+import { cardStyle, fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
 
 const LOCATION_EXPLAINER_KEY = 'apex-location-explainer-accepted';
 /** Record without choosing a trail; it is settled at Finish. */
@@ -427,9 +427,9 @@ export default function LogScreen() {
   }
 
   const showSlider = tracker.hydrated && !recording && !explainer;
-  // The glass tab bar floats over the screen; hidden (0) while recording.
-  const tabInset = tracker.isTracking ? 0 : barInset;
-  const card = { backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 } as const;
+  // The glass tab bar floats over the screen. (Recording returns its own screen above.)
+  const tabInset = barInset;
+  const card = cardStyle(c);
 
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 12 }}>
@@ -478,9 +478,9 @@ export default function LogScreen() {
                 Start tracking
               </Text>
             </Pressable>
-            <Text className="mb-1 mt-4 font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-              Select trail
-            </Text>
+            <View style={{ marginTop: 16, marginBottom: 4 }}>
+              <Eyebrow>Select trail</Eyebrow>
+            </View>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Name it at the end"

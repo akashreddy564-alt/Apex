@@ -4,7 +4,7 @@ import { Eyebrow, ReasonLine } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { difficultyReasons } from '@/lib/reasons';
 import { difficultyRating } from '@/lib/trailDifficulty';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
 import type { ElevationSample } from '@/types/trail';
 
 const STEPS = 5;
@@ -29,9 +29,7 @@ export function DifficultyCard({
   const reasons = difficultyReasons(trail);
 
   return (
-    <View
-      style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 }}
-    >
+    <View style={cardStyle(c)}>
       <Eyebrow>{`Why it's ${rating.label.toLowerCase()}`}</Eyebrow>
       {/* Only the bar is one element; the rating line and reasons stay readable on their own. */}
       <View
