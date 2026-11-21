@@ -75,3 +75,6 @@ export function weekendFromResponse(
   // A Sunday "now" means this weekend is half over; Saturday is already past.
   return { saturday: now.getDay() === 0 ? null : day(saturday), sunday: day(now.getDay() === 0 ? now : sunday) };
 }
+
+/** Where the weekend forecast is cached. Its key ends with the Saturday's `toDateString()`. */
+export const FORECAST_KEY = 'apex-forecast';
