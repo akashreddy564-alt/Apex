@@ -260,6 +260,20 @@ export function cssVars(palette: Palette): Record<`--color-${string}`, string> {
 /** Tailwind color names backed by the CSS variables above. */
 export const themeColorNames = Object.keys(palettes.dark).map(kebab);
 
+/**
+ * The one card build: surface fill, a `raised` hairline, radius 22, padding 16.
+ * Only the summit register and the glass bars differ.
+ */
+export function cardStyle(palette: Palette) {
+  return {
+    backgroundColor: palette.surface,
+    borderWidth: 1,
+    borderColor: palette.raised,
+    borderRadius: 22,
+    padding: 16,
+  } as const;
+}
+
 /** The bottom tab bar for a palette. Hidden while a hike is recording. */
 export function tabBarStyle(palette: Palette, hidden = false) {
   if (hidden) return { display: 'none' as const };

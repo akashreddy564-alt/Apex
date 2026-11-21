@@ -47,7 +47,7 @@ export function PrimaryButton({ label, onPress, disabled, busy, a11y, compact }:
   );
 }
 
-/** Surface fill, for everything that isn't the main action. */
+/** Surface fill with a raised hairline (so it still reads on a card), for everything that isn't the main action. */
 export function SecondaryButton({ label, onPress, disabled, busy, a11y, compact }: ButtonProps) {
   const c = useColors();
   const off = disabled || busy;
@@ -61,6 +61,8 @@ export function SecondaryButton({ label, onPress, disabled, busy, a11y, compact 
       onPress={onPress}
       className="items-center justify-center rounded-2xl bg-surface"
       style={{
+        borderWidth: 1,
+        borderColor: c.raised,
         opacity: off ? 0.5 : 1,
         paddingVertical: compact ? 9 : 14,
         paddingHorizontal: compact ? 16 : 20,

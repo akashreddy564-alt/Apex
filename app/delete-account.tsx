@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Eyebrow } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/hooks/useAuth';
 import { hikesToCsv, hikesToGpx, photoLines } from '@/lib/exportData';
@@ -19,7 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { useComparisonStore } from '@/stores/comparisonStore';
 import { useRankingStore } from '@/stores/rankingStore';
 import { useTrailCache } from '@/stores/trailCache';
-import { fonts } from '@/theme/tokens';
+import { cardStyle, fonts } from '@/theme/tokens';
 
 const DELETE_FILL = '#8F3230';
 const DELETE_TEXT = '#FDE8E8';
@@ -28,15 +29,17 @@ function Row({
   icon,
   title,
   detail,
+  first = false,
 }: {
   icon: ReactNode;
   title: string;
   detail: string;
+  first?: boolean;
 }) {
   const c = useColors();
   return (
-    <View className="flex-row gap-3 border-t border-raised py-3">
-      <View className="h-9 w-9 items-center justify-center rounded-xl border border-raised bg-surface">
+    <View className={`flex-row gap-3 py-3 ${first ? '' : 'border-t border-raised'}`}>
+      <View className="h-9 w-9 items-center justify-center rounded-xl border border-raised bg-bg">
         {icon}
       </View>
       <View className="flex-1">
@@ -131,33 +134,37 @@ export default function DeleteAccountScreen() {
           This permanently removes your account and everything in it. It can't be undone.
         </Text>
 
-        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 22 }}>
-          What gets deleted
-        </Text>
-        <Row
-          icon={<TrendingUp size={16} color={c.fg} strokeWidth={1.75} />}
-          title={`${logs.length} hikes`}
-          detail="Recorded tracks, logged hikes and notes"
-        />
-        <Row
-          icon={<List size={16} color={c.fg} strokeWidth={1.75} />}
-          title="Your rankings"
-          detail={`${rankings.length} scores and comparisons`}
-        />
-        <Row
-          icon={<ImageIcon size={16} color={c.fg} strokeWidth={1.75} />}
-          title={`${photoCount} photos`}
-          detail="Removed from Apex. Copies in your camera roll stay."
-        />
-        <Row
-          icon={<User size={16} color={c.fg} strokeWidth={1.75} />}
-          title="Account"
-          detail={email ? `${email}, sign-in and preferences` : 'Sign-in and preferences'}
-        />
+        <View style={[cardStyle(c), { marginTop: 22, paddingBottom: 4 }]}>
+          <View style={{ marginBottom: 6 }}>
+            <Eyebrow>What gets deleted</Eyebrow>
+          </View>
+          <Row
+            first
+            icon={<TrendingUp size={16} color={c.fg} strokeWidth={1.75} />}
+            title={`${logs.length} hikes`}
+            detail="Recorded tracks, logged hikes and notes"
+          />
+          <Row
+            icon={<List size={16} color={c.fg} strokeWidth={1.75} />}
+            title="Your rankings"
+            detail={`${rankings.length} scores and comparisons`}
+          />
+          <Row
+            icon={<ImageIcon size={16} color={c.fg} strokeWidth={1.75} />}
+            title={`${photoCount} photos`}
+            detail="Removed from Apex. Copies in your camera roll stay."
+          />
+          <Row
+            icon={<User size={16} color={c.fg} strokeWidth={1.75} />}
+            title="Account"
+            detail={email ? `${email}, sign-in and preferences` : 'Sign-in and preferences'}
+          />
+        </View>
 
-        <View className="mt-4 flex-row items-center justify-between rounded-2xl border border-raised px-4 py-3">
+        <View style={[cardStyle(c), { marginTop: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
           <View className="mr-3 flex-1">
-            <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }}>
+            <Eyebrow>Before you go</Eyebrow>
+            <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15, marginTop: 6 }}>
               Export your data first
             </Text>
             <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 4 }}>
