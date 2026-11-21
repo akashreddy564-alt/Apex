@@ -53,7 +53,6 @@ export function RouteTracer({ path, fraction }: { path: GeoJSONLineString; fract
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
 
-  const read = (): number => (typeof fraction === 'number' ? fraction : fraction.value);
   const xs = geo?.xs ?? [0, 0];
   const ys = geo?.ys ?? [0, 0];
   const cum = geo?.cum ?? [0, 0];
@@ -73,7 +72,7 @@ export function RouteTracer({ path, fraction }: { path: GeoJSONLineString; fract
 
   if (!geo) return null;
   const start = pointAt(geo.xs, geo.ys, geo.cum, 0);
-  const now = pointAt(geo.xs, geo.ys, geo.cum, read());
+  const now = pointAt(geo.xs, geo.ys, geo.cum, typeof fraction === 'number' ? fraction : 0);
   const line = { fill: 'none', strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
   return (

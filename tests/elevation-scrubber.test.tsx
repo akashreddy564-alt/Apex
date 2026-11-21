@@ -56,6 +56,17 @@ describe('ElevationScrubber', () => {
     expect(onScrub).toHaveBeenLastCalledWith(expect.closeTo(0.2, 5));
   });
 
+  it('increment clamps at the end', () => {
+    const t = render(<ElevationScrubber profile={profile} />);
+    for (let i = 0; i < 14; i++) act2(t, 'increment');
+    expect(root(t).props.accessibilityValue.text).toBe('2.5 mi, 1,500 ft elevation, 1,000 ft climbed');
+  });
+
+  it('renders with a zero-width layout and no NaN', () => {
+    const t = render(<ElevationScrubber profile={profile} />);
+    expect(JSON.stringify(t.toJSON())).not.toContain('NaN');
+  });
+
   it('renders null for an empty profile', () => {
     expect(render(<ElevationScrubber profile={[]} />).toJSON()).toBeNull();
   });
@@ -65,6 +76,12 @@ describe('RouteTracer', () => {
   it('renders null for a one-point path', () => {
     const path = { type: 'LineString' as const, coordinates: [[1, 2]] as [number, number][] };
     expect(render(<RouteTracer path={path} fraction={0} />).toJSON()).toBeNull();
+  });
+
+  it('renders when every point shares a latitude', () => {
+    const path = { type: 'LineString' as const, coordinates: [[1, 2], [1.1, 2], [1.2, 2]] as [number, number][] };
+    const t = render(<RouteTracer path={path} fraction={0.5} />);
+    expect(JSON.stringify(t.toJSON())).not.toContain('NaN');
   });
 
   it('renders for a real path', () => {
