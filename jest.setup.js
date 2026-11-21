@@ -10,3 +10,7 @@ jest.mock('react-native-reanimated', () => {
   // The mock predates these; tests run as if Reduce Motion were on.
   return { ...mock, useReducedMotion: () => true };
 });
+
+// lucide-react-native ships ESM that jest can't parse, and the motion barrel imports it.
+// Icons render nothing in tests; a test can still mock specific icons itself.
+jest.mock('lucide-react-native', () => new Proxy({ __esModule: true }, { get: (t, k) => (k in t ? t[k] : () => null) }));
