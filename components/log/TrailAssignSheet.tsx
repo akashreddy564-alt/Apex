@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { Glass } from '@/components/motion';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import { isCatalogTrail, OSM_CREDIT } from '@/lib/catalog';
 import { formatDistance, formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
@@ -107,7 +108,7 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}
       >
-        <View style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: '90%' }]}>
+        <Glass intensity={60} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: '90%' }]}>
           <View style={styles.grabber} />
           <View style={styles.header}>
             <Text style={styles.title}>Which trail was this?</Text>
@@ -134,7 +135,7 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
             <Text style={styles.label}>{suggestions.length > 0 ? 'SOMEWHERE ELSE' : 'NAME IT'}</Text>
             <TrailNameField trails={trails} onPick={onPick} onCreate={onCreate} />
           </ScrollView>
-        </View>
+        </Glass>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -150,7 +151,7 @@ const textShadow = (c: Palette) => ({
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
   sheet: {
-    backgroundColor: c.bg,
+    flex: 0,
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     borderTopWidth: 1,

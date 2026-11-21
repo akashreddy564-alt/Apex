@@ -56,8 +56,14 @@ import { tabBarStyle } from '../theme/tokens.ts';
 
 describe('tabBarStyle', () => {
   it('follows the palette so the Log tab bar repaints on a switch', () => {
-    assert.equal(tabBarStyle(palettes.light).backgroundColor, '#FFFFFF');
+    assert.equal(tabBarStyle(palettes.light).borderTopColor, palettes.light.raised);
     assert.equal(tabBarStyle(palettes.dark).borderTopColor, palettes.dark.raised);
+  });
+
+  it('floats with a clear fill, so the glass background shows through', () => {
+    const style = tabBarStyle(palettes.light);
+    assert.equal(style.backgroundColor, 'transparent');
+    assert.equal(style.position, 'absolute');
   });
 
   it('hides the bar while recording', () => {

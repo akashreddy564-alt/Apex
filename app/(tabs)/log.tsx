@@ -20,6 +20,7 @@ import { StreakGrid } from '@/components/craft/StreakGrid';
 import { SummitRegister } from '@/components/craft/SummitRegister';
 import { ContourTexture, Eyebrow, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
@@ -94,6 +95,7 @@ export default function LogScreen() {
   const rankings = useRankingStore((s) => s.rankings);
   const { width: screenWidth } = useWindowDimensions();
   const tracker = useTrailTracker();
+  const barInset = useTabBarInset();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
   const params = useLocalSearchParams<{ recording?: string; view?: string }>();
   const router = useRouter();
@@ -426,6 +428,8 @@ export default function LogScreen() {
   }
 
   const showSlider = tracker.hydrated && !recording && !explainer;
+  // The glass tab bar floats over the screen; hidden (0) while recording.
+  const tabInset = tracker.isTracking ? 0 : barInset;
   const card = { backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 } as const;
 
   return (
@@ -433,7 +437,7 @@ export default function LogScreen() {
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CONTOUR_H }}>
         <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} />
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: tabInset + (showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40) }}>
         <LogHeader
           view={view}
           onView={setView}
@@ -584,7 +588,7 @@ export default function LogScreen() {
       </ScrollView>
 
       {showSlider ? (
-        <View style={{ position: 'absolute', left: 16, right: 16, bottom: SLIDER_GAP }}>
+        <View style={{ position: 'absolute', left: 16, right: 16, bottom: tabInset + SLIDER_GAP }}>
           <SlideToStart
             label="Slide to start a hike"
             a11yLabel="Start a hike"

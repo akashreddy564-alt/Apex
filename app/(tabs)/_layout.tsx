@@ -1,10 +1,10 @@
 import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs/types';
 import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
-import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router';
 import { Footprints, House, Users } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 
+import { Glass, haptics } from '@/components/motion';
 import { TabIcon } from '@/components/TabIcon';
 import { useColors } from '@/hooks/useColors';
 import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
@@ -24,6 +24,8 @@ export default function TabsLayout() {
         headerTitleStyle: { ...navTitle, color: c.fg },
         headerShadowVisible: false,
         tabBarStyle: tabBarStyle(c),
+        // Frosted, floating bar. Content scrolls under it; tab screens pad by its height.
+        tabBarBackground: () => <Glass />,
         tabBarActiveTintColor: c.fg,
         tabBarInactiveTintColor: c.fgFaint,
         headerShown: false,
@@ -37,7 +39,7 @@ export default function TabsLayout() {
         animation: 'shift',
       }}
       screenListeners={{
-        tabPress: () => void Haptics.selectionAsync().catch(() => undefined),
+        tabPress: () => haptics.select(),
       }}
     >
       <Tabs.Screen

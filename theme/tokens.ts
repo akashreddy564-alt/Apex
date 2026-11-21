@@ -263,8 +263,11 @@ export const themeColorNames = Object.keys(palettes.dark).map(kebab);
 /** The bottom tab bar for a palette. Hidden while a hike is recording. */
 export function tabBarStyle(palette: Palette, hidden = false) {
   if (hidden) return { display: 'none' as const };
+  // Transparent and floating: the Glass background in the tabs layout frosts
+  // whatever scrolls under it. Tab screens pad by useTabBarInset().
   return {
-    backgroundColor: palette.bg,
+    position: 'absolute' as const,
+    backgroundColor: 'transparent',
     borderTopColor: palette.raised,
     borderTopWidth: 1,
     height: 58,
