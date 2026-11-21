@@ -10,9 +10,9 @@ import { PhotoCreditsLink } from '@/components/opening/PhotoCreditsLink';
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { ChoiceRow } from '@/components/settings/ChoiceRow';
 import { Avatar } from '@/components/social/Avatar';
-import { PrimaryButton } from '@/components/social/Buttons';
+import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { useMyProfile } from '@/hooks/useProfile';
-import { cardStyle, fonts } from '@/theme/tokens';
+import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
 import type { Appearance, ScoreStyle } from '@/lib/appearance';
 import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
@@ -192,16 +192,14 @@ export default function AccountScreen() {
         ) : null}
 
         {session ? (
-          <Pressable
-            accessibilityLabel="Sign out"
-            onPress={() => {
-              void client.auth.signOut();
-            }}
-            className="mt-4 items-center border border-raised py-3 active:bg-raised"
-            style={{ borderRadius: 12 }}
-          >
-            <Text className="font-mono text-sm text-fg-2">Sign out</Text>
-          </Pressable>
+          <View className="mt-4">
+            <SecondaryButton
+              label="Sign out"
+              onPress={() => {
+                void client.auth.signOut();
+              }}
+            />
+          </View>
         ) : (
           <>
             <TextInput
@@ -211,11 +209,13 @@ export default function AccountScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
-              placeholder="email"
+              placeholder="you@email.com"
               placeholderTextColor={c.fgFaint}
               accessibilityLabel="Email"
-              className="mt-4 border border-raised bg-bg px-3 py-3 font-mono text-sm text-fg"
-              style={{ borderRadius: 12 }}
+              textContentType="emailAddress"
+              autoComplete="email"
+              className="mt-4 rounded-2xl border border-raised bg-bg px-4 text-fg"
+              style={{ fontFamily: fonts.ui, fontSize: 16, minHeight: 48 }}
             />
             <View className="mt-3">
               <PrimaryButton label="Send magic link" busy={busy} onPress={() => void sendLink()} />
@@ -232,43 +232,36 @@ export default function AccountScreen() {
                   placeholder="6-digit code"
                   placeholderTextColor={c.fgFaint}
                   accessibilityLabel="Code from the email"
-                  className="flex-1 border border-raised bg-bg px-3 py-3 font-mono text-sm text-fg"
-                  style={{ borderRadius: 12 }}
+                  className="flex-1 rounded-2xl border border-raised bg-bg px-4 text-fg"
+                  style={{ fontSize: 18, minHeight: 48, letterSpacing: 2, ...numericStyle('medium') }}
                 />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Sign in with code"
+                <SecondaryButton
+                  label="Sign in"
+                  a11y="Sign in with code"
                   disabled={busy || code.replace(/\D/g, '').length !== 6}
                   onPress={() => {
                     void verifyCode();
                   }}
-                  className="items-center justify-center border border-raised px-4 active:bg-raised"
-                  style={{
-                    borderRadius: 12,
-                    opacity: busy || code.replace(/\D/g, '').length !== 6 ? 0.5 : 1,
-                  }}
-                >
-                  <Text className="font-mono text-sm text-fg-2">Sign in</Text>
-                </Pressable>
+                />
               </View>
             ) : null}
           </>
         )}
 
-        <Pressable
-          accessibilityLabel="Sync now"
-          disabled={busy || !session}
-          onPress={() => {
-            void sync();
-          }}
-          className="mt-3 items-center border border-raised py-3 active:bg-raised"
-          style={{ borderRadius: 12, opacity: busy || !session ? 0.5 : 1 }}
-        >
-          <Text className="font-mono text-sm text-fg-2">Sync now</Text>
-        </Pressable>
+        {session ? (
+          <View className="mt-3">
+            <SecondaryButton
+              label="Sync now"
+              disabled={busy}
+              onPress={() => {
+                void sync();
+              }}
+            />
+          </View>
+        ) : null}
 
         {status ? (
-          <Text className="mt-4 font-mono text-[11px] leading-5 text-fg-muted">{status}</Text>
+          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, marginTop: 14 }}>{status}</Text>
         ) : null}
       </Section>
 

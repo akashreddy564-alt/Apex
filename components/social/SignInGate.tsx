@@ -9,8 +9,8 @@ import { useMyProfile } from '@/hooks/useProfile';
 import type { Profile } from '@/lib/profile';
 import { cardStyle, fonts } from '@/theme/tokens';
 
-/** The gate's card: contour lines across the whole card behind an eyebrow, title and one plain sentence. */
-function Card({ eyebrow, title, body, children }: { eyebrow: string; title: string; body: string; children?: ReactNode }) {
+/** The gate's card (also used for other empty and dead-end screens): contour lines across the whole card behind an eyebrow, title and one plain sentence. */
+export function GateCard({ eyebrow, title, body, children }: { eyebrow: string; title: string; body: string; children?: ReactNode }) {
   const c = useColors();
   const [size, setSize] = useState({ width: 0, height: 0 });
   return (
@@ -51,7 +51,7 @@ export function SignInGate({
 
   if (!configured) {
     return (
-      <Card
+      <GateCard
         eyebrow="This phone only"
         title="Friends need an account"
         body="This copy of Apex runs on this phone only. Your hikes and rankings still work in Log."
@@ -63,27 +63,27 @@ export function SignInGate({
   }
   if (!session) {
     return (
-      <Card
+      <GateCard
         eyebrow="Account"
         title="Sign in to see your friends"
         body={`Sign in to ${why}. Your hikes upload when you do, and Log keeps working signed out.`}
       >
         <PrimaryButton label="Sign in with email" onPress={() => router.push('/account')} />
-      </Card>
+      </GateCard>
     );
   }
   if (error) {
     return (
-      <Card eyebrow="Profile" title="Couldn’t load your profile" body={error}>
+      <GateCard eyebrow="Profile" title="Couldn’t load your profile" body={error}>
         <SecondaryButton label="Try again" onPress={() => void refetch()} />
-      </Card>
+      </GateCard>
     );
   }
   if (!profile) {
     return (
-      <Card eyebrow="Username" title="Pick a username" body="Friends find you by your username. You can change it later.">
+      <GateCard eyebrow="Username" title="Pick a username" body="Friends find you by your username. You can change it later.">
         <PrimaryButton label="Choose username" onPress={() => router.push('/username')} />
-      </Card>
+      </GateCard>
     );
   }
   return <>{children(profile)}</>;
