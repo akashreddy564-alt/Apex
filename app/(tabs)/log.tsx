@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
@@ -31,7 +31,7 @@ import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
-import { startLinkPlan } from '@/lib/startLink';
+import { startPlan } from '@/lib/startLink';
 import { pushTrail } from '@/lib/remoteSync';
 import { matchTrails } from '@/lib/trailMatch';
 import { buildUserTrail } from '@/lib/userTrail';
@@ -39,6 +39,7 @@ import {
   LOCK_SCREEN_NOTIFICATION_NOTE,
   notificationPermissionRequired,
 } from '@/lib/notificationPermission';
+import { usePendingStart } from '@/stores/pendingStart';
 import { MOCK_USER_ID, useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle, tabBarStyle } from '@/theme/tokens';
 
@@ -74,13 +75,13 @@ export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
     setOptions: (options: Record<string, unknown>) => void;
-    setParams: (params: { recording?: string; start?: string }) => void;
+    setParams: (params: { recording?: string }) => void;
   }>();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
-  const params = useLocalSearchParams<{ recording?: string; view?: string; start?: string }>();
+  const params = useLocalSearchParams<{ recording?: string; view?: string }>();
   const router = useRouter();
   const [view, setView] = useState<LogView>(params.view === 'rankings' ? 'rankings' : 'hikes');
 
@@ -146,19 +147,24 @@ export default function LogScreen() {
     [tracker.start],
   );
 
-  // `/log?start=<trailId>` from Trail detail's slider.
-  useEffect(() => {
-    const plan = startLinkPlan({
-      param: params.start,
-      hydrated: tracker.hydrated,
-      tracking: tracker.isTracking,
-    });
-    if (plan.start) {
-      setSelectedTrailId(plan.start);
-      beginTracking(plan.start);
-    }
-    if (plan.clear) navigation.setParams({ start: undefined });
-  }, [beginTracking, navigation, params.start, tracker.hydrated, tracker.isTracking]);
+  // Trail detail's slider leaves a one-shot in-app request (never a URL param,
+  // so a deep link can't start GPS recording). Taken on focus once hydrated.
+  useFocusEffect(
+    useCallback(() => {
+      if (!tracker.hydrated) return;
+      const pending = usePendingStart.getState().take();
+      const plan = startPlan({
+        pending,
+        knownIds: new Set(trails.map((t) => t.id)),
+        hydrated: tracker.hydrated,
+        tracking: tracker.isTracking,
+      });
+      if (plan.start) {
+        setSelectedTrailId(plan.start);
+        beginTracking(plan.start);
+      }
+    }, [beginTracking, trails, tracker.hydrated, tracker.isTracking]),
+  );
 
   useEffect(() => {
     if (!tracker.isTracking || !notificationPermissionRequired(Platform.OS, Platform.Version)) {

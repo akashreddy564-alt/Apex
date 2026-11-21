@@ -39,6 +39,7 @@ jest.mock('@/hooks/useTrailTracker', () => ({
 }));
 
 import TrailDetailScreen from '@/app/trail/[id]';
+import { usePendingStart } from '@/stores/pendingStart';
 
 const ANGELS = '63cfe6e0-2d47-4a81-b087-a146d1fd9a4f';
 
@@ -79,11 +80,12 @@ describe('Trail detail', () => {
     expect(t.root.findAll((n) => n.props.accessibilityRole === 'adjustable')).toHaveLength(0);
   });
 
-  it('starts this hike on Log when the slider activates', () => {
+  it('leaves an in-app start request and opens Log, with no URL param', () => {
     const t = render(ANGELS);
     const [node] = slider(t);
     act(() => node.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
-    expect(mockPush).toHaveBeenCalledWith(`/log?start=${ANGELS}`);
+    expect(mockPush).toHaveBeenCalledWith('/log');
+    expect(usePendingStart.getState().take()).toBe(ANGELS);
   });
 
   it('hides the slider while a hike is recording', () => {

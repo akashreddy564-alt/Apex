@@ -24,6 +24,7 @@ import { formatDistance } from '@/lib/format';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { trailCover } from '@/lib/trailCover';
 import { useRankingStore } from '@/stores/rankingStore';
+import { usePendingStart } from '@/stores/pendingStart';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts } from '@/theme/tokens';
 
@@ -203,7 +204,10 @@ export default function TrailDetailScreen() {
           <SlideToStart
             label="Slide to start this hike"
             a11yLabel="Start this hike"
-            onComplete={() => router.push(`/log?start=${trail.id}`)}
+            onComplete={() => {
+              usePendingStart.getState().request(trail.id);
+              router.push('/log');
+            }}
           />
         </View>
       ) : null}

@@ -1,37 +1,56 @@
 import { act, create } from 'react-test-renderer';
 
-import { startLinkPlan } from '@/lib/startLink';
+import { startPlan } from '@/lib/startLink';
+import { PENDING_START_MAX_AGE_MS, usePendingStart } from '@/stores/pendingStart';
 
-describe('startLinkPlan', () => {
-  it('waits for the saved hike to load before acting', () => {
-    expect(startLinkPlan({ param: 't1', hydrated: false, tracking: false })).toEqual({ start: null, clear: false });
+const known = new Set(['t1']);
+
+describe('startPlan', () => {
+  it('starts a known trail once hydrated and idle', () => {
+    expect(startPlan({ pending: 't1', knownIds: known, hydrated: true, tracking: false })).toEqual({ start: 't1' });
   });
-
-  it('starts the trail once hydrated and idle, and clears the param', () => {
-    expect(startLinkPlan({ param: 't1', hydrated: true, tracking: false })).toEqual({ start: 't1', clear: true });
-  });
-
-  it('only clears the param while a hike is already recording', () => {
-    expect(startLinkPlan({ param: 't1', hydrated: true, tracking: true })).toEqual({ start: null, clear: true });
-  });
-
-  it('ignores a missing param', () => {
-    expect(startLinkPlan({ param: undefined, hydrated: true, tracking: false })).toEqual({ start: null, clear: false });
+  it('does nothing before hydration, while tracking, for an unknown id, or with nothing pending', () => {
+    expect(startPlan({ pending: 't1', knownIds: known, hydrated: false, tracking: false }).start).toBeNull();
+    expect(startPlan({ pending: 't1', knownIds: known, hydrated: true, tracking: true }).start).toBeNull();
+    expect(startPlan({ pending: 'nope', knownIds: known, hydrated: true, tracking: false }).start).toBeNull();
+    expect(startPlan({ pending: null, knownIds: known, hydrated: true, tracking: false }).start).toBeNull();
   });
 });
 
-// The Log screen wiring: an already-recording hike is never started twice.
+describe('usePendingStart', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('hands the request over once', () => {
+    usePendingStart.getState().request('t1');
+    expect(usePendingStart.getState().take()).toBe('t1');
+    expect(usePendingStart.getState().take()).toBeNull();
+  });
+
+  it('drops a request older than 10 s, and clears it', () => {
+    jest.useFakeTimers();
+    usePendingStart.getState().request('t1');
+    jest.advanceTimersByTime(PENDING_START_MAX_AGE_MS + 1);
+    expect(usePendingStart.getState().take()).toBeNull();
+    expect(usePendingStart.getState().pending).toBeNull();
+  });
+});
+
+// The Log screen wiring.
 const mockStart = jest.fn();
 const mockSetParams = jest.fn();
-const mockParams = { start: 'trail-1' };
+let mockParams: Record<string, string> = {};
 const mockNavigation = { setOptions: jest.fn(), setParams: mockSetParams };
 const mockRouter = { push: jest.fn() };
-jest.mock('expo-router', () => ({
-  useLocalSearchParams: () => mockParams,
-  useNavigation: () => mockNavigation,
-  useRouter: () => mockRouter,
-  useIsFocused: () => true,
-}));
+jest.mock('expo-router', () => {
+  const { useEffect } = require('react');
+  return {
+    useLocalSearchParams: () => mockParams,
+    useNavigation: () => mockNavigation,
+    useRouter: () => mockRouter,
+    useIsFocused: () => true,
+    useFocusEffect: (cb: () => void) => useEffect(cb, [cb]),
+  };
+});
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
@@ -43,41 +62,89 @@ jest.mock('@/components/ranking/PairwiseModal', () => ({ PairwiseModal: () => nu
 jest.mock('@/components/log/PastHikeSheet', () => ({ PastHikeSheet: () => null }));
 jest.mock('@/components/log/TrailAssignSheet', () => ({ TrailAssignSheet: () => null }));
 jest.mock('@/components/log/LogHeader', () => ({ LogHeader: () => null }));
-const mockTracker = {
-    isTracking: true,
-    isPaused: false,
-    hydrated: true,
-    session: { trailId: 'other', points: [] },
-    start: mockStart,
-    tick: jest.fn(),
-    pause: jest.fn(),
-    resume: jest.fn(),
-    dismissRecovery: jest.fn(),
-    elapsedSeconds: 0,
-    totalSeconds: 0,
-    distanceM: 0,
-    elevationGainM: 0,
-    elevationLossM: 0,
-    currentElevationM: null,
-    savedAt: null,
+const base = {
+  isPaused: false,
+  hydrated: true,
+  start: mockStart,
+  tick: jest.fn(),
+  pause: jest.fn(),
+  resume: jest.fn(),
+  dismissRecovery: jest.fn(),
+  elapsedSeconds: 0,
+  totalSeconds: 0,
+  distanceM: 0,
+  elevationGainM: 0,
+  elevationLossM: 0,
+  currentElevationM: null,
+  savedAt: null,
 };
+const mockIdle = { ...base, isTracking: false, session: null };
+const mockBusy = { ...base, isTracking: true, session: { trailId: 'other', points: [] } };
+let mockTracker: typeof mockIdle | typeof mockBusy = mockIdle;
 jest.mock('@/hooks/useTrailTracker', () => ({ useTrailTracker: () => mockTracker }));
 
 import LogScreen from '@/app/(tabs)/log';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTrailCache } from '@/stores/trailCache';
 
-describe('Log ?start=', () => {
+const ANGELS = '63cfe6e0-2d47-4a81-b087-a146d1fd9a4f';
+
+async function mount() {
+  let tree!: ReturnType<typeof create>;
+  await act(async () => {
+    tree = create(<LogScreen />);
+  });
+  await act(async () => {
+    await Promise.resolve();
+  });
+  act(() => tree.unmount());
+}
+
+describe('Log start hand-off', () => {
+  beforeAll(async () => {
+    // Explainer already accepted, so a start goes straight to the tracker.
+    await AsyncStorage.setItem('apex-location-explainer-accepted', '1');
+    expect(useTrailCache.getState().getTrail(ANGELS)).toBeTruthy();
+  });
   beforeEach(() => {
     mockStart.mockClear();
-    mockSetParams.mockClear();
+    mockParams = {};
+    mockTracker = mockIdle;
+    usePendingStart.setState({ pending: null });
   });
 
-  it('while a hike is recording, clears the param without starting another', async () => {
-    let tree!: ReturnType<typeof create>;
-    await act(async () => {
-      tree = create(<LogScreen />);
-    });
-    act(() => tree.unmount());
-    expect(mockSetParams).toHaveBeenCalledWith({ start: undefined });
+  it('ignores a start URL param', async () => {
+    mockParams = { start: ANGELS };
+    await mount();
     expect(mockStart).not.toHaveBeenCalled();
+  });
+
+  it('starts a pending request once', async () => {
+    usePendingStart.getState().request(ANGELS);
+    await mount();
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockStart).toHaveBeenCalledWith(ANGELS);
+    await mount();
+    expect(mockStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a stale request', async () => {
+    usePendingStart.setState({ pending: { trailId: ANGELS, at: Date.now() - PENDING_START_MAX_AGE_MS - 1 } });
+    await mount();
+    expect(mockStart).not.toHaveBeenCalled();
+  });
+
+  it('ignores an unknown trail id', async () => {
+    usePendingStart.getState().request('not-a-trail');
+    await mount();
+    expect(mockStart).not.toHaveBeenCalled();
+  });
+
+  it('while tracking, does not start and clears the request', async () => {
+    mockTracker = mockBusy;
+    usePendingStart.getState().request(ANGELS);
+    await mount();
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(usePendingStart.getState().pending).toBeNull();
   });
 });
