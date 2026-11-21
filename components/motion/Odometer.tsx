@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { useColors } from '@/hooks/useColors';
+import { rollTo } from '@/lib/odometerStrip';
 import { fonts } from '@/theme/tokens';
 
 const SPRING = { damping: 22, stiffness: 120, mass: 1 };
@@ -17,15 +18,11 @@ function Tile({ digit, size, reduceMotion }: { digit: number; size: number; redu
   const y = useSharedValue(-digit * h);
 
   useEffect(() => {
-    // Always roll forward; the second copy of 0-9 makes 9 to 0 a short step.
-    const from = pos.current % 10;
-    const delta = (digit - from + 10) % 10;
-    let target = pos.current + delta;
-    if (target >= 20) {
-      pos.current -= 10;
-      target -= 10;
-      y.value = -pos.current * h;
-    }
+    // Stop any spring in flight and re-seat the strip where it is, so a quick
+    // second update never jumps. Shifting by 10 entries looks identical.
+    cancelAnimation(y);
+    const { shift, target } = rollTo(pos.current, digit);
+    if (shift !== 0) y.value = y.value - shift * h;
     pos.current = target;
     y.value = reduceMotion ? -target * h : withSpring(-target * h, SPRING);
   }, [digit, h, reduceMotion, y]);

@@ -76,13 +76,14 @@ export function ContourLoader({
   );
   if (size !== 'screen') {
     return (
-      <View accessibilityRole="progressbar" accessibilityLabel={label ?? 'Loading'}>
+      <View accessible accessibilityRole="progressbar" accessibilityLabel={label ?? 'Loading'}>
         {rings}
       </View>
     );
   }
   return (
     <View
+      accessible
       accessibilityRole="progressbar"
       accessibilityLabel={label ?? 'Loading'}
       style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: 20, backgroundColor: c.bg }}

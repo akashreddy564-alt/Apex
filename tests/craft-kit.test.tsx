@@ -2,7 +2,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Text } from 'react-native';
 import { Path } from 'react-native-svg';
 
-import { ContourLoader, DrawIn, Eyebrow, Odometer, ReasonLine, Skeleton } from '@/components/motion';
+import { ContourLoader, ContourTexture, DrawIn, Eyebrow, Odometer, ReasonLine, Skeleton } from '@/components/motion';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -48,6 +48,13 @@ describe('DrawIn', () => {
   it('shows the full line under Reduce Motion', () => {
     const tree = render(<DrawIn d="M0 0 L10 10" stroke="#fff" length={14} />);
     expect(tree.root.findByType(Path).props.strokeDashoffset).toBe(0);
+  });
+});
+
+describe('ContourTexture', () => {
+  it('is hidden from accessibility', () => {
+    const tree = render(<ContourTexture seed="a" width={100} height={100} />);
+    expect(tree.root.findByProps({ importantForAccessibility: 'no-hide-descendants' })).toBeTruthy();
   });
 });
 

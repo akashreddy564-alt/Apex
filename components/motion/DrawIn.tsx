@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect } from "react";
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -6,8 +6,8 @@ import Animated, {
   useSharedValue,
   withDelay,
   withTiming,
-} from 'react-native-reanimated';
-import { Path } from 'react-native-svg';
+} from "react-native-reanimated";
+import { Path } from "react-native-svg";
 
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
@@ -35,17 +35,24 @@ export function DrawIn({
   useEffect(() => {
     progress.value = reduceMotion
       ? 1
-      : withDelay(delay, withTiming(1, { duration, easing: Easing.out(Easing.cubic) }));
+      : withDelay(
+          delay,
+          withTiming(1, { duration, easing: Easing.out(Easing.cubic) }),
+        );
   }, [delay, duration, progress, reduceMotion]);
-  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: length * (1 - progress.value) }));
+  const animatedProps = useAnimatedProps(() => ({
+    strokeDashoffset: length * (1 - progress.value),
+    // The round cap would show a dot at the start before the line moves.
+    strokeOpacity: progress.value > 0 ? 1 : 0,
+  }));
 
   const shared = {
     d,
     stroke,
     strokeWidth,
-    fill: 'none',
-    strokeLinecap: 'round' as const,
-    strokeLinejoin: 'round' as const,
+    fill: "none",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
     strokeDasharray: `${length} ${length}`,
   };
   if (reduceMotion) return <Path {...shared} strokeDashoffset={0} />;
