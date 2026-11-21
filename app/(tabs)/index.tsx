@@ -204,6 +204,7 @@ function Feed() {
           <Animated.View entering={index < 6 ? riseIn(index) : undefined} style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 20 }}>
             <PostCard
               post={item}
+              feed={posts}
               mine={mine}
               onLike={like}
               onOpen={open}

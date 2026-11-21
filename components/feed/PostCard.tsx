@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { Bookmark, Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { PostMedia } from '@/components/feed/PostMedia';
@@ -9,10 +9,11 @@ import { Avatar } from '@/components/social/Avatar';
 import { useColors } from '@/hooks/useColors';
 import { formatCompactDuration, formatDistance, formatElevation } from '@/lib/format';
 import { comparisonTag, hikeDayLabel, type FeedPost, type MyRankedTrail } from '@/lib/postRules';
+import { postReasons } from '@/lib/reasons';
 import { useSavedTrails } from '@/stores/savedTrailsStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
-import { PressScale } from '@/components/motion';
+import { PressScale, ReasonLine } from '@/components/motion';
 
 function Stat({ label, value }: { label: string; value: string }) {
   const c = useColors();
@@ -69,6 +70,8 @@ interface PostCardProps {
   full?: boolean;
   /** Report or block, on other people's posts. */
   onMore?: (post: FeedPost) => void;
+  /** The loaded feed. Reasons compare this post with the same author's others in it. */
+  feed?: readonly FeedPost[];
 }
 
 /**
@@ -76,7 +79,7 @@ interface PostCardProps {
  * route and photos, their notes, how it compares to yours, then like,
  * comment and save.
  */
-export function PostCard({ post, mine, onLike, onOpen, full = false, onMore }: PostCardProps) {
+export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, feed }: PostCardProps) {
   const c = useColors();
   const router = useRouter();
   const [width, setWidth] = useState(0);
@@ -91,6 +94,19 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore }: P
     post.elevationGainM != null ? { label: 'Elev gain', value: formatElevation(post.elevationGainM) } : null,
     post.durationSeconds != null ? { label: 'Time', value: formatCompactDuration(post.durationSeconds) } : null,
   ].filter((stat): stat is { label: string; value: string } => stat !== null);
+  const reasons = useMemo(() => {
+    if (!feed) return [];
+    const name = post.displayName.split(/\s+/)[0] || post.displayName;
+    return postReasons(post, feed, { mine: post.isMine, name }).map((reason) => ({
+      text: reason.text,
+      value:
+        reason.kind === 'distance'
+          ? formatDistance(post.distanceKm ?? 0)
+          : reason.kind === 'climb'
+            ? formatElevation(post.elevationGainM ?? 0)
+            : formatCompactDuration(post.durationSeconds ?? 0),
+    }));
+  }, [feed, post]);
 
   const openPerson = () => {
     if (post.isMine) return;
@@ -136,6 +152,14 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore }: P
         <View className="mt-4 flex-row gap-7">
           {stats.map((stat) => (
             <Stat key={stat.label} label={stat.label} value={stat.value} />
+          ))}
+        </View>
+      ) : null}
+
+      {reasons.length > 0 ? (
+        <View className="mt-3">
+          {reasons.map((reason, i) => (
+            <ReasonLine key={reason.text} value={reason.value} text={reason.text} first={i === 0} />
           ))}
         </View>
       ) : null}

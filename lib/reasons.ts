@@ -113,6 +113,44 @@ export function hikeReasons(
   return { distance, climb, time };
 }
 
+type PostInput = {
+  id: string;
+  authorId: string;
+  distanceKm: number | null;
+  elevationGainM: number | null;
+  durationSeconds: number | null;
+};
+
+export type PostReasonKind = 'distance' | 'climb' | 'time';
+
+/**
+ * Up to two reasons for a feed post, against the same author's other posts in
+ * `feed` only (never the viewer's hikes). Someone else's post says whose it is:
+ * "Sam’s longest hike yet", "12 min faster than their usual pace".
+ */
+export function postReasons(
+  post: PostInput,
+  feed: readonly PostInput[],
+  who: { mine: boolean; name: string },
+): { kind: PostReasonKind; text: string }[] {
+  const input = (p: PostInput): HikeInput => ({
+    id: p.id,
+    distance_km: p.distanceKm,
+    elevation_gain_m: p.elevationGainM,
+    duration_seconds: p.durationSeconds ?? 0,
+  });
+  const theirs = feed.filter((p) => p.authorId === post.authorId);
+  const found = hikeReasons(input(post), theirs.map(input));
+  const voice = (text: string) =>
+    who.mine ? text : text.replace(/^Your /, `${who.name}’s `).replace(/ your usual /, ' their usual ');
+  const out: { kind: PostReasonKind; text: string }[] = [];
+  for (const kind of ['distance', 'climb', 'time'] as const) {
+    const text = found[kind];
+    if (text) out.push({ kind, text: voice(text) });
+  }
+  return out.slice(0, 2);
+}
+
 export function rankReason(above: string | null, below: string | null): string | null {
   if (above && below) return `Above ${above}, below ${below}`;
   if (above) return `Above ${above}`;

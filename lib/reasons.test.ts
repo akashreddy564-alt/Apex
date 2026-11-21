@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { difficultyReasons, hikeReasons, rankReason } from './reasons.ts';
+import { difficultyReasons, hikeReasons, postReasons, rankReason } from './reasons.ts';
 
 // Shaped like Angels Landing: up to the summit at 2.8 mi, then back down.
 const ANGELS = {
@@ -120,5 +120,53 @@ describe('rankReason', () => {
     assert.equal(rankReason('Mission Peak', null), 'Above Mission Peak');
     assert.equal(rankReason(null, 'Half Dome'), 'Below Half Dome');
     assert.equal(rankReason(null, null), null);
+  });
+});
+
+describe('postReasons', () => {
+  const post = (id: string, author: string, km: number | null, m: number | null, s: number | null) => ({
+    id,
+    authorId: author,
+    distanceKm: km,
+    elevationGainM: m,
+    durationSeconds: s,
+  });
+
+  it('compares only against the same author, and says whose hike it is', () => {
+    const feed = [
+      post('a', 'sam', 20, 1200, 6 * 3600),
+      post('b', 'sam', 8, 400, 3 * 3600),
+      post('c', 'sam', 10, 500, 4 * 3600),
+      // Someone else's bigger hike must not count.
+      post('d', 'lee', 40, 3000, 12 * 3600),
+    ];
+    const out = postReasons(feed[0], feed, { mine: false, name: 'Sam' });
+    assert.deepEqual(out.map((r) => r.kind), ['distance', 'climb']);
+    assert.equal(out[0].text, 'Sam’s longest hike yet');
+    assert.equal(out[1].text, 'Sam’s biggest climb yet');
+  });
+
+  it('keeps "your" on your own posts', () => {
+    const feed = [post('a', 'me', 20, 100, null), post('b', 'me', 8, 400, null), post('c', 'me', 10, 500, null)];
+    const out = postReasons(feed[0], feed, { mine: true, name: 'Akash' });
+    assert.deepEqual(out, [{ kind: 'distance', text: 'Your longest hike yet' }]);
+  });
+
+  it('gives at most two, and none without enough of their own posts', () => {
+    const feed = [post('a', 'sam', 20, 1200, 3600), post('b', 'sam', 8, 400, 4 * 3600), post('c', 'sam', 10, 500, 5 * 3600)];
+    assert.equal(postReasons(feed[0], feed, { mine: false, name: 'Sam' }).length, 2);
+    assert.deepEqual(postReasons(feed[0], feed.slice(0, 2), { mine: false, name: 'Sam' }), []);
+  });
+
+  it('turns the pace line to their usual pace', () => {
+    const feed = [
+      post('a', 'sam', 10, null, 2 * 3600),
+      post('b', 'sam', 10, null, 3 * 3600),
+      post('c', 'sam', 10, null, 3 * 3600),
+    ];
+    const out = postReasons(feed[0], feed, { mine: false, name: 'Sam' });
+    assert.equal(out.length, 1);
+    assert.equal(out[0].kind, 'time');
+    assert.match(out[0].text, /^\d+ min faster than their usual pace$/);
   });
 });
