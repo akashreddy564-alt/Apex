@@ -8,6 +8,7 @@ Each social step adds a migration. You run them in the Supabase SQL Editor, the 
 | 3. Friends | `supabase/migrations/010_friends.sql` | 009 |
 | 4. Feed, likes and comments | `supabase/migrations/011_feed.sql` | 010 |
 | 5. Groups and leaderboards | `supabase/migrations/012_groups.sql` | 011 |
+| 6. Notifications, report and block | `supabase/migrations/013_notifications_and_safety.sql` | 012 |
 
 Each is safe to run more than once. After running one, run `supabase/checks/migration_status.sql` and check that every row says `true`.
 
@@ -28,3 +29,7 @@ Supabase's built-in email only sends to your own team members, a few an hour. Be
 ## Test hikers
 
 `supabase/seed/test_hikers.sql` adds three accounts nobody can sign in to (`maya_test`, `jordan_test`, `sam_test`). Maya sends a friend request to every real account, so you can try requests, accepting and unfriending with one phone. Run it again after a new person signs up to send them a request too. Once `011` has run, it also gives Maya and Jordan a few recent ranked hikes, so Home has posts after you accept Maya. Once `012` has run, it also makes a group, Test crew, that you join from Social with the code `TESTUP`. `supabase/seed/remove_test_hikers.sql` removes all three.
+
+## Reports
+
+Apple expects reports on user content to be acted on within 24 hours. Run `supabase/checks/open_reports.sql` in the SQL editor to see open ones with what was reported; the file's header has the one-line commands to remove a comment, post or account and to close the report. Until push notifications exist, nothing tells you a report came in, so check it daily once friends are testing.

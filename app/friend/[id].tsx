@@ -1,6 +1,7 @@
-import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 
+import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
 import { RelationButton } from '@/components/social/RelationButton';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -12,6 +13,8 @@ function PersonPage({ id }: { id: string }) {
   const c = useColors();
   const { person, friendCount, loading, error } = usePerson(id);
   const { relationTo } = useFriendships();
+  const router = useRouter();
+  const safety = useSafetyMenu(() => (router.canGoBack() ? router.back() : router.replace('/social')));
 
   if (loading) {
     return (
@@ -63,6 +66,16 @@ function PersonPage({ id }: { id: string }) {
         >
           {note}
         </Text>
+      ) : null}
+      {relation !== 'self' ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => safety({ person: person.id, name: person.display_name })}
+          hitSlop={10}
+          className="mt-10 active:opacity-60"
+        >
+          <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 14 }}>Report or block</Text>
+        </Pressable>
       ) : null}
     </View>
   );

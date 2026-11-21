@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { Bookmark, Heart, MessageCircle } from 'lucide-react-native';
+import { Bookmark, Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -65,6 +65,8 @@ interface PostCardProps {
   onOpen?: (post: FeedPost, focusComment?: boolean) => void;
   /** The full hike view shows every word of the notes and a taller strip. */
   full?: boolean;
+  /** Report or block, on other people's posts. */
+  onMore?: (post: FeedPost) => void;
 }
 
 /**
@@ -72,7 +74,7 @@ interface PostCardProps {
  * route and photos, their notes, how it compares to yours, then like,
  * comment and save.
  */
-export function PostCard({ post, mine, onLike, onOpen, full = false }: PostCardProps) {
+export function PostCard({ post, mine, onLike, onOpen, full = false, onMore }: PostCardProps) {
   const c = useColors();
   const router = useRouter();
   const [width, setWidth] = useState(0);
@@ -192,6 +194,11 @@ export function PostCard({ post, mine, onLike, onOpen, full = false }: PostCardP
             </ActionButton>
           </View>
         )}
+        {!post.isMine && onMore ? (
+          <ActionButton label={`More for ${post.displayName}’s hike`} onPress={() => onMore(post)}>
+            <MoreHorizontal size={21} strokeWidth={1.7} color={c.fg2} />
+          </ActionButton>
+        ) : null}
       </View>
     </View>
   );
