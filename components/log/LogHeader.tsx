@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { GoalRing } from '@/components/habit/GoalRing';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
 import { Eyebrow, Odometer } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
@@ -19,6 +18,8 @@ interface LogHeaderProps {
   onStart: () => void;
   onLogPast: () => void;
   onProfile: () => void;
+  /** Opens the weekly goal. */
+  onGoal: () => void;
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -42,7 +43,7 @@ const UNIT: Record<GoalMetric, { short: string; verb: string; label: [string, st
  * two quieter ways to add a hike, and the Hikes/Rankings switch. Starting a
  * hike is the slider at the bottom of the screen.
  */
-export function LogHeader({ view, onView, onStart, onLogPast, onProfile }: LogHeaderProps) {
+export function LogHeader({ view, onView, onStart, onLogPast, onProfile, onGoal }: LogHeaderProps) {
   const c = useColors();
   const { goal, progress } = useWeeklyGoal();
   const unit = UNIT[goal.metric];
@@ -52,48 +53,49 @@ export function LogHeader({ view, onView, onStart, onLogPast, onProfile }: LogHe
 
   return (
     <View className="px-4">
-      <View className="flex-row items-center justify-between">
-        <Eyebrow>{`This week · ${weekRange()}`}</Eyebrow>
-        <View className="ml-auto mr-3">
-          <GoalRing />
-        </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Profile and settings"
-          onPress={onProfile}
-          hitSlop={8}
-          className="h-8 w-8 items-center justify-center rounded-full bg-raised"
-        >
-          <View className="h-3 w-3 rounded-full bg-fg-muted" />
-        </Pressable>
-      </View>
-
-      <View
-        accessible
-        accessibilityLabel={`${format(progress.done)} ${unit.short} ${goal.metric === 'elevation' ? 'climbed' : 'hiked'} this week`}
-        style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 10 }}
+      {/* The week block is the way into the weekly goal. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Weekly goal, ${format(progress.done)} of ${format(progress.target)} ${unit.short}`}
+        accessibilityHint="Opens your weekly goal"
+        onPress={onGoal}
+        className="active:opacity-80"
       >
-        <Odometer value={progress.done} format={format} />
-        <View style={{ marginLeft: 8, paddingBottom: 6 }}>
-          {unit.label.map((word) => (
-            <Text key={word} style={{ fontFamily: fonts.mono, fontSize: minTypeSize, letterSpacing: 1.3, color: c.fgMuted }}>
-              {word}
-            </Text>
-          ))}
+        <View style={{ minHeight: 32, justifyContent: 'center', paddingRight: 44 }}>
+          <Eyebrow>{`This week · ${weekRange()}`}</Eyebrow>
         </View>
-      </View>
-
-      <Text style={{ fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fgMuted, marginTop: 10 }}>
-        {progress.complete ? (
-          'Goal met this week.'
-        ) : (
-          <>
-            {progress.hikes > 0 ? `${unit.verb} ${hikes}. ` : 'No hikes yet this week. '}
-            <Text style={{ color: c.fg }}>{left}</Text>
-            {' to your weekly goal.'}
-          </>
-        )}
-      </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 10 }}>
+          <Odometer value={progress.done} format={format} />
+          <View style={{ marginLeft: 8, paddingBottom: 6 }}>
+            {unit.label.map((word) => (
+              <Text key={word} style={{ fontFamily: fonts.mono, fontSize: minTypeSize, letterSpacing: 1.3, color: c.fgMuted }}>
+                {word}
+              </Text>
+            ))}
+          </View>
+        </View>
+        <Text style={{ fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fgMuted, marginTop: 10 }}>
+          {progress.complete ? (
+            'Goal met this week.'
+          ) : (
+            <>
+              {progress.hikes > 0 ? `${unit.verb} ${hikes}. ` : 'No hikes yet this week. '}
+              <Text style={{ color: c.fg }}>{left}</Text>
+              {' to your weekly goal.'}
+            </>
+          )}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Profile and settings"
+        onPress={onProfile}
+        hitSlop={8}
+        className="h-8 w-8 items-center justify-center rounded-full bg-raised"
+        style={{ position: 'absolute', top: 0, right: 16 }}
+      >
+        <View className="h-3 w-3 rounded-full bg-fg-muted" />
+      </Pressable>
 
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginTop: 14 }}>
         <Pressable

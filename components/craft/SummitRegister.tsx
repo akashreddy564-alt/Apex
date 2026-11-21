@@ -13,29 +13,12 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { formatDistance, formatDuration, formatElevation } from '@/lib/format';
-import type { Bucket } from '@/lib/ranking';
-import { fonts, ink, minTypeSize, palettes, paper } from '@/theme/tokens';
+import type { RegisterRank, RegisterReasons } from '@/lib/logRegister';
+import { useColors } from '@/hooks/useColors';
+import { useSettings } from '@/stores/settingsStore';
+import { fonts, ink, minTypeSize, paper, stamp as STAMP } from '@/theme/tokens';
 import type { HikeLog, Trail } from '@/types/trail';
 
-export interface RegisterReasons {
-  distance: string | null;
-  climb: string | null;
-  time: string | null;
-}
-
-export interface RegisterRank {
-  bucket: Bucket;
-  /** Hikes in the bucket, for the badge. */
-  count: number;
-  score: number;
-  /** Place in the overall list, 1 = best. */
-  ordinal: number;
-  total: number;
-  reason: string | null;
-}
-
-/** The register is paper in both appearances, so its stamp uses the light palette's green. */
-const STAMP = palettes.light.loved;
 const EDGE = 8;
 const BITE = 5;
 const PRINT_MS = 1600;
@@ -86,21 +69,42 @@ function tracePath(profile: Trail['elevation_profile']): string | null {
     .join(' ');
 }
 
-/** A torn-receipt edge: paper with round bites out of its outer side. */
-function Scallops({ id, width, side }: { id: string; width: number; side: 'top' | 'bottom' }) {
-  const cy = side === 'top' ? 0 : EDGE;
-  const bites = Math.ceil(width / (BITE * 2)) + 1;
+/**
+ * A torn-receipt edge: paper with round bites out of its outer side. The bites
+ * tile the width exactly. `outline` strokes the edge (light mode, on white).
+ */
+function Scallops({
+  id,
+  width,
+  side,
+  outline,
+}: {
+  id: string;
+  width: number;
+  side: 'top' | 'bottom';
+  outline?: string;
+}) {
+  const n = Math.max(1, Math.round(width / (BITE * 2)));
+  const r = width / (n * 2);
+  const outer = side === 'top' ? 0 : EDGE;
+  const inner = side === 'top' ? EDGE : 0;
+  // Left to right along the bites; the top edge's arcs bow down, the bottom's up.
+  const sweep = side === 'top' ? 0 : 1;
+  let edge = `M0.5 ${inner} L0.5 ${outer}`;
+  for (let i = 0; i < n; i++) edge += ` A${r} ${r} 0 0 ${sweep} ${(2 * (i + 1) * r).toFixed(2)} ${outer}`;
+  edge += ` M${width - 0.5} ${outer} L${width - 0.5} ${inner}`;
   return (
     <Svg width={width} height={EDGE} style={{ display: 'flex' }}>
       <Defs>
         <Mask id={id} x={0} y={0} width={width} height={EDGE} maskUnits="userSpaceOnUse">
           <Rect x={0} y={0} width={width} height={EDGE} fill="#FFFFFF" />
-          {Array.from({ length: bites }, (_, i) => (
-            <Circle key={i} cx={BITE + i * BITE * 2} cy={cy} r={BITE} fill="#000000" />
+          {Array.from({ length: n }, (_, i) => (
+            <Circle key={i} cx={r + i * r * 2} cy={outer} r={r} fill="#000000" />
           ))}
         </Mask>
       </Defs>
       <Rect x={0} y={0} width={width} height={EDGE} fill={paper} mask={`url(#${id})`} />
+      {outline ? <Path d={edge} fill="none" stroke={outline} strokeWidth={1} /> : null}
     </Svg>
   );
 }
@@ -166,6 +170,10 @@ export function SummitRegister({
   rank: RegisterRank | null;
   onOpen?: () => void;
 }) {
+  const c = useColors();
+  // On a white page the paper needs an edge and a lift; on dark it stands on its own.
+  const light = useSettings((s) => s.appearance) === 'light';
+  const outline = light ? c.raised : undefined;
   const reduceMotion = useReducedMotion();
   const base = `register-${useId().replace(/:/g, '')}`;
   const [width, setWidth] = useState(0);
@@ -175,10 +183,7 @@ export function SummitRegister({
   const height = useSharedValue(0);
   const logId = log?.id ?? null;
 
-  const finish = useCallback(() => {
-    if (logId) printed.add(logId);
-    setPrinting(false);
-  }, [logId]);
+  const finish = useCallback(() => setPrinting(false), []);
 
   const onContent = (e: LayoutChangeEvent) => {
     const { width: w, height: h } = e.nativeEvent.layout;
@@ -186,6 +191,8 @@ export function SummitRegister({
     height.value = h;
     if (printing && !started.current && h > 0) {
       started.current = true;
+      // Recorded as it starts, so a print cut short by leaving the tab doesn't replay.
+      if (logId) printed.add(logId);
       progress.value = withDelay(
         PRINT_DELAY,
         withTiming(1, { duration: PRINT_MS, easing: Easing.bezier(0.2, 0.8, 0.2, 1) }, (done) => {
@@ -349,10 +356,30 @@ export function SummitRegister({
   );
 
   const content = (
-    <View onLayout={onContent}>
-      {width > 0 ? <Scallops id={`${base}-top`} width={width} side="top" /> : <View style={{ height: EDGE }} />}
-      <View style={{ backgroundColor: paper, paddingTop: 10, paddingHorizontal: 16, paddingBottom: 6 }}>{body}</View>
-      {width > 0 ? <Scallops id={`${base}-bottom`} width={width} side="bottom" /> : <View style={{ height: EDGE }} />}
+    <View onLayout={onContent} style={light ? { boxShadow: '0 8px 20px rgba(0, 0, 0, 0.08)' } : undefined}>
+      {width > 0 ? (
+        <Scallops id={`${base}-top`} width={width} side="top" outline={outline} />
+      ) : (
+        <View style={{ height: EDGE }} />
+      )}
+      <View
+        style={{
+          backgroundColor: paper,
+          paddingTop: 10,
+          paddingHorizontal: 16,
+          paddingBottom: 6,
+          borderLeftWidth: outline ? 1 : 0,
+          borderRightWidth: outline ? 1 : 0,
+          borderColor: outline,
+        }}
+      >
+        {body}
+      </View>
+      {width > 0 ? (
+        <Scallops id={`${base}-bottom`} width={width} side="bottom" outline={outline} />
+      ) : (
+        <View style={{ height: EDGE }} />
+      )}
     </View>
   );
 

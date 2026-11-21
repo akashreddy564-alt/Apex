@@ -175,4 +175,14 @@ describe('Log slider', () => {
     expect(mockStart).toHaveBeenCalledWith('');
     act(() => tree.unmount());
   });
+
+  it('hides the slider until a restored session has loaded', async () => {
+    mockTracker = { ...mockIdle, hydrated: false };
+    let tree!: ReturnType<typeof create>;
+    await act(async () => {
+      tree = create(<LogScreen />);
+    });
+    expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Start a hike')).toHaveLength(0);
+    act(() => tree.unmount());
+  });
 });

@@ -72,11 +72,13 @@ export const palettes: Record<'dark' | 'light', Palette> = {
 };
 
 /**
- * The summit register's receipt paper and ink. The same in both appearances,
- * and used only for the register.
+ * The summit register's receipt paper, ink and stamp. The same in both
+ * appearances, and used only for the register.
  */
 export const paper = '#F3EFE4';
 export const ink = '#151515';
+/** The register's summit stamp green, printed on paper in both appearances. */
+export const stamp = '#1F8F4E';
 
 /**
  * Family names registered with `useFonts` in `app/_layout.tsx`.

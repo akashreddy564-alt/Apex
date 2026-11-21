@@ -17,7 +17,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { StreakGrid } from '@/components/craft/StreakGrid';
-import { SummitRegister, type RegisterRank } from '@/components/craft/SummitRegister';
+import { SummitRegister } from '@/components/craft/SummitRegister';
 import { ContourTexture, Eyebrow, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
@@ -33,8 +33,7 @@ import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
-import { describePlacement, overallByScore } from '@/lib/ranking';
-import { hikeReasons, rankReason } from '@/lib/reasons';
+import { NO_REASONS, newestLog, registerRank, registerReasons } from '@/lib/logRegister';
 import { weeklyStreak } from '@/lib/streak';
 import { streakGrid } from '@/lib/streakGrid';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
@@ -60,7 +59,6 @@ const GEOCODE_WAIT_MS = 2500;
 const SLIDER_H = 62;
 const SLIDER_GAP = 16;
 const CONTOUR_H = 300;
-const NO_REASONS = { distance: null, climb: null, time: null };
 
 /** "Boulder, CO" for a new trail's subtitle, or null when offline or unsupported. */
 async function placeName(latitude: number, longitude: number): Promise<string | null> {
@@ -316,46 +314,17 @@ export default function LogScreen() {
   // The 12-week grid, the streak, and the latest hike's register.
   const craft = useMemo(() => {
     const byId = new Map(trails.map((t) => [t.id, t]));
-    const grid = streakGrid(logs, (id) => byId.get(id));
-    const streakWeeks = weeklyStreak(logs.map((l) => l.created_at)).weeks;
-    let latest: (typeof logs)[number] | null = null;
-    for (const log of logs) {
-      if (!latest || Date.parse(log.created_at) > Date.parse(latest.created_at)) latest = log;
-    }
-    const newest = latest;
-    if (!newest) return { grid, streakWeeks, latest: null, trail: null, reasons: NO_REASONS, rank: null };
-    // A hike's own numbers win; its trail's catalog figures fill the gaps, as in weeklyProgress.
-    const input = (log: (typeof logs)[number]) => {
-      const trail = byId.get(log.trail_id);
-      return {
-        id: log.id,
-        distance_km: log.distance_km ?? trail?.distance_km ?? null,
-        elevation_gain_m: log.elevation_gain_m ?? trail?.elevation_gain_m ?? null,
-        duration_seconds: log.duration_seconds,
-      };
+    const trailOf = (id: string) => byId.get(id);
+    const streak = weeklyStreak(logs.map((l) => l.created_at));
+    const latest = newestLog(logs);
+    return {
+      grid: streakGrid(logs, trailOf),
+      streak,
+      latest,
+      trail: latest ? (byId.get(latest.trail_id) ?? null) : null,
+      reasons: latest ? registerReasons(latest, logs, trailOf) : NO_REASONS,
+      rank: latest ? registerRank(rankings, latest.trail_id, trailOf) : null,
     };
-    const reasons = hikeReasons(input(newest), logs.map(input));
-    let rank: RegisterRank | null = null;
-    const placement = describePlacement(rankings, newest.trail_id);
-    if (placement) {
-      const overall = overallByScore(
-        rankings.filter(
-          (r) => r.user_id === placement.ranking.user_id && r.hike_type === placement.ranking.hike_type,
-        ),
-      );
-      const at = overall.findIndex((r) => r.trail_id === newest.trail_id);
-      const nameAt = (i: number) => (overall[i] ? (byId.get(overall[i].trail_id)?.name ?? null) : null);
-      rank = {
-        bucket: placement.ranking.bucket,
-        count: placement.count,
-        score: placement.score,
-        ordinal: at + 1,
-        total: overall.length,
-        // The one ranked just below this hike, then the one just above it.
-        reason: rankReason(nameAt(at + 1), nameAt(at - 1)),
-      };
-    }
-    return { grid, streakWeeks, latest: newest, trail: byId.get(newest.trail_id) ?? null, reasons, rank };
   }, [logs, rankings, trails]);
 
   if (tracker.isTracking) {
@@ -456,7 +425,7 @@ export default function LogScreen() {
     );
   }
 
-  const showSlider = !recording && !explainer;
+  const showSlider = tracker.hydrated && !recording && !explainer;
   const card = { backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 } as const;
 
   return (
@@ -477,6 +446,7 @@ export default function LogScreen() {
             setPastOpen(true);
           }}
           onProfile={() => router.push('/account')}
+          onGoal={() => router.push('/goal')}
         />
 
         {view === 'rankings' ? (
@@ -557,7 +527,7 @@ export default function LogScreen() {
         ) : (
           <>
             <View style={{ marginTop: 18 }}>
-              <StreakGrid grid={craft.grid} streakWeeks={craft.streakWeeks} />
+              <StreakGrid grid={craft.grid} streakWeeks={craft.streak.weeks} atRisk={craft.streak.atRisk} />
             </View>
             <View style={{ marginTop: 26 }}>
               <View style={{ marginBottom: 12 }}>

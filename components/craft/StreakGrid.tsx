@@ -28,10 +28,13 @@ export function firstMonday(weeks: number, now: Date = new Date()): string {
 export function StreakGrid({
   grid,
   streakWeeks,
+  atRisk = false,
   now,
 }: {
   grid: DayLevel[][];
   streakWeeks: number;
+  /** The streak ends Sunday night unless they hike this week. */
+  atRisk?: boolean;
   now?: Date;
 }) {
   const c = useColors();
@@ -41,12 +44,19 @@ export function StreakGrid({
 
   return (
     <View style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.raised, borderRadius: 22, padding: 16 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <Eyebrow>Last 12 weeks</Eyebrow>
         {streakWeeks > 0 ? (
-          <Text style={{ fontFamily: fonts.uiSemibold, fontSize: 13, color: c.fg, fontVariant: ['tabular-nums'] }}>
-            {`${streakWeeks}-week streak`}
-          </Text>
+          <View style={{ alignItems: 'flex-end' }}>
+            <Text style={{ fontFamily: fonts.uiSemibold, fontSize: 13, color: c.fg, fontVariant: ['tabular-nums'] }}>
+              {`${streakWeeks}-week streak`}
+            </Text>
+            {atRisk ? (
+              <Text style={{ fontFamily: fonts.uiMedium, fontSize: 12, color: c.fine, marginTop: 2 }}>
+                Hike by Sunday to keep it
+              </Text>
+            ) : null}
+          </View>
         ) : null}
       </View>
       <View

@@ -116,6 +116,18 @@ describe('StreakGrid', () => {
     expect(texts(grid(0)).some((s) => s.includes('streak'))).toBe(false);
   });
 
+  it('warns when the streak is at risk, in the fine color', () => {
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<StreakGrid grid={empty()} streakWeeks={3} atRisk now={new Date(2026, 10, 21)} />);
+    });
+    const nudge = tree.root.findAllByType(Text).find((n) => n.props.children === 'Hike by Sunday to keep it');
+    expect(nudge).toBeTruthy();
+    const { palettes } = require('@/theme/tokens');
+    expect(nudge!.props.style.color).toBe(palettes.dark.fine);
+    expect(texts(grid(3))).not.toContain('Hike by Sunday to keep it');
+  });
+
   it('labels the first Monday, the key and now', () => {
     expect(texts(grid(0))).toEqual(expect.arrayContaining(['AUG 31', '■ FULL HIKE  ▪ SHORT HIKE', 'NOW']));
     expect(firstMonday(12, new Date(2026, 10, 21))).toBe('AUG 31');
