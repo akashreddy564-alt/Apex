@@ -1,4 +1,6 @@
-import { ActivityIndicator, Pressable, Text } from 'react-native';
+import { ActivityIndicator, Text } from 'react-native';
+
+import { PressScale } from '@/components/motion';
 
 import { useColors } from '@/hooks/useColors';
 import { fonts } from '@/theme/tokens';
@@ -18,13 +20,14 @@ export function PrimaryButton({ label, onPress, disabled, busy, a11y, compact }:
   const c = useColors();
   const off = disabled || busy;
   return (
-    <Pressable
+    <PressScale
+      to={0.96}
       accessibilityRole="button"
       accessibilityLabel={a11y ?? label}
       accessibilityState={{ disabled: Boolean(off), busy: Boolean(busy) }}
       disabled={off}
       onPress={onPress}
-      className="items-center justify-center rounded-2xl active:opacity-85"
+      className="items-center justify-center rounded-2xl"
       style={{
         backgroundColor: c.accent,
         opacity: off ? 0.5 : 1,
@@ -40,7 +43,7 @@ export function PrimaryButton({ label, onPress, disabled, busy, a11y, compact }:
           {label}
         </Text>
       )}
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -49,13 +52,14 @@ export function SecondaryButton({ label, onPress, disabled, busy, a11y, compact 
   const c = useColors();
   const off = disabled || busy;
   return (
-    <Pressable
+    <PressScale
+      to={0.96}
       accessibilityRole="button"
       accessibilityLabel={a11y ?? label}
       accessibilityState={{ disabled: Boolean(off), busy: Boolean(busy) }}
       disabled={off}
       onPress={onPress}
-      className="items-center justify-center rounded-2xl bg-surface active:opacity-80"
+      className="items-center justify-center rounded-2xl bg-surface"
       style={{
         opacity: off ? 0.5 : 1,
         paddingVertical: compact ? 9 : 14,
@@ -70,6 +74,6 @@ export function SecondaryButton({ label, onPress, disabled, busy, a11y, compact 
           {label}
         </Text>
       )}
-    </Pressable>
+    </PressScale>
   );
 }

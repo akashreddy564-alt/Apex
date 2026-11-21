@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Bell, CircleCheck, Compass } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
@@ -21,6 +22,7 @@ import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
+import { riseIn } from '@/components/motion';
 
 /** Coming back to Home refetches when the feed is older than this. */
 const STALE_ON_FOCUS_MS = 30_000;
@@ -193,7 +195,7 @@ function Feed() {
       renderItem={({ item, index }) => (
         <View>
           {index === marker ? <CaughtUp /> : null}
-          <View className="px-4 pb-4 pt-5">
+          <Animated.View entering={index < 6 ? riseIn(index) : undefined} style={{ paddingHorizontal: 16, paddingBottom: 16, paddingTop: 20 }}>
             <PostCard
               post={item}
               mine={mine}
@@ -201,7 +203,7 @@ function Feed() {
               onOpen={open}
               onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
             />
-          </View>
+          </Animated.View>
         </View>
       )}
       ItemSeparatorComponent={() => <View className="mx-4 h-px bg-raised" />}

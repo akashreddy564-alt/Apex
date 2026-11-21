@@ -7,6 +7,7 @@ import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
 import { formatAmount, GOAL_PRESETS, toDisplay, toStored, type GoalMetric } from '@/lib/weeklyGoal';
 import { useGoal } from '@/stores/goalStore';
 import { fonts, numericStyle } from '@/theme/tokens';
+import { CountUp } from '@/components/motion';
 
 const METRICS: { value: GoalMetric; label: string }[] = [
   { value: 'elevation', label: 'Elevation' },
@@ -43,9 +44,11 @@ export default function GoalScreen() {
           <View style={{ position: 'absolute' }}>
             <Ring fraction={progress.fraction} size={168} stroke={12} complete={false} />
           </View>
-          <Text style={{ ...numericStyle('semibold'), color: c.fg, fontSize: 30 }}>
-            {formatAmount(goal.metric, progress.done)}
-          </Text>
+          <CountUp
+            value={progress.done}
+            format={(n) => formatAmount(goal.metric, n)}
+            style={{ ...numericStyle('semibold'), color: c.fg, fontSize: 30 }}
+          />
           <Text
             style={{
               ...numericStyle(),

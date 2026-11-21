@@ -12,6 +12,7 @@ import { comparisonTag, hikeDayLabel, type FeedPost, type MyRankedTrail } from '
 import { useSavedTrails } from '@/stores/savedTrailsStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
+import { PressScale } from '@/components/motion';
 
 function Stat({ label, value }: { label: string; value: string }) {
   const c = useColors();
@@ -40,20 +41,21 @@ function ActionButton({
 }) {
   const c = useColors();
   return (
-    <Pressable
+    <PressScale
       accessibilityRole="button"
       accessibilityLabel={count ? `${label}, ${count}` : label}
       accessibilityState={selected === undefined ? undefined : { selected }}
       onPress={onPress}
       hitSlop={6}
-      className="flex-row items-center gap-1.5 active:opacity-60"
+      to={0.86}
+      className="flex-row items-center gap-1.5"
       style={{ minHeight: 44, minWidth: 44, paddingRight: 6 }}
     >
       {children}
       {count ? (
         <Text style={{ ...numericStyle('medium'), color: c.fg2, fontSize: 14 }}>{count}</Text>
       ) : null}
-    </Pressable>
+    </PressScale>
   );
 }
 
@@ -205,12 +207,8 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore }: P
 
   if (!onOpen || full) return body;
   return (
-    <Pressable
-      accessibilityHint="Opens the full hike"
-      onPress={() => onOpen(post)}
-      className="active:opacity-95"
-    >
+    <PressScale accessibilityHint="Opens the full hike" onPress={() => onOpen(post)} to={0.985}>
       {body}
-    </Pressable>
+    </PressScale>
   );
 }

@@ -23,6 +23,7 @@ import {
   type Period,
 } from '@/lib/groups';
 import { fonts, numericStyle } from '@/theme/tokens';
+import { CountUp, GrowBar } from '@/components/motion';
 
 const PERIOD_NAMES: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year' };
 
@@ -60,12 +61,12 @@ function Together({ summary, period }: { summary: GroupSummary; period: Period }
       <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 }}>
         Together {periodLabel(period)}
       </Text>
-      <Text
+      <CountUp
         accessibilityRole="header"
+        value={summary.totalGainM}
+        format={formatElevation}
         style={{ ...numericStyle('semibold'), color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 44, letterSpacing: -1, marginTop: 2 }}
-      >
-        {formatElevation(summary.totalGainM)}
-      </Text>
+      />
       <Text style={{ color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 15, marginTop: 2 }}>
         {togetherLine(summary.totalGainM)}
       </Text>
@@ -136,7 +137,7 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
     <View className="mt-7">
       <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Elevation</Text>
       <View className="mt-2">
-        {rows.map((row) => (
+        {rows.map((row, index) => (
           <Pressable
             key={row.userId}
             accessibilityLabel={`${row.place}. ${row.isMe ? 'You' : row.displayName}, ${formatElevation(row.gainM)}`}
@@ -157,11 +158,8 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
                   {formatElevation(row.gainM)}
                 </Text>
               </View>
-              <View className="mt-1.5 h-1.5 overflow-hidden rounded-full" style={{ backgroundColor: c.raised }}>
-                <View
-                  className="h-full rounded-full"
-                  style={{ width: `${(row.gainM / top) * 100}%`, backgroundColor: row.isMe ? c.accent : c.fgFaint }}
-                />
+              <View className="mt-1.5">
+                <GrowBar fraction={row.gainM / top} index={index} color={row.isMe ? c.accent : c.fgFaint} track={c.raised} />
               </View>
             </View>
           </Pressable>
