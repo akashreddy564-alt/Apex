@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { View } from 'react-native';
 import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Path } from 'react-native-svg';
 
@@ -76,24 +77,32 @@ export function RouteTracer({ path, fraction }: { path: GeoJSONLineString; fract
   const line = { fill: 'none', strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
   return (
-    <Svg
-      width={SIZE}
-      height={SIZE}
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ borderRadius: 16, backgroundColor: c.surface, borderWidth: 1, borderColor: c.border }}
+    // aria-hidden on a View: RN maps it per platform, and on web an Svg would pass RN a11y props to the DOM.
+    <View
+      aria-hidden
+      style={{
+        width: SIZE,
+        height: SIZE,
+        borderRadius: 16,
+        overflow: 'hidden',
+        backgroundColor: c.surface,
+        borderWidth: 1,
+        borderColor: c.border,
+      }}
     >
-      <Path d={geo.d} stroke={c.border} {...line} />
-      <AnimatedPath
-        d={geo.d}
-        stroke={c.fg}
-        {...line}
-        strokeDasharray={`${geo.total} ${geo.total}`}
-        animatedProps={doneProps}
-      />
-      <Circle cx={start.x} cy={start.y} r={3} fill={c.fgFaint} />
-      <AnimatedCircle cx={now.x} cy={now.y} r={5} fill={c.fg} stroke={c.bg} strokeWidth={2} animatedProps={dotProps} />
-    </Svg>
+      {/* Inside the 1 px border, so the viewBox drops the outer pixel. */}
+      <Svg width={SIZE - 2} height={SIZE - 2} viewBox={`1 1 ${SIZE - 2} ${SIZE - 2}`}>
+        <Path d={geo.d} stroke={c.border} {...line} />
+        <AnimatedPath
+          d={geo.d}
+          stroke={c.fg}
+          {...line}
+          strokeDasharray={`${geo.total} ${geo.total}`}
+          animatedProps={doneProps}
+        />
+        <Circle cx={start.x} cy={start.y} r={3} fill={c.fgFaint} />
+        <AnimatedCircle cx={now.x} cy={now.y} r={5} fill={c.fg} stroke={c.bg} strokeWidth={2} animatedProps={dotProps} />
+      </Svg>
+    </View>
   );
 }

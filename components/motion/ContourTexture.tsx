@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
@@ -25,17 +25,16 @@ export function ContourTexture({
   const c = useColors();
   const paths = useMemo(() => contourPaths(seed, width, height), [seed, width, height]);
   return (
-    <Svg
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
+    // aria-hidden on a View: RN maps it per platform, and on web an Svg would pass RN a11y props to the DOM.
+    <View
+      aria-hidden
       style={[StyleSheet.absoluteFill, { opacity, pointerEvents: 'none' }]}
     >
-      {paths.map((d, i) => (
-        <Path key={i} d={d} fill="none" stroke={tenPercent(c.accent)} strokeWidth={1} />
-      ))}
-    </Svg>
+      <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        {paths.map((d, i) => (
+          <Path key={i} d={d} fill="none" stroke={tenPercent(c.accent)} strokeWidth={1} />
+        ))}
+      </Svg>
+    </View>
   );
 }

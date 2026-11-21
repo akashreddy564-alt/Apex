@@ -15,24 +15,45 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
+import { ContourTexture } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
-import { posterLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
-import { fonts, type Palette, photoPill } from '@/theme/tokens';
+import { fonts, type Palette } from '@/theme/tokens';
+import type { TrailShape } from '@/types/trail';
 
 const DRIFT_MS = 18_000;
-const SIDE = 20;
-/** The hero name never grows past this, even for short names. */
-const MAX_NAME_SIZE = 64;
+const SIDE = 18;
 
 /** Hero height for a given window height; shared with the satellite image size. */
 export function heroHeight(windowHeight: number): number {
-  return Math.round(Math.min(560, Math.max(380, windowHeight * 0.58)));
+  return Math.round(Math.min(480, Math.max(360, windowHeight * 0.46)));
+}
+
+const SHAPE_LABEL: Record<TrailShape, string> = {
+  loop: 'Loop',
+  'out-and-back': 'Out and back',
+  'point-to-point': 'Point to point',
+};
+
+/** "Zion, UT · Out and back", or just the region when the shape is unknown. */
+export function heroEyebrow(region: string, shape: TrailShape | null | undefined): string {
+  return shape ? `${region} · ${SHAPE_LABEL[shape]}` : region;
+}
+
+/** Display size: long names step down so they hold to two or three lines. */
+function nameSize(name: string): number {
+  if (name.length > 24) return 34;
+  if (name.length > 16) return 40;
+  return 44;
 }
 
 interface TrailHeroProps {
+  trailId: string;
   name: string;
   region: string;
+  shape?: TrailShape | null;
+  /** Fixed-set flags from data/trailNotes. */
+  flags?: string[];
   cover: TrailCover | null;
   /** e.g. "#1 in Loved · 9.7"; null when unranked. */
   placementLabel: string | null;
@@ -40,18 +61,24 @@ interface TrailHeroProps {
   scrollY: SharedValue<number>;
 }
 
-export function TrailHero({ name, region, cover, placementLabel, top, scrollY }: TrailHeroProps) {
-  const styles = useStyles();
+export function TrailHero({
+  trailId,
+  name,
+  region,
+  shape,
+  flags = [],
+  cover,
+  placementLabel,
+  top,
+  scrollY,
+}: TrailHeroProps) {
   const c = useColors();
+  const styles = useMemo(() => makeStyles(c), [c]);
   const { width, height: windowHeight } = useWindowDimensions();
   const height = heroHeight(windowHeight);
   const reduceMotion = useReducedMotion();
   const drift = useSharedValue(0);
-
-  const poster = useMemo(() => {
-    const layout = posterLayout(name.toUpperCase(), Math.min(width, 520) - SIDE * 2);
-    return { ...layout, fontSize: Math.min(layout.fontSize, MAX_NAME_SIZE) };
-  }, [name, width]);
+  const size = nameSize(name);
 
   useEffect(() => {
     if (reduceMotion || !cover) return;
@@ -107,33 +134,40 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
         <Defs>
           <LinearGradient id="heroShade" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={c.bg} stopOpacity={0.55} />
-            <Stop offset="0.22" stopColor={c.bg} stopOpacity={0} />
-            <Stop offset="0.5" stopColor={c.bg} stopOpacity={0} />
-            <Stop offset="0.86" stopColor={c.bg} stopOpacity={0.85} />
+            <Stop offset="0.25" stopColor={c.bg} stopOpacity={0} />
+            <Stop offset="0.55" stopColor={c.bg} stopOpacity={0.1} />
             <Stop offset="1" stopColor={c.bg} stopOpacity={1} />
           </LinearGradient>
         </Defs>
         <Rect width="100%" height="100%" fill="url(#heroShade)" />
       </Svg>
+      <ContourTexture seed={trailId} width={Math.round(width)} height={height} opacity={0.9} />
 
       <Animated.View style={[styles.text, textStyle]}>
-        {poster.lines.map((line, index) => (
-          <Text
-            key={line}
-            style={[styles.name, { fontSize: poster.fontSize }, posterLineStyle(poster.fontSize, index, 0.95)]}
-            numberOfLines={1}
-            accessibilityRole="header"
-          >
-            {line}
-          </Text>
-        ))}
-        <View style={styles.metaRow}>
-          <Text style={styles.region} numberOfLines={1}>
-            {region.toUpperCase()}
-          </Text>
-          <View style={styles.pill}>
-            <Text style={[styles.pillText, top && styles.pillTop]} numberOfLines={1}>
-              {placementLabel ? placementLabel.toUpperCase() : 'UNRANKED'}
+        {/* Eyebrow type in fg2 with the halo: Eyebrow's muted color is lost over a photo. */}
+        <Text style={styles.eyebrow} numberOfLines={1}>
+          {heroEyebrow(region, shape)}
+        </Text>
+        <Text
+          accessibilityRole="header"
+          style={[
+            styles.name,
+            { fontSize: size, lineHeight: Math.round(size * 0.88), letterSpacing: -0.025 * size },
+          ]}
+        >
+          {name}
+        </Text>
+        <View style={styles.chips}>
+          {flags.map((flag) => (
+            <View key={flag} style={[styles.chip, styles.flag]}>
+              <Text style={[styles.chipText, { color: c.fine }]} numberOfLines={1}>
+                {flag}
+              </Text>
+            </View>
+          ))}
+          <View style={styles.chip}>
+            <Text style={[styles.chipText, top && { color: c.loved }]} numberOfLines={1}>
+              {placementLabel ?? 'Unranked'}
             </Text>
           </View>
         </View>
@@ -142,42 +176,48 @@ export function TrailHero({ name, region, cover, placementLabel, top, scrollY }:
   );
 }
 
+/** #RRGGBB plus a two-digit alpha; other formats pass through. */
+function alpha(hex: string, a: string): string {
+  return /^#[0-9a-f]{6}$/i.test(hex) ? `${hex}${a}` : hex;
+}
+
 /** A soft halo in the page color, so text over photos reads in Dark and Light. */
 const textShadow = (c: Palette) => ({
-  textShadowColor: `${c.bg}8C`,
+  textShadowColor: alpha(c.bg, '8C'),
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 14,
 });
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
-  clip: { overflow: 'hidden', backgroundColor: c.surface },
-  text: { position: 'absolute', left: SIDE, right: SIDE, bottom: 8 },
-  name: { color: c.fg, fontFamily: fonts.poster, letterSpacing: 0.4, ...textShadow(c) },
-  metaRow: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  region: {
-    flexShrink: 1,
-    color: c.fg2,
-    fontFamily: fonts.mono,
-    fontSize: 11,
-    letterSpacing: 1.2,
-    ...textShadow(c),
-  },
-  pill: {
-    marginLeft: 'auto',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    backgroundColor: photoPill.fill,
-    borderWidth: 1,
-    borderColor: photoPill.border,
-  },
-  pillText: { color: photoPill.text, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 0.8 },
-  pillTop: { color: photoPill.top },
-});
-
-/** Styles for the current appearance. */
-function useStyles() {
-  const c = useColors();
-  return useMemo(() => makeStyles(c), [c]);
-}
+    clip: { overflow: 'hidden', backgroundColor: c.surface },
+    text: { position: 'absolute', left: SIDE, right: SIDE, bottom: 14 },
+    eyebrow: {
+      color: c.fg2,
+      fontFamily: fonts.mono,
+      fontSize: 10,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+      ...textShadow(c),
+    },
+    name: {
+      marginTop: 6,
+      color: c.fg,
+      fontFamily: fonts.displayExtraBold,
+      fontWeight: 'normal',
+      textTransform: 'uppercase',
+      ...textShadow(c),
+    },
+    chips: { marginTop: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+    chip: {
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 99,
+      backgroundColor: alpha(c.fg, '14'),
+      borderWidth: 1,
+      borderColor: alpha(c.fg, '1F'),
+    },
+    // Flags: the `fine` color at 35% border and 8% fill.
+    flag: { backgroundColor: alpha(c.fine, '14'), borderColor: alpha(c.fine, '59') },
+    chipText: { color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 11 },
+  });

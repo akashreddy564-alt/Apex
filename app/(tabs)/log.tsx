@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import { useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   PermissionsAndroid,
@@ -31,6 +31,7 @@ import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
+import { startLinkPlan } from '@/lib/startLink';
 import { pushTrail } from '@/lib/remoteSync';
 import { matchTrails } from '@/lib/trailMatch';
 import { buildUserTrail } from '@/lib/userTrail';
@@ -73,13 +74,13 @@ export default function LogScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
     setOptions: (options: Record<string, unknown>) => void;
-    setParams: (params: { recording?: string }) => void;
+    setParams: (params: { recording?: string; start?: string }) => void;
   }>();
   const trails = useTrailCache((s) => s.trails);
   const logs = useTrailCache((s) => s.logs);
   const tracker = useTrailTracker();
   const location = useLiveLocation(tracker.isTracking, tracker.isPaused);
-  const params = useLocalSearchParams<{ recording?: string; view?: string }>();
+  const params = useLocalSearchParams<{ recording?: string; view?: string; start?: string }>();
   const router = useRouter();
   const [view, setView] = useState<LogView>(params.view === 'rankings' ? 'rankings' : 'hikes');
 
@@ -116,6 +117,8 @@ export default function LogScreen() {
     [trails, tracker.session?.trailId],
   );
 
+  // The trail the location explainer starts once accepted.
+  const pendingTrailId = useRef(FREEFORM);
   const acceptLocation = async () => {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
@@ -128,8 +131,34 @@ export default function LogScreen() {
         // A declined or missing notification prompt does not block the hike.
       }
     }
-    tracker.start(selectedTrailId);
+    tracker.start(pendingTrailId.current);
   };
+
+  /** Explainer check, then start recording on `trailId` (FREEFORM for none). */
+  const beginTracking = useCallback(
+    (trailId: string) => {
+      pendingTrailId.current = trailId;
+      void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
+        if (seen === '1') tracker.start(trailId);
+        else setExplainer(true);
+      });
+    },
+    [tracker.start],
+  );
+
+  // `/log?start=<trailId>` from Trail detail's slider.
+  useEffect(() => {
+    const plan = startLinkPlan({
+      param: params.start,
+      hydrated: tracker.hydrated,
+      tracking: tracker.isTracking,
+    });
+    if (plan.start) {
+      setSelectedTrailId(plan.start);
+      beginTracking(plan.start);
+    }
+    if (plan.clear) navigation.setParams({ start: undefined });
+  }, [beginTracking, navigation, params.start, tracker.hydrated, tracker.isTracking]);
 
   useEffect(() => {
     if (!tracker.isTracking || !notificationPermissionRequired(Platform.OS, Platform.Version)) {
@@ -394,10 +423,7 @@ export default function LogScreen() {
             <Pressable
               onPress={() => {
                 void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
-                  if (seen === '1') tracker.start(selectedTrailId);
-                  else setExplainer(true);
-                });
+                beginTracking(selectedTrailId);
               }}
               className="mt-2 items-center bg-fg py-3.5 active:bg-fg-2"
               style={{ borderRadius: 12 }}

@@ -54,7 +54,7 @@ describe('DrawIn', () => {
 describe('ContourTexture', () => {
   it('is hidden from accessibility', () => {
     const tree = render(<ContourTexture seed="a" width={100} height={100} />);
-    expect(tree.root.findByProps({ importantForAccessibility: 'no-hide-descendants' })).toBeTruthy();
+    expect(tree.root.findByProps({ 'aria-hidden': true })).toBeTruthy();
   });
 });
 
