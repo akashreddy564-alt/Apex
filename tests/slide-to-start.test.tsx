@@ -41,4 +41,20 @@ describe('SlideToStart', () => {
     act(() => node.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
     expect(onComplete).not.toHaveBeenCalled();
   });
+
+  it('completes once for repeated activates, and again after the latch clears', () => {
+    jest.useFakeTimers();
+    const onComplete = jest.fn();
+    const node = root(render({ onComplete }));
+    const activate = () => act(() => node.props.onAccessibilityAction({ nativeEvent: { actionName: 'activate' } }));
+    activate();
+    activate();
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    act(() => {
+      jest.advanceTimersByTime(1100);
+    });
+    activate();
+    expect(onComplete).toHaveBeenCalledTimes(2);
+    jest.useRealTimers();
+  });
 });
