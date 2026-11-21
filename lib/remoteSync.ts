@@ -190,6 +190,12 @@ function mapLog(row: Record<string, unknown>): HikeLog {
     notes: row.notes == null ? null : String(row.notes),
     recorded_path: asLineString(row.recorded_path),
     created_at: String(row.created_at ?? new Date().toISOString()),
+    distance_km: optionalNum(row.distance_km),
+    terrain: Array.isArray(row.terrain) ? row.terrain.map(String) : [],
+    conditions: Array.isArray(row.conditions) ? row.conditions.map(String) : [],
+    difficulty: row.difficulty == null ? null : String(row.difficulty),
+    hike_type: row.hike_type == null ? null : String(row.hike_type),
+    elevation_gain_m: optionalNum(row.elevation_gain_m),
   };
 }
 
@@ -311,7 +317,7 @@ async function sendLog(log: HikeLog): Promise<boolean> {
     if (!(await sendTrail(trail))) return false;
     dequeue('trail', trail.id);
   }
-  const { error } = await supabase.from('hike_logs').upsert({
+  const row: Record<string, unknown> = {
     id: log.id,
     user_id: uid,
     trail_id: log.trail_id,
@@ -320,7 +326,19 @@ async function sendLog(log: HikeLog): Promise<boolean> {
     notes: log.notes,
     recorded_path: log.recorded_path ? lineStringToEwkt(log.recorded_path) : null,
     created_at: log.created_at,
-  });
+    distance_km: log.distance_km ?? null,
+    terrain: log.terrain ?? [],
+    conditions: log.conditions ?? [],
+    difficulty: log.difficulty ?? null,
+    hike_type: log.hike_type ?? null,
+    elevation_gain_m: log.elevation_gain_m ?? null,
+  };
+  let { error } = await supabase.from('hike_logs').upsert(row);
+  if (error && /elevation_gain_m/.test(error.message)) {
+    // 012 hasn't run yet. Sync the rest; the climb goes up on the next send.
+    delete row.elevation_gain_m;
+    ({ error } = await supabase.from('hike_logs').upsert(row));
+  }
   return !error;
 }
 
