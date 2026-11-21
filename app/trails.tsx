@@ -1,7 +1,9 @@
 import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Skeleton } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { TrailCoverCard } from '@/components/trail/TrailCoverCard';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
@@ -13,6 +15,21 @@ import { displayXL } from '@/theme/tokens';
 
 const MAPBOX_TOKEN = process.env.EXPO_PUBLIC_MAPBOX_TOKEN;
 
+/** True once the saved trails (yours and the catalog) have been read from disk. */
+function useTrailsReady(): boolean {
+  const persist = useTrailCache.persist;
+  const [ready, setReady] = useState(() => persist?.hasHydrated?.() ?? true);
+  useEffect(() => {
+    if (ready || !persist) return;
+    if (persist.hasHydrated()) {
+      setReady(true);
+      return;
+    }
+    return persist.onFinishHydration(() => setReady(true));
+  }, [persist, ready]);
+  return ready;
+}
+
 export default function TrailsScreen() {
   const c = useColors();
   const router = useRouter();
@@ -20,6 +37,7 @@ export default function TrailsScreen() {
   const trails = useTrailCache((s) => s.trails);
   const rankings = useRankingStore((s) => s.rankings);
   const logs = useTrailCache((s) => s.logs);
+  const ready = useTrailsReady();
 
   return (
     <View className="flex-1 bg-bg" style={{ paddingBottom: insets.bottom }}>
@@ -30,12 +48,13 @@ export default function TrailsScreen() {
 
         <View className="flex-row border-b border-raised px-4 py-2">
           <Text className="font-mono text-[10px] uppercase tracking-widest text-fg-faint">
-            {trails.length} trails · {rankings.length} ranked
+            {ready ? `${trails.length} trails · ${rankings.length} ranked` : 'Loading trails'}
           </Text>
         </View>
 
         <View style={{ gap: 12, paddingHorizontal: 14, paddingTop: 14 }}>
-          {trails.map((trail, index) => {
+          {!ready ? <Skeleton shape="card" count={3} /> : null}
+          {(ready ? trails : []).map((trail, index) => {
             const placement = describePlacement(rankings, trail.id);
             return (
               <TrailCoverCard

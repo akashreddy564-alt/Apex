@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { haptics } from '@/components/motion';
+import { ContourLoader, haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
 import { ElevationStrip, RouteThumb } from '@/components/ranking/RouteFigure';
@@ -406,9 +406,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
           </View>
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-              Preparing comparison
-            </Text>
+            <ContourLoader size="screen" label="Preparing comparison" />
           </View>
         )}
       </View>

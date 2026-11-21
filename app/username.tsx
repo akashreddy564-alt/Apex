@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
 
+import { Skeleton } from '@/components/motion';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
 import { profileKey, useMyProfile } from '@/hooks/useProfile';
@@ -40,7 +41,9 @@ export default function UsernameScreen() {
 
   if (loading || !filled) {
     return (
-      <View className="flex-1 bg-bg" />
+      <View className="flex-1 bg-bg px-5 pt-6">
+        <Skeleton shape="row" count={5} />
+      </View>
     );
   }
 

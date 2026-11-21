@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { Skeleton } from '@/components/motion';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
 import { RelationButton } from '@/components/social/RelationButton';
@@ -16,7 +17,13 @@ function PersonPage({ id }: { id: string }) {
   const router = useRouter();
   const safety = useSafetyMenu(() => (router.canGoBack() ? router.back() : router.replace('/social')));
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <View style={{ paddingTop: 16 }}>
+        <Skeleton shape="row" count={5} />
+      </View>
+    );
+  }
   if (error || !person) {
     return (
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, marginTop: 24 }}>

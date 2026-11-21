@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { FlatList, Pressable, RefreshControl, Text, View } from 'react-native';
 
+import { Skeleton } from '@/components/motion';
 import { Avatar } from '@/components/social/Avatar';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -58,7 +59,13 @@ function List() {
     ),
   );
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <View className="px-4 pt-4">
+        <Skeleton shape="row" count={5} />
+      </View>
+    );
+  }
   if (error) {
     return (
       <View className="gap-2 px-4 pt-6">

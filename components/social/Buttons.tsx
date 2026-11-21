@@ -1,6 +1,6 @@
-import { ActivityIndicator, Text } from 'react-native';
+import { Text } from 'react-native';
 
-import { PressScale } from '@/components/motion';
+import { ContourLoader, PressScale } from '@/components/motion';
 
 import { useColors } from '@/hooks/useColors';
 import { fonts } from '@/theme/tokens';
@@ -37,7 +37,7 @@ export function PrimaryButton({ label, onPress, disabled, busy, a11y, compact }:
       }}
     >
       {busy ? (
-        <ActivityIndicator color={c.onAccent} />
+        <ContourLoader size="sm" color={c.onAccent} />
       ) : (
         <Text style={{ color: c.onAccent, fontFamily: fonts.uiSemibold, fontSize: compact ? 14 : 15 }}>
           {label}
@@ -68,7 +68,7 @@ export function SecondaryButton({ label, onPress, disabled, busy, a11y, compact 
       }}
     >
       {busy ? (
-        <ActivityIndicator color={c.fg2} />
+        <ContourLoader size="sm" color={c.fg2} />
       ) : (
         <Text style={{ color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: compact ? 14 : 15 }}>
           {label}

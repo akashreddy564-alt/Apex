@@ -23,7 +23,7 @@ import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
-import { riseIn } from '@/components/motion';
+import { riseIn, Skeleton } from '@/components/motion';
 
 /** Coming back to Home refetches when the feed is older than this. */
 const STALE_ON_FOCUS_MS = 30_000;
@@ -176,7 +176,11 @@ function Feed() {
   let empty = null;
   if (loading) {
     // First sign-in only: the feed was prefetched during the opening screen, and is cached after.
-    empty = null;
+    empty = (
+      <View className="px-4 pt-5">
+        <Skeleton shape="post" count={3} />
+      </View>
+    );
   } else if (error) {
     empty = (
       <View className="mx-4 mt-6 gap-3 rounded-2xl bg-surface px-5 py-6">
