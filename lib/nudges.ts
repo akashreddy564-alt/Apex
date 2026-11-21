@@ -155,7 +155,7 @@ export function isGoodHikingDay(day: DayForecast | null): day is DayForecast {
   return !!day && day.precipPct < 35 && day.highF >= 45 && day.highF <= 92 && day.code <= 3;
 }
 
-function sky(code: number): string {
+export function sky(code: number): string {
   if (code === 0) return 'clear';
   if (code <= 2) return 'mostly sunny';
   return 'dry';

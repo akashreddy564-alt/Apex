@@ -11,6 +11,7 @@ import { PostCard } from '@/components/feed/PostCard';
 import { GoalRing } from '@/components/habit/GoalRing';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
 import { StreakChip } from '@/components/habit/StreakChip';
+import { WeekendPick } from '@/components/habit/WeekendPick';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -218,6 +219,7 @@ function Feed() {
         <View>
           <Header />
           <ThisWeek />
+          <WeekendPick />
           <View className="px-4">
             <NotificationAsk />
           </View>
@@ -252,6 +254,7 @@ export default function HomeScreen() {
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
       <Header />
       <ThisWeek />
+      <WeekendPick />
       <SignInGate why="see what your friends hiked">{() => null}</SignInGate>
     </ScrollView>
   );
