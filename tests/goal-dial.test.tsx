@@ -1,6 +1,6 @@
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
-import { GoalDial } from '@/components/craft/GoalDial';
+import { GoalDial, inRingBand } from '@/components/craft/GoalDial';
 import { WeekBars } from '@/components/craft/WeekBars';
 import type { GoalMetric } from '@/lib/weeklyGoal';
 
@@ -60,6 +60,22 @@ describe('GoalDial', () => {
     const node = dial(render('elevation', 12000, onChange));
     expect(node.props.accessibilityValue.text).toBe('8,000 feet a week');
     expect(onChange).not.toHaveBeenCalled();
+  });
+});
+
+describe('inRingBand', () => {
+  it('accepts the ring between the centre disc and the dial edge', () => {
+    expect(inRingBand(140, 140 - 110)).toBe(true); // top of the ring
+    expect(inRingBand(140 + 130, 140)).toBe(true); // right edge
+    expect(inRingBand(140, 140 + 76)).toBe(true); // just outside the disc
+  });
+
+  it('rejects the centre disc, the corners and bad input', () => {
+    expect(inRingBand(140, 140)).toBe(false);
+    expect(inRingBand(140 + 40, 140 - 30)).toBe(false); // on the disc
+    expect(inRingBand(4, 4)).toBe(false); // corner of the square
+    expect(inRingBand(276, 276)).toBe(false);
+    expect(inRingBand(Number.NaN, 140)).toBe(false);
   });
 });
 

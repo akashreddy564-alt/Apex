@@ -23,7 +23,7 @@ const TITLE = 30;
 const STEPS: Record<GoalMetric, { title: string; body: string }[]> = {
   elevation: [
     { title: 'Every hike dated this week', body: 'Monday to Sunday, recorded or logged after.' },
-    { title: 'Climbing, not net change', body: 'Every uphill foot adds up, so an out-and-back counts its climb once.' },
+    { title: 'Climbing, not net change', body: 'Every uphill foot of the hike adds up.' },
     { title: 'Resets Monday', body: 'Your streak keeps going as long as you hike once each week.' },
   ],
   distance: [

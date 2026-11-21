@@ -19,12 +19,15 @@ const ARC_R = RAD + 8;
 const KNOB_R = 9;
 const TICKS = 60;
 const DISC_INSET = 64;
-/** Touches this close to the centre have no useful angle. */
-const DEAD_ZONE = 24;
+/** Movement needed before a touch on the ring turns the dial. */
+const SLOP = 4;
 const DISPLAY_SIZE = 40;
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
-const at = (deg: number, r: number) => ({ x: C + Math.cos(rad(deg)) * r, y: C + Math.sin(rad(deg)) * r });
+const at = (deg: number, r: number) => ({
+  x: C + Math.cos(rad(deg)) * r,
+  y: C + Math.sin(rad(deg)) * r,
+});
 
 /** "3,000" or "10". */
 function formatDisplay(metric: GoalMetric, value: number): string {
@@ -37,6 +40,18 @@ function tickLabel(metric: GoalMetric, value: number): string {
   if (metric === 'distance') return String(Math.round(value));
   const k = value / 1000;
   return `${Number.isInteger(k) ? k : k.toFixed(1)}k`;
+}
+
+/**
+ * True when a point (in the dial's own coordinates) is on the ring band:
+ * outside the centre disc and inside the dial's circle. Only touches that
+ * start there can turn the dial, so a scroll from the disc or corners stays a scroll.
+ */
+export function inRingBand(x: number, y: number): boolean {
+  'worklet';
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+  const r = Math.hypot(x - C, y - C);
+  return r >= C - DISC_INSET && r <= C;
 }
 
 function clampDisplay(metric: GoalMetric, value: number): number {
@@ -65,11 +80,11 @@ export function GoalDial({
   const shown = clampDisplay(metric, display);
   const [turned, setTurned] = useState(false);
 
-  // The last value reported (or given), so a snap only fires when it changes.
-  const last = useRef(display);
+  // The last value shown or reported, so a snap only fires when what's shown changes.
+  const last = useRef(shown);
   useEffect(() => {
-    last.current = display;
-  }, [display]);
+    last.current = shown;
+  }, [shown]);
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const metricRef = useRef(metric);
@@ -94,21 +109,41 @@ export function GoalDial({
 
   const begin = useCallback(() => setTurned(true), []);
 
+  const startX = useSharedValue(0);
+  const startY = useSharedValue(0);
   const pan = useMemo(() => {
     const track = (x: number, y: number) => {
       'worklet';
       const dx = x - C;
       const dy = y - C;
-      if (!Number.isFinite(dx) || !Number.isFinite(dy) || Math.hypot(dx, dy) < DEAD_ZONE) return;
+      if (!Number.isFinite(dx) || !Number.isFinite(dy) || dx * dx + dy * dy < 1) return;
       angle.value = (Math.atan2(dy, dx) * 180) / Math.PI;
       if (!pending.value) {
         pending.value = true;
         scheduleOnRN(sync);
       }
     };
+    // Manual activation: a touch must start on the ring band and move a few
+    // px before the dial takes it, so a touch-down alone never writes.
     return Gesture.Pan()
-      .minDistance(0)
+      .manualActivation(true)
       .shouldCancelWhenOutside(false)
+      .onTouchesDown((e, manager) => {
+        const t = e.allTouches[0];
+        if (!t || e.numberOfTouches > 1 || !inRingBand(t.x, t.y)) {
+          manager.fail();
+          return;
+        }
+        startX.value = t.x;
+        startY.value = t.y;
+      })
+      .onTouchesMove((e, manager) => {
+        const t = e.allTouches[0];
+        if (!t) return;
+        const dx = t.x - startX.value;
+        const dy = t.y - startY.value;
+        if (dx * dx + dy * dy >= SLOP * SLOP) manager.activate();
+      })
       .onStart((e) => {
         scheduleOnRN(begin);
         track(e.x, e.y);
@@ -120,7 +155,7 @@ export function GoalDial({
         // A cancelled turn (the page took the touch) keeps the last snap it reached.
         if (success) track(e.x, e.y);
       });
-  }, [angle, pending, sync, begin]);
+  }, [angle, pending, sync, begin, startX, startY]);
 
   const step1 = (dir: 1 | -1) => {
     const base = min + (dir > 0 ? Math.floor((shown - min) / step) : Math.ceil((shown - min) / step)) * step;
@@ -128,14 +163,32 @@ export function GoalDial({
   };
 
   const ticks = useMemo(() => {
-    const out: { key: number; long: boolean; a: { x: number; y: number }; b: { x: number; y: number }; label?: { x: number; y: number; text: string } }[] = [];
+    const out: {
+      key: number;
+      long: boolean;
+      a: { x: number; y: number };
+      b: { x: number; y: number };
+      label?: { x: number; y: number; text: string };
+    }[] = [];
     for (let i = 0; i <= TICKS; i++) {
       const deg = DIAL_START_DEG + (i * DIAL_SWEEP_DEG) / TICKS;
       const long = i % 5 === 0;
-      const tick = { key: i, long, a: at(deg, RAD - (long ? 14 : 7)), b: at(deg, RAD) };
+      const tick = {
+        key: i,
+        long,
+        a: at(deg, RAD - (long ? 14 : 7)),
+        b: at(deg, RAD),
+      };
       if (i % 15 === 0) {
         const p = at(deg, RAD - 28);
-        out.push({ ...tick, label: { x: p.x, y: p.y + 3.5, text: tickLabel(metric, min + (i / TICKS) * (max - min)) } });
+        out.push({
+          ...tick,
+          label: {
+            x: p.x,
+            y: p.y + 3.5,
+            text: tickLabel(metric, min + (i / TICKS) * (max - min)),
+          },
+        });
       } else out.push(tick);
     }
     return out;
@@ -155,14 +208,21 @@ export function GoalDial({
           accessible
           accessibilityRole="adjustable"
           accessibilityLabel="Weekly target"
-          accessibilityValue={{ text: `${formatDisplay(metric, shown)} ${unitWords} a week` }}
+          accessibilityValue={{
+            text: `${formatDisplay(metric, shown)} ${unitWords} a week`,
+          }}
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
           onAccessibilityAction={(ev) => {
             const name = ev.nativeEvent.actionName;
             if (name === 'increment') step1(1);
             else if (name === 'decrement') step1(-1);
           }}
-          style={{ width: SIZE, height: SIZE, touchAction: 'none', userSelect: 'none' }}
+          style={{
+            width: SIZE,
+            height: SIZE,
+            touchAction: 'none',
+            userSelect: 'none',
+          }}
         >
           <Svg width={SIZE} height={SIZE} style={{ position: 'absolute', left: 0, top: 0 }}>
             <Defs>
@@ -197,14 +257,7 @@ export function GoalDial({
                 </SvgText>
               ) : null,
             )}
-            <Circle
-              cx={C}
-              cy={C}
-              r={C - DISC_INSET}
-              fill={`url(#${gradId})`}
-              stroke={c.border}
-              strokeWidth={1}
-            />
+            <Circle cx={C} cy={C} r={C - DISC_INSET} fill={`url(#${gradId})`} stroke={c.border} strokeWidth={1} />
             {arc ? <Path d={arc} fill="none" stroke={c.accent} strokeWidth={3} strokeLinecap="round" /> : null}
             <Circle cx={e.x} cy={e.y} r={KNOB_R} fill={c.accent} stroke={c.bg} strokeWidth={3} />
           </Svg>
@@ -236,7 +289,14 @@ export function GoalDial({
             >
               {formatDisplay(metric, shown)}
             </Text>
-            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 12, marginTop: 2 }}>
+            <Text
+              style={{
+                color: c.fgMuted,
+                fontFamily: fonts.ui,
+                fontSize: 12,
+                marginTop: 2,
+              }}
+            >
               {metric === 'elevation' ? 'feet of climbing' : 'miles'}
             </Text>
           </View>
@@ -245,7 +305,13 @@ export function GoalDial({
       <Text
         importantForAccessibility="no"
         accessibilityElementsHidden
-        style={{ color: c.fgFaint, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2, marginTop: -24 }}
+        style={{
+          color: c.fgFaint,
+          fontFamily: fonts.mono,
+          fontSize: 10,
+          letterSpacing: 1.2,
+          marginTop: -48,
+        }}
       >
         {turned ? `SNAPS TO ${formatDisplay(metric, step)} ${metric === 'elevation' ? 'FT' : 'MI'}` : 'TURN THE DIAL'}
       </Text>
