@@ -32,6 +32,19 @@ Phone checks were slowing every step down and filling the disk, so they're batch
 
 Owed for the plan 3 phone pass: GPS recording with the screen locked, launch-screen timing, Finish → trail sheet, magic link sign-in, friend invite link and QR, the feed with test hikers.
 
+Craft pass phone check (goes with the same phone pass, not a separate one):
+
+- [ ] Rebuild the dev client once for `expo-blur` (`eas build --profile development`).
+- [ ] 60 fps while scrubbing Angels Landing and while turning the goal dial.
+- [ ] A haptic tick every 500 ft on the scrubber and on each dial snap.
+- [ ] VoiceOver can operate the scrubber, the slider and the dial.
+- [ ] The recording screen stays still (no looping motion).
+- [ ] A slider start while already recording does not start a second hike.
+- [ ] A page scroll that starts on the dial's ring scrolls the page instead of turning the dial.
+- [ ] The tab bar's safe-area inset is right on the device.
+- [ ] Glass on Android falls back to a plain fill.
+- [ ] The `useFocusEffect` pending-start timing is right when Log is already mounted.
+
 Plans 1, 2 and 5 can run in parallel; they touch separate files. Plan 3 is the critical path and the largest.
 
 ## 0. Launch foundation
