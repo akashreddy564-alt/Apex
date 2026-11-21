@@ -19,7 +19,7 @@ import { DrawIn, Eyebrow, haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { formatDistance, formatElevation } from '@/lib/format';
 import { canScrub, routeFraction, scrubAt, ticksCrossed } from '@/lib/scrub';
-import { numericStyle } from '@/theme/tokens';
+import { cardStyle, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, TrailShape } from '@/types/trail';
 
 const CHART_H = 120;
@@ -254,14 +254,7 @@ export function ElevationScrubber({
         if (name === 'increment') setBoth(lastFraction.current + STEP);
         else if (name === 'decrement') setBoth(lastFraction.current - STEP);
       }}
-      style={{
-        backgroundColor: c.surface,
-        borderWidth: 1,
-        borderColor: c.raised,
-        borderRadius: 22,
-        padding: 16,
-        gap: 14,
-      }}
+      style={{ ...cardStyle(c), gap: 14 }}
     >
       <View style={{ flexDirection: 'row' }}>
         <View style={{ flex: 1, gap: 4 }}>
@@ -278,10 +271,11 @@ export function ElevationScrubber({
         </View>
       </View>
 
-      <GestureDetector gesture={pan}>
+      {/* touchAction and userSelect are web-only GestureDetector props: no page scroll or text selection mid-drag. */}
+      <GestureDetector gesture={pan} touchAction="none" userSelect="none">
         <View
           onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
-          style={{ height: CHART_H, touchAction: 'none', userSelect: 'none' }}
+          style={{ height: CHART_H }}
         >
           {geo ? (
             <Svg width={width} height={CHART_H}>

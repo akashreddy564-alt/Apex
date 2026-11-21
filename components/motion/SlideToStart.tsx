@@ -131,7 +131,8 @@ export function SlideToStart({
   const labelStyle = useAnimatedStyle(() => ({ opacity: max > 0 ? 1 - Math.min(1, (x.value / max) * 1.6) : 1 }));
 
   return (
-    <GestureDetector gesture={pan}>
+    // Web only (GestureDetector props): the browser must not scroll the page or select text while dragging.
+    <GestureDetector gesture={pan} touchAction="none" userSelect="none">
       <View
         accessible
         accessibilityRole="button"
@@ -150,9 +151,6 @@ export function SlideToStart({
           borderColor: c.border,
           overflow: 'hidden',
           opacity: disabled ? 0.5 : 1,
-          // Stops the browser scrolling the page while dragging with a mouse or finger.
-          touchAction: 'none',
-          userSelect: 'none',
         }}
       >
         <Animated.View

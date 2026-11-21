@@ -4,13 +4,11 @@ import Animated, { useAnimatedProps, type SharedValue } from 'react-native-reani
 import Svg, { Circle, Path } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { projectPoints } from '@/lib/projectPath';
 import type { GeoJSONLineString } from '@/types/trail';
 
 const SIZE = 120;
 const PAD = 12;
-const BOX = SIZE - PAD * 2;
-// Degrees of latitude are drawn taller than longitude at these latitudes.
-const LAT_SCALE = 1.25;
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
@@ -38,15 +36,11 @@ export function RouteTracer({ path, fraction }: { path: GeoJSONLineString; fract
 
   const geo = useMemo(() => {
     if (coords.length < 2) return null;
-    const lons = coords.map((p) => p[0]);
-    const lats = coords.map((p) => p[1]);
-    const minX = Math.min(...lons);
-    const minY = Math.min(...lats);
-    const w = Math.max(...lons) - minX;
-    const h = (Math.max(...lats) - minY) * LAT_SCALE;
-    const sc = Math.max(w, h) > 0 ? BOX / Math.max(w, h) : 1;
-    const xs = coords.map((p) => PAD + (p[0] - minX) * sc + (BOX - w * sc) / 2);
-    const ys = coords.map((p) => SIZE - PAD - (p[1] - minY) * sc * LAT_SCALE - (BOX - h * sc) / 2);
+    // The shared projection: longitude scaled by cos(latitude), centered in the box.
+    // A flat or single-spot route keeps a tiny minimum span, so it never divides by zero.
+    const points = projectPoints(coords, SIZE, SIZE, PAD);
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
     const cum = [0];
     for (let i = 1; i < xs.length; i++) cum.push(cum[i - 1] + Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]));
     const d = xs.map((x, i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${ys[i].toFixed(1)}`).join(' ');

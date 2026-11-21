@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, Path, RadialGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { Eyebrow, haptics } from '@/components/motion';
+import { webNoScrollStyle } from '@/components/motion/webDrag';
 import { useColors } from '@/hooks/useColors';
 import { angleToDisplay, DIAL_RANGE, DIAL_START_DEG, DIAL_SWEEP_DEG, displayToFraction } from '@/lib/goalDial';
 import type { GoalMetric } from '@/lib/weeklyGoal';
@@ -203,7 +204,8 @@ export function GoalDial({
 
   return (
     <View style={{ alignItems: 'center' }}>
-      <GestureDetector gesture={pan}>
+      {/* Web only: the detector leaves page scroll on (touchAction auto); the ring band turns it off below. */}
+      <GestureDetector gesture={pan} touchAction="auto" userSelect="none">
         <View
           accessible
           accessibilityRole="adjustable"
@@ -217,12 +219,7 @@ export function GoalDial({
             if (name === 'increment') step1(1);
             else if (name === 'decrement') step1(-1);
           }}
-          style={{
-            width: SIZE,
-            height: SIZE,
-            touchAction: 'none',
-            userSelect: 'none',
-          }}
+          style={{ width: SIZE, height: SIZE }}
         >
           <Svg width={SIZE} height={SIZE} style={{ position: 'absolute', left: 0, top: 0 }}>
             <Defs>
@@ -261,6 +258,25 @@ export function GoalDial({
             {arc ? <Path d={arc} fill="none" stroke={c.accent} strokeWidth={3} strokeLinecap="round" /> : null}
             <Circle cx={e.x} cy={e.y} r={KNOB_R} fill={c.accent} stroke={c.bg} strokeWidth={3} />
           </Svg>
+          {Platform.OS === 'web' ? (
+            // Web only: the browser must not scroll while the ring turns, but a touch on
+            // the centre disc or the square's corners still scrolls the page, matching
+            // inRingBand. Hit testing follows the rounded shapes: the ring circle blocks
+            // scroll, and the disc on top of it (default touch-action) lets it through.
+            <>
+              <View style={[{ position: 'absolute', left: 0, top: 0, width: SIZE, height: SIZE, borderRadius: C }, webNoScrollStyle]} />
+              <View
+                style={{
+                  position: 'absolute',
+                  left: DISC_INSET,
+                  top: DISC_INSET,
+                  width: SIZE - DISC_INSET * 2,
+                  height: SIZE - DISC_INSET * 2,
+                  borderRadius: C - DISC_INSET,
+                }}
+              />
+            </>
+          ) : null}
           <View
             style={{
               pointerEvents: 'none',
