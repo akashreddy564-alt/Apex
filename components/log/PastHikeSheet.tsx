@@ -171,6 +171,8 @@ export function PastHikeSheet({
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}>
         <Glass
           intensity={60}
+          fill="bg"
+          wash={0.82}
           style={{
             flex: 1,
             marginTop: insets.top + 8,
@@ -565,6 +567,8 @@ export function PastHikeSheet({
 
           <Glass
             intensity={60}
+            fill="bg"
+            wash={0.9}
             style={{
               flex: 0,
               position: 'absolute',

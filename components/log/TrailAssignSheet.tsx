@@ -108,7 +108,7 @@ export function TrailAssignSheet({ visible, suggestions, trails, onPick, onCreat
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}
       >
-        <Glass intensity={60} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: '90%' }]}>
+        <Glass intensity={60} fill="bg" wash={0.82} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom, 16), maxHeight: '90%' }]}>
           <View style={styles.grabber} />
           <View style={styles.header}>
             <Text style={styles.title}>Which trail was this?</Text>
