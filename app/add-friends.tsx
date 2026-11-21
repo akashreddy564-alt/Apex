@@ -26,6 +26,7 @@ function Search() {
         <Text style={{ color: c.fgFaint, fontFamily: fonts.ui, fontSize: 16 }}>@</Text>
         <TextInput
           value={query}
+          maxLength={40}
           onChangeText={setQuery}
           autoCapitalize="none"
           autoCorrect={false}

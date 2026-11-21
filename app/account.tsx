@@ -15,6 +15,7 @@ import type { Appearance, ScoreStyle } from '@/lib/appearance';
 import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/stores/settingsStore';
+import { apiError } from '@/lib/apiError';
 
 const SCORE_STYLES: { value: ScoreStyle; label: string }[] = [
   { value: 'number', label: 'Number' },
@@ -52,6 +53,10 @@ function DisplaySettings() {
   );
 }
 
+const LINK_COOLDOWN_MS = 60_000;
+/** Module-level so leaving and reopening Settings doesn't reset it. */
+let lastSentAt = 0;
+
 export default function AccountScreen() {
   const c = useColors();
   const router = useRouter();
@@ -78,8 +83,18 @@ export default function AccountScreen() {
   const client = supabase;
 
   const sendLink = async () => {
-    const next = address.trim();
+    const next = address.trim().toLowerCase();
     if (!next) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(next)) {
+      setStatus('That doesn’t look like an email address.');
+      return;
+    }
+    // Supabase limits sign-in emails too; this keeps a double tap from using one up.
+    const wait = Math.ceil((LINK_COOLDOWN_MS - (Date.now() - lastSentAt)) / 1000);
+    if (wait > 0) {
+      setStatus(`You can send another link in ${wait} s.`);
+      return;
+    }
     setBusy(true);
     setStatus(null);
     try {
@@ -88,9 +103,10 @@ export default function AccountScreen() {
         options: { emailRedirectTo: Linking.createURL('/account') },
       });
       if (error) {
-        setStatus(error.message);
+        setStatus(apiError(error).message);
       } else {
         setSentTo(next);
+        lastSentAt = Date.now();
         setStatus('Check your email. Open the link on this phone, or type the code from it.');
       }
     } finally {
@@ -170,6 +186,7 @@ export default function AccountScreen() {
         <>
           <TextInput
             value={address}
+            maxLength={254}
             onChangeText={setAddress}
             autoCapitalize="none"
             autoCorrect={false}

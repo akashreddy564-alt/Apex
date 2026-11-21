@@ -1,5 +1,7 @@
 import { displayNameProblem, normalizeUsername, usernameProblem } from '@/lib/username';
 import { supabase } from '@/lib/supabase';
+import { apiError } from '@/lib/apiError';
+import { LIMITS, sanitizeText } from '@/lib/sanitize';
 
 export interface Profile {
   id: string;
@@ -23,7 +25,7 @@ export function mapProfile(row: Record<string, unknown> | null | undefined): Pro
 export async function fetchProfile(id: string): Promise<Profile | null> {
   if (!supabase) return null;
   const { data, error } = await supabase.from('profiles').select(COLUMNS).eq('id', id).maybeSingle();
-  if (error) throw new Error(error.message);
+  if (error) throw apiError(error);
   return mapProfile(data as Record<string, unknown> | null);
 }
 
@@ -43,7 +45,7 @@ export async function saveProfile(
     .upsert({
       id,
       username: normalizeUsername(usernameInput),
-      display_name: displayNameInput.trim(),
+      display_name: sanitizeText(displayNameInput, LIMITS.displayName),
       updated_at: new Date().toISOString(),
     })
     .select(COLUMNS)
@@ -51,7 +53,7 @@ export async function saveProfile(
   if (error) {
     // 23505: unique violation on username.
     if (error.code === '23505') return { ok: false, message: 'That username is taken.' };
-    return { ok: false, message: error.message };
+    return { ok: false, message: apiError(error).message };
   }
   const profile = mapProfile(data as Record<string, unknown>);
   return profile ? { ok: true, profile } : { ok: false, message: 'Could not save your profile.' };

@@ -387,6 +387,7 @@ export function PastHikeSheet({
                       {editingDistance ? (
                         <TextInput
                           value={distanceText}
+                          maxLength={6}
                           onChangeText={(value) => {
                             setDistanceTouched(true);
                             setDistanceText(value.replace(/[^0-9.]/g, ''));
@@ -512,6 +513,7 @@ export function PastHikeSheet({
                   <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Notes</Text>
                   <TextInput
                     value={notes}
+                    maxLength={2000}
                     onChangeText={setNotes}
                     placeholder="Snow patches, pace, who you went with"
                     placeholderTextColor={c.fgFaint}

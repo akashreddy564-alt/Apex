@@ -222,6 +222,7 @@ export default function DeleteAccountScreen() {
             </Text>
             <TextInput
               value={phrase}
+              maxLength={40}
               onChangeText={setPhrase}
               autoCapitalize="characters"
               autoCorrect={false}
