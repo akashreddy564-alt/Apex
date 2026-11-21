@@ -5,9 +5,9 @@ const path = require('path');
 const MARKER = 'apex-recording-actions';
 
 /**
- * Patches expo-location 57.0.20 only.
+ * Patches expo-location 57.0.23 only.
  * File: node_modules/expo-location/android/src/main/java/expo/modules/location/services/LocationTaskService.kt
- * Edits buildServiceNotification at the setContentIntent let-block, lines 89–90:
+ * Edits buildServiceNotification at the setContentIntent let-block, lines 102–103:
  *   builder.setContentIntent(contentIntent)
  *       }
  * Inserts Pause and Finish actions there, before `val iconsResId`.

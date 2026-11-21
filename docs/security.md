@@ -5,10 +5,11 @@ Audit and health check, 2026-11-21, on `feat/hardening` (stacked on `feat/habit-
 ## Owner actions (dashboard, not code)
 
 1. **Run `014_rate_limits_and_input_checks.sql`** after `011`–`013`. Then run `supabase/checks/migration_status.sql`; row 20 should be `true`.
-2. **Auth email rate limit.** Supabase → Authentication → Rate Limits: emails sent per hour. The built-in sender allows only a few; once Resend or Postmark is set up as custom SMTP, keep it at about 30 per hour. The app also holds "Send link" for 60 s.
-3. **Restrict the Mapbox public token** to the bundle id `com.apex.trails` (Mapbox → Tokens → URL / app restrictions). It ships inside the app by design, so a restriction is what stops reuse.
-4. **Redirect URLs.** Supabase → Authentication → URL Configuration: allow only `apex://**` (and the dev web URL while testing). Remove wildcards like `*`.
-5. **Leaked password protection / CAPTCHA** aren't needed while sign-in is magic link only. Turn CAPTCHA on if sign-up spam shows up.
+2. **Run `015_safety_fixes.sql`** after `014`. Row 21 of the status check should be `true`. It stops anyone checking who blocked whom, makes reports point only at the reported person's own post or comment, and caps every recorded hike on group boards by its recorded length.
+3. **Auth email rate limit.** Supabase → Authentication → Rate Limits: emails sent per hour. The built-in sender allows only a few; once Resend or Postmark is set up as custom SMTP, keep it at about 30 per hour. The app also holds "Send link" for 60 s.
+4. **Restrict the Mapbox public token** to the bundle id `com.apex.trails` (Mapbox → Tokens → URL / app restrictions). It ships inside the app by design, so a restriction is what stops reuse. The flyover runs Mapbox GL JS in a WebView whose page origin is `https://flyover.apex.app/`; add that URL to the token's allowed URLs or the flyover will skip itself.
+5. **Redirect URLs.** Supabase → Authentication → URL Configuration: allow only `apex://**` (and the dev web URL while testing). Remove wildcards like `*`.
+6. **Leaked password protection / CAPTCHA** aren't needed while sign-in is magic link only. Turn CAPTCHA on if sign-up spam shows up.
 
 ## What was checked
 
