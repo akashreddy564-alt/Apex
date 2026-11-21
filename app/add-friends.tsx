@@ -1,6 +1,6 @@
 import * as Linking from 'expo-linking';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, Share, Text, TextInput, View } from 'react-native';
+import { ScrollView, Share, Text, TextInput, View } from 'react-native';
 
 import { SecondaryButton } from '@/components/social/Buttons';
 import { PersonRow } from '@/components/social/PersonRow';
@@ -38,7 +38,6 @@ function Search() {
           className="flex-1 py-3 pl-1 text-fg"
           style={{ fontFamily: fonts.ui, fontSize: 16 }}
         />
-        {searching ? <ActivityIndicator color={c.fgMuted} /> : null}
       </View>
       {error ? (
         <Text style={{ color: c.disliked, fontFamily: fonts.ui, fontSize: 13, marginTop: 10 }}>{error}</Text>
@@ -52,6 +51,7 @@ function Search() {
               <RelationButton
                 personId={person.id}
                 name={person.display_name}
+                username={person.username}
                 relation={relationTo(person.id)}
               />
             }

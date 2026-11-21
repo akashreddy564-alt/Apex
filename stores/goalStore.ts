@@ -1,13 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
 
-import {
-  defaultGoal,
-  parseGoal,
-  type GoalMetric,
-  type WeeklyGoal,
-} from "@/lib/weeklyGoal";
+import { defaultGoal, parseGoal, type GoalMetric, type WeeklyGoal } from '@/lib/weeklyGoal';
 
 interface GoalState extends WeeklyGoal {
   /** Switching metric resets the target to that metric's default. */
@@ -29,7 +24,7 @@ export const useGoal = create<GoalState>()(
       },
     }),
     {
-      name: "apex-weekly-goal",
+      name: 'apex-weekly-goal',
       version: 1,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ metric: state.metric, target: state.target }),

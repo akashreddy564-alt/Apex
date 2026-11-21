@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
@@ -45,11 +45,7 @@ export function SignInGate({
     );
   }
   if (loading) {
-    return (
-      <View className="mt-10 items-center">
-        <ActivityIndicator color={c.fgMuted} />
-      </View>
-    );
+    return null;
   }
   if (!session) {
     return (

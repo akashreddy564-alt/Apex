@@ -21,25 +21,29 @@ function ReportForm() {
   const name = one(params.name) ?? 'this person';
   const post = one(params.post);
   const comment = one(params.comment);
-  const { report, reporting, block } = useSafetyActions();
+  const { report, block } = useSafetyActions();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
   const [error, setError] = useState<string | null>(null);
   const what = comment ? `${name}’s comment` : post ? `${name}’s hike` : name;
 
-  const submit = async () => {
+  // Sent now, or queued until back online. A refusal (like a rate limit) shows an alert.
+  const submit = () => {
     if (!person || !reason) return;
     setError(null);
-    try {
-      await report({ person, reason, details, post, comment });
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert('Thanks for telling us', 'We review every report within 24 hours. Want to block them too?', [
-        { text: 'Not now', style: 'cancel', onPress: () => router.back() },
-        { text: 'Block', style: 'destructive', onPress: () => void block(person).then(() => router.back()) },
-      ]);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Couldn’t send the report.');
-    }
+    report({ person, reason, details, post, comment });
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Thanks for telling us', 'We review every report within 24 hours. Want to block them too?', [
+      { text: 'Not now', style: 'cancel', onPress: () => router.back() },
+      {
+        text: 'Block',
+        style: 'destructive',
+        onPress: () => {
+          block(person);
+          router.back();
+        },
+      },
+    ]);
   };
 
   if (!person) {
@@ -87,7 +91,7 @@ function ReportForm() {
         <Text style={{ color: c.disliked, fontFamily: fonts.ui, fontSize: 14, marginTop: 12 }}>{error}</Text>
       ) : null}
       <View className="mt-6">
-        <PrimaryButton label="Send report" onPress={() => void submit()} disabled={!reason} busy={reporting} />
+        <PrimaryButton label="Send report" onPress={submit} disabled={!reason} />
       </View>
     </View>
   );

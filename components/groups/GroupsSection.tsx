@@ -1,23 +1,25 @@
 import { useRouter } from 'expo-router';
 import { ArrowDown, ArrowUp, ChevronRight } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { GroupMark } from '@/components/groups/GroupMark';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
-import { useMyGroups } from '@/hooks/useGroups';
+import { useMyGroups, usePrefetchGroup } from '@/hooks/useGroups';
 import { movement, ordinal, type Group } from '@/lib/groupRules';
 import { fonts } from '@/theme/tokens';
 
 function GroupRow({ group }: { group: Group }) {
   const c = useColors();
   const router = useRouter();
+  const prefetch = usePrefetchGroup();
   const move = movement(group.place, group.previousPlace);
   const place = group.place != null && group.weekGainM > 0 ? `${ordinal(group.place)} this week` : 'No climbs yet this week';
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${group.name}, ${place}${move ? `, moved ${move}` : ''}`}
+      onPressIn={() => prefetch(group.id)}
       onPress={() => router.push({ pathname: '/group/[id]', params: { id: group.id } })}
       className="flex-row items-center gap-3 py-2.5 active:opacity-80"
     >
@@ -47,7 +49,6 @@ export function GroupsSection() {
   return (
     <View className="mx-4 mt-8">
       <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Groups</Text>
-      {loading ? <ActivityIndicator color={c.fgMuted} style={{ marginTop: 14 }} /> : null}
       {error ? (
         <View className="mt-3 gap-2">
           <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>

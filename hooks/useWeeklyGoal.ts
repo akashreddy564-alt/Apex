@@ -1,12 +1,8 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import {
-  weeklyProgress,
-  type GoalProgress,
-  type WeeklyGoal,
-} from "@/lib/weeklyGoal";
-import { useGoal } from "@/stores/goalStore";
-import { useTrailCache } from "@/stores/trailCache";
+import { weeklyProgress, type GoalProgress, type WeeklyGoal } from '@/lib/weeklyGoal';
+import { useGoal } from '@/stores/goalStore';
+import { useTrailCache } from '@/stores/trailCache';
 
 /** This week's progress toward the goal, plus the goal itself. */
 export function useWeeklyGoal(): {

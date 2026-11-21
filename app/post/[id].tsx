@@ -3,7 +3,6 @@ import { useHeaderHeight } from 'expo-router/build/react-navigation/elements';
 import { SendHorizontal, Trash2 } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -20,9 +19,9 @@ import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
-import { useComments, useLike, usePost } from '@/hooks/useFeed';
+import { useComments, useLike, usePost, type ShownComment } from '@/hooks/useFeed';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
-import { COMMENT_MAX, hikeDayLabel, type PostComment } from '@/lib/feed';
+import { COMMENT_MAX, hikeDayLabel } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
 
 function CommentRow({
@@ -31,7 +30,7 @@ function CommentRow({
   onDelete,
   onMore,
 }: {
-  comment: PostComment;
+  comment: ShownComment;
   canDelete: boolean;
   onDelete: () => void;
   /** Report or block, on other people's comments (long press). */
@@ -46,13 +45,14 @@ function CommentRow({
       accessibilityActions={onMore ? [{ name: 'longpress', label: 'Report or block' }] : undefined}
       onAccessibilityAction={() => onMore?.()}
       className="flex-row gap-3 py-3"
+      style={{ opacity: comment.pending ? 0.55 : 1 }}
     >
       <Avatar name={comment.displayName} size={30} />
       <View className="flex-1">
         <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13 }}>
           <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold }}>{comment.displayName}</Text>
           {'  '}
-          {hikeDayLabel(comment.createdAt)}
+          {comment.pending ? 'Sending' : hikeDayLabel(comment.createdAt)}
         </Text>
         <Text style={{ color: c.fg2, fontFamily: fonts.ui, fontSize: 15, lineHeight: 21, marginTop: 2 }}>
           {comment.body}
@@ -85,13 +85,12 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
   // Blocking the author leaves their post; blocking a commenter just hides them.
   const safety = useSafetyMenu(() => router.back());
   const commentSafety = useSafetyMenu();
-  const { uid, comments, loading: commentsLoading, add, adding, remove } = useComments(id);
+  const { uid, comments, loading: commentsLoading, add, remove } = useComments(id);
   const [draft, setDraft] = useState('');
   const input = useRef<TextInput>(null);
 
-  if (loading) {
-    return <ActivityIndicator color={c.fgMuted} style={{ marginTop: 48 }} />;
-  }
+  // The feed already holds this post, so this only shows for a cold link.
+  if (loading) return <View className="flex-1 bg-bg" />;
   if (error || !post) {
     return (
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, margin: 20 }}>
@@ -100,18 +99,13 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
     );
   }
 
-  const send = async () => {
-    const body = draft.trim();
-    if (!body || adding) return;
-    try {
-      await add(body);
-      setDraft('');
-    } catch {
-      // useComments already told them.
-    }
+  const send = () => {
+    if (!draft.trim()) return;
+    add(draft);
+    setDraft('');
   };
 
-  const confirmDelete = (comment: PostComment) =>
+  const confirmDelete = (comment: ShownComment) =>
     Alert.alert('Delete this comment?', undefined, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => remove(comment.id) },
@@ -135,8 +129,7 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
 
         <View className="mt-6 h-px bg-raised" />
         <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 17, marginTop: 16 }}>Comments</Text>
-        {commentsLoading ? <ActivityIndicator color={c.fgMuted} style={{ marginTop: 16 }} /> : null}
-        {!commentsLoading && comments.length === 0 ? (
+                {!commentsLoading && comments.length === 0 ? (
           <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, marginTop: 8 }}>
             {post.isMine ? 'No comments yet.' : `Say something to ${post.displayName.split(/\s+/)[0]}.`}
           </Text>
@@ -176,17 +169,13 @@ function PostPage({ id, focusComment }: { id: string; focusComment: boolean }) {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Post comment"
-          accessibilityState={{ disabled: !draft.trim() || adding, busy: adding }}
-          disabled={!draft.trim() || adding}
-          onPress={() => void send()}
+          accessibilityState={{ disabled: !draft.trim() }}
+          disabled={!draft.trim()}
+          onPress={send}
           className="items-center justify-center rounded-full active:opacity-80"
-          style={{ width: 42, height: 42, backgroundColor: c.accent, opacity: !draft.trim() || adding ? 0.45 : 1 }}
+          style={{ width: 42, height: 42, backgroundColor: c.accent, opacity: !draft.trim() ? 0.45 : 1 }}
         >
-          {adding ? (
-            <ActivityIndicator color={c.onAccent} />
-          ) : (
-            <SendHorizontal size={18} strokeWidth={1.8} color={c.onAccent} />
-          )}
+          <SendHorizontal size={18} strokeWidth={1.8} color={c.onAccent} />
         </Pressable>
       </View>
     </KeyboardAvoidingView>

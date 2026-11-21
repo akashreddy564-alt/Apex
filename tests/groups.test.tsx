@@ -32,9 +32,10 @@ const summary: GroupSummary = {
   topClimber: { name: 'Maya', gainM: 1800 }, longestDay: { name: 'Maya', km: 18 },
   favorite: null, tasteMatch: { name: 'Maya', percent: 83 },
 };
-const mockActions = { leave: jest.fn(() => Promise.resolve()), leaving: false, remove: jest.fn(), removingFor: null };
+const mockActions = { leave: jest.fn(), remove: jest.fn() };
 let mockGroups: Group[] = [group];
 jest.mock('@/hooks/useGroups', () => ({
+  usePrefetchGroup: () => jest.fn(),
   useMyGroups: () => ({ groups: mockGroups, loading: false, error: null, refetch: jest.fn() }),
   useGroupPage: () => ({ board, summary, loading: false, refreshing: false, error: null, refetch: jest.fn() }),
   useGroupActions: () => mockActions,

@@ -23,7 +23,7 @@ function Requests() {
           <PersonRow
             key={person.id}
             person={person}
-            action={<RelationButton personId={person.id} name={person.display_name} relation="incoming" />}
+            action={<RelationButton personId={person.id} name={person.display_name} username={person.username} relation="incoming" />}
           />
         ))
       )}
@@ -34,7 +34,7 @@ function Requests() {
             <PersonRow
               key={person.id}
               person={person}
-              action={<RelationButton personId={person.id} name={person.display_name} relation="outgoing" />}
+              action={<RelationButton personId={person.id} name={person.display_name} username={person.username} relation="outgoing" />}
             />
           ))}
         </>

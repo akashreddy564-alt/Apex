@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { ChevronRight, UserPlus } from 'lucide-react-native';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GroupsSection } from '@/components/groups/GroupsSection';
@@ -87,7 +87,6 @@ function FriendsSection({ profile }: { profile: Profile }) {
               Add
             </Text>
           </Pressable>
-          {loading ? <ActivityIndicator color={c.fgMuted} style={{ height: TILE }} /> : null}
           {friends.map((friend) => (
             <Pressable
               key={friend.id}

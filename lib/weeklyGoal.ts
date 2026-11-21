@@ -6,9 +6,9 @@
  * Pure, so it runs under node tests.
  */
 
-import { weekStart } from "./streak.ts";
+import { weekStart } from './streak.ts';
 
-export type GoalMetric = "distance" | "elevation";
+export type GoalMetric = 'distance' | 'elevation';
 
 export interface WeeklyGoal {
   metric: GoalMetric;
@@ -34,32 +34,24 @@ const DEFAULT_DISPLAY: Record<GoalMetric, number> = {
 
 /** Display units (ft or mi) to stored units (m or km). */
 export function toStored(metric: GoalMetric, display: number): number {
-  return metric === "elevation"
-    ? display / FEET_PER_METRE
-    : display * KM_PER_MILE;
+  return metric === 'elevation' ? display / FEET_PER_METRE : display * KM_PER_MILE;
 }
 
 /** Stored units to display units, rounded to whole ft or 0.1 mi. */
 export function toDisplay(metric: GoalMetric, stored: number): number {
-  return metric === "elevation"
-    ? Math.round(stored * FEET_PER_METRE)
-    : Math.round((stored / KM_PER_MILE) * 10) / 10;
+  return metric === 'elevation' ? Math.round(stored * FEET_PER_METRE) : Math.round((stored / KM_PER_MILE) * 10) / 10;
 }
 
-export function defaultGoal(metric: GoalMetric = "elevation"): WeeklyGoal {
+export function defaultGoal(metric: GoalMetric = 'elevation'): WeeklyGoal {
   return { metric, target: toStored(metric, DEFAULT_DISPLAY[metric]) };
 }
 
 /** A stored goal from any build, reset to the default when it's broken. */
 export function parseGoal(raw: unknown): WeeklyGoal {
-  const record =
-    raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
-  const metric: GoalMetric =
-    record.metric === "distance" ? "distance" : "elevation";
+  const record = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+  const metric: GoalMetric = record.metric === 'distance' ? 'distance' : 'elevation';
   const target =
-    typeof record.target === "number" &&
-    Number.isFinite(record.target) &&
-    record.target > 0
+    typeof record.target === 'number' && Number.isFinite(record.target) && record.target > 0
       ? record.target
       : defaultGoal(metric).target;
   return { metric, target };
@@ -111,14 +103,14 @@ export function weeklyProgress(
     hikes += 1;
     const trail = trailOf(log.trail_id);
     const value =
-      goal.metric === "distance"
+      goal.metric === 'distance'
         ? (log.distance_km ?? trail?.distance_km)
         : (log.elevation_gain_m ?? trail?.elevation_gain_m);
     if (value != null && Number.isFinite(value) && value > 0) done += value;
   }
   const fraction = goal.target > 0 ? Math.min(1, done / goal.target) : 0;
   const monday = weekStart(now);
-  const pad = (n: number) => String(n).padStart(2, "0");
+  const pad = (n: number) => String(n).padStart(2, '0');
   const weekOf = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`;
   return {
     done,
@@ -131,19 +123,14 @@ export function weeklyProgress(
 }
 
 /** "1,240 / 3,000 ft" or "4.2 / 10 mi". */
-export function formatProgress(
-  metric: GoalMetric,
-  done: number,
-  target: number,
-): string {
-  const unit = metric === "elevation" ? "ft" : "mi";
+export function formatProgress(metric: GoalMetric, done: number, target: number): string {
+  const unit = metric === 'elevation' ? 'ft' : 'mi';
   return `${formatAmount(metric, done)} / ${formatAmount(metric, target)} ${unit}`;
 }
 
 /** Whole feet with commas, or miles to one decimal ("10" not "10.0"). */
 export function formatAmount(metric: GoalMetric, stored: number): string {
   const value = toDisplay(metric, stored);
-  if (metric === "distance")
-    return Number.isInteger(value) ? String(value) : value.toFixed(1);
-  return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  if (metric === 'distance') return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return String(Math.round(value)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }

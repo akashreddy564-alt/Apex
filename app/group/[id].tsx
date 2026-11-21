@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
+import { Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 
 import { GroupMark, groupColor } from '@/components/groups/GroupMark';
 import { Avatar } from '@/components/social/Avatar';
@@ -120,7 +120,7 @@ function StatCards({ summary }: { summary: GroupSummary }) {
 
 function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) {
   const c = useColors();
-  const { remove, removingFor } = useGroupActions();
+  const { remove } = useGroupActions();
   const top = Math.max(1, ...rows.map((row) => row.gainM));
 
   const confirmRemove = (row: BoardRow) => {
@@ -143,7 +143,6 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
             accessibilityHint={group?.isOwner && !row.isMe ? 'Long press to remove from the group' : undefined}
             onLongPress={() => confirmRemove(row)}
             className="flex-row items-center gap-3 py-2"
-            style={{ opacity: removingFor === row.userId ? 0.4 : 1 }}
           >
             <Text style={{ ...numericStyle('semibold'), width: 22, color: c.fgMuted, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
               {row.place}
@@ -216,7 +215,7 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
   const { groups, loading: groupsLoading } = useMyGroups();
   const group = groups.find((row) => row.id === id);
   const { board, summary, loading, refreshing, error, refetch } = useGroupPage(id, period);
-  const { leave, leaving } = useGroupActions();
+  const { leave } = useGroupActions();
 
   const confirmLeave = () => {
     if (!group) return;
@@ -233,7 +232,10 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
         {
           text: last ? 'Leave and delete' : 'Leave',
           style: 'destructive',
-          onPress: () => void leave(group.id).then(() => router.back()),
+          onPress: () => {
+            leave(group.id);
+            router.back();
+          },
         },
       ],
     );
@@ -273,7 +275,6 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
 
       <PeriodSwitch period={period} onChange={setPeriod} />
 
-      {loading ? <ActivityIndicator color={c.fgMuted} style={{ marginTop: 32 }} /> : null}
       {error ? (
         <View className="mt-6 gap-2">
           <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
@@ -292,7 +293,7 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
 
       {group ? (
         <View className="mt-8">
-          <SecondaryButton label="Leave group" onPress={confirmLeave} busy={leaving} />
+          <SecondaryButton label="Leave group" onPress={confirmLeave} />
         </View>
       ) : null}
     </ScrollView>

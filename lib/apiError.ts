@@ -5,26 +5,24 @@
  */
 
 export class AppError extends Error {
-  readonly kind: "rate_limited" | "offline" | "other";
-  constructor(message: string, kind: AppError["kind"]) {
+  readonly kind: 'rate_limited' | 'offline' | 'other';
+  constructor(message: string, kind: AppError['kind']) {
     super(message);
-    this.name = "AppError";
+    this.name = 'AppError';
     this.kind = kind;
   }
 }
 
 const RATE_MESSAGES: Record<string, string> = {
-  friend_request:
-    "You’ve sent a lot of friend requests. Try again in a few minutes.",
-  report: "You’ve sent several reports. Try again in a few minutes.",
-  group_create: "You’ve made several groups. Try again in a few minutes.",
-  group_join: "Too many tries. Check the code and try again in a few minutes.",
-  like: "Slow down a little. Try again in a few minutes.",
-  comment: "You’re commenting fast. Try again in a few minutes.",
-  block: "Try again in a few minutes.",
-  username:
-    "You’ve changed your username a few times. Try again in a few minutes.",
-  post: "Slow down a little. Try again in a few minutes.",
+  friend_request: 'You’ve sent a lot of friend requests. Try again in a few minutes.',
+  report: 'You’ve sent several reports. Try again in a few minutes.',
+  group_create: 'You’ve made several groups. Try again in a few minutes.',
+  group_join: 'Too many tries. Check the code and try again in a few minutes.',
+  like: 'Slow down a little. Try again in a few minutes.',
+  comment: 'You’re commenting fast. Try again in a few minutes.',
+  block: 'Try again in a few minutes.',
+  username: 'You’ve changed your username a few times. Try again in a few minutes.',
+  post: 'Slow down a little. Try again in a few minutes.',
 };
 
 interface ErrorLike {
@@ -35,28 +33,18 @@ interface ErrorLike {
 export function apiError(error: unknown): AppError {
   if (error instanceof AppError) return error;
   const e = (error ?? {}) as ErrorLike;
-  const message = typeof e.message === "string" ? e.message : "";
+  const message = typeof e.message === 'string' ? e.message : '';
   const match = /rate_limited:([a-z_]+)/.exec(message);
-  if (e.code === "P0429" || match) {
-    const action = match?.[1] ?? "";
-    return new AppError(
-      RATE_MESSAGES[action] ??
-        "Slow down a little. Try again in a few minutes.",
-      "rate_limited",
-    );
+  if (e.code === 'P0429' || match) {
+    const action = match?.[1] ?? '';
+    return new AppError(RATE_MESSAGES[action] ?? 'Slow down a little. Try again in a few minutes.', 'rate_limited');
   }
-  if (isOffline(error))
-    return new AppError(
-      "You’re offline. It will go through when you reconnect.",
-      "offline",
-    );
-  return new AppError(message || "Something went wrong. Try again.", "other");
+  if (isOffline(error)) return new AppError('You’re offline. It will go through when you reconnect.', 'offline');
+  return new AppError(message || 'Something went wrong. Try again.', 'other');
 }
 
 /** fetch() failing to reach the network, in the forms RN, web and supabase-js use. */
 export function isOffline(error: unknown): boolean {
-  const message = String((error as ErrorLike | null)?.message ?? "");
-  return /network request failed|failed to fetch|load failed|networkerror|fetch failed/i.test(
-    message,
-  );
+  const message = String((error as ErrorLike | null)?.message ?? '');
+  return /network request failed|failed to fetch|load failed|networkerror|fetch failed/i.test(message);
 }

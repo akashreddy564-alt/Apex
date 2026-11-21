@@ -1,4 +1,4 @@
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 import { PersonRow } from '@/components/social/PersonRow';
 import { SecondaryButton } from '@/components/social/Buttons';
@@ -10,8 +10,8 @@ import { fonts } from '@/theme/tokens';
 function BlockedList() {
   const c = useColors();
   const { people, loading, error } = useBlocked();
-  const { unblock, unblockingFor } = useSafetyActions();
-  if (loading) return <ActivityIndicator color={c.fgMuted} style={{ marginTop: 24 }} />;
+  const { unblock } = useSafetyActions();
+  if (loading) return null;
   if (error) return <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>;
   if (people.length === 0) {
     return (
@@ -34,7 +34,6 @@ function BlockedList() {
               compact
               label="Unblock"
               a11y={`Unblock ${person.display_name}`}
-              busy={unblockingFor === person.id}
               onPress={() => unblock(person.id)}
             />
           }

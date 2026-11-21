@@ -29,11 +29,11 @@ export function useSafetyMenu(onBlocked?: () => void) {
         {
           text: 'Block',
           style: 'destructive',
-          onPress: () =>
-            void block(target.person).then(() => {
-              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              onBlocked?.();
-            }),
+          onPress: () => {
+            block(target.person);
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            onBlocked?.();
+          },
         },
       ],
     );

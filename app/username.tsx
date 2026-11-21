@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
+import { ScrollView, Text, TextInput, View } from 'react-native';
 
 import { PrimaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
@@ -40,9 +40,7 @@ export default function UsernameScreen() {
 
   if (loading || !filled) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg">
-        <ActivityIndicator color={c.fgMuted} />
-      </View>
+      <View className="flex-1 bg-bg" />
     );
   }
 

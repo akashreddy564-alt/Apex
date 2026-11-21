@@ -1,8 +1,8 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Haptics from "expo-haptics";
-import { useRouter } from "expo-router";
-import { useEffect } from "react";
-import { Pressable, Text } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { Pressable, Text } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedProps,
@@ -12,20 +12,16 @@ import Animated, {
   withSequence,
   withSpring,
   withTiming,
-} from "react-native-reanimated";
-import { Circle, Path, Svg } from "react-native-svg";
+} from 'react-native-reanimated';
+import { Circle, Path, Svg } from 'react-native-svg';
 
-import { useColors } from "@/hooks/useColors";
-import { useWeeklyGoal } from "@/hooks/useWeeklyGoal";
-import {
-  formatAmount,
-  formatProgress,
-  type GoalMetric,
-} from "@/lib/weeklyGoal";
-import { numericStyle } from "@/theme/tokens";
+import { useColors } from '@/hooks/useColors';
+import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
+import { formatAmount, formatProgress, type GoalMetric } from '@/lib/weeklyGoal';
+import { numericStyle } from '@/theme/tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
-const CELEBRATED_KEY = "apex-goal-celebrated";
+const CELEBRATED_KEY = 'apex-goal-celebrated';
 
 interface RingProps {
   fraction: number;
@@ -62,14 +58,7 @@ export function Ring({ fraction, size, stroke, complete }: RingProps) {
 
   return (
     <Svg width={size} height={size}>
-      <Circle
-        cx={mid}
-        cy={mid}
-        r={radius}
-        stroke={c.raised}
-        strokeWidth={stroke}
-        fill="none"
-      />
+      <Circle cx={mid} cy={mid} r={radius} stroke={c.raised} strokeWidth={stroke} fill="none" />
       <AnimatedCircle
         cx={mid}
         cy={mid}
@@ -77,7 +66,7 @@ export function Ring({ fraction, size, stroke, complete }: RingProps) {
         stroke={c.accent}
         strokeWidth={stroke}
         strokeLinecap="round"
-        fill={complete ? c.accent : "none"}
+        fill={complete ? c.accent : 'none'}
         strokeDasharray={`${circumference} ${circumference}`}
         transform={`rotate(-90 ${mid} ${mid})`}
         animatedProps={arc}
@@ -97,7 +86,7 @@ export function Ring({ fraction, size, stroke, complete }: RingProps) {
 }
 
 function unit(metric: GoalMetric) {
-  return metric === "elevation" ? "ft" : "mi";
+  return metric === 'elevation' ? 'ft' : 'mi';
 }
 
 /**
@@ -118,14 +107,9 @@ export function GoalRing() {
     void AsyncStorage.getItem(CELEBRATED_KEY)
       .then((seen) => {
         if (cancelled || seen === progress.weekOf) return;
-        void Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        ).catch(() => undefined);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => undefined);
         if (!reduceMotion) {
-          scale.value = withSequence(
-            withSpring(1.2, { damping: 6, stiffness: 260 }),
-            withTiming(1, { duration: 220 }),
-          );
+          scale.value = withSequence(withSpring(1.2, { damping: 6, stiffness: 260 }), withTiming(1, { duration: 220 }));
         }
         void AsyncStorage.setItem(CELEBRATED_KEY, progress.weekOf);
       })
@@ -140,7 +124,7 @@ export function GoalRing() {
   if (!hasHiked) return null;
 
   const label = `Weekly goal, ${formatProgress(goal.metric, progress.done, progress.target)}${
-    progress.complete ? ", done" : ""
+    progress.complete ? ', done' : ''
   }`;
 
   return (
@@ -149,7 +133,7 @@ export function GoalRing() {
         accessibilityRole="button"
         accessibilityLabel={label}
         accessibilityHint="Opens your weekly goal"
-        onPress={() => router.push("/goal")}
+        onPress={() => router.push('/goal')}
         hitSlop={8}
         className="flex-row items-center active:opacity-70"
         style={{
@@ -162,15 +146,8 @@ export function GoalRing() {
           borderColor: c.border,
         }}
       >
-        <Ring
-          fraction={progress.fraction}
-          size={18}
-          stroke={3}
-          complete={progress.complete}
-        />
-        <Text
-          style={{ ...numericStyle("semibold"), color: c.fg2, fontSize: 13 }}
-        >
+        <Ring fraction={progress.fraction} size={18} stroke={3} complete={progress.complete} />
+        <Text style={{ ...numericStyle('semibold'), color: c.fg2, fontSize: 13 }}>
           {formatAmount(goal.metric, progress.done)} {unit(goal.metric)}
         </Text>
       </Pressable>

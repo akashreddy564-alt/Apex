@@ -23,11 +23,9 @@ jest.mock('@/components/social/SignInGate', () => ({
     children({ id: 'me', username: 'akash', display_name: 'Akash' }),
 }));
 const mockActions = {
-  block: jest.fn(() => Promise.resolve()),
+  block: jest.fn(),
   unblock: jest.fn(),
-  unblockingFor: null,
-  report: jest.fn(() => Promise.resolve()),
-  reporting: false,
+  report: jest.fn(),
 };
 jest.mock('@/hooks/useSafety', () => ({ useSafetyActions: () => mockActions }));
 const mockNotes: AppNotification[] = [

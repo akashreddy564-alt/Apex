@@ -4,7 +4,7 @@ import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { RelationButton } from '@/components/social/RelationButton';
 import type { Relation } from '@/lib/friendRules';
 
-const mockActions = { add: jest.fn(), accept: jest.fn(), decline: jest.fn(), remove: jest.fn(), pendingFor: null };
+const mockActions = { add: jest.fn(), accept: jest.fn(), decline: jest.fn(), remove: jest.fn() };
 jest.mock('@/hooks/useFriends', () => ({ useFriendActions: () => mockActions }));
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -25,19 +25,22 @@ function press(tree: ReactTestRenderer, label: string) {
   act(() => node.props.onPress());
 }
 
+/** Passed whole, so lists can show the change before the server answers. */
+const MAYA = { id: 'p1', display_name: 'Maya', username: '' };
+
 beforeEach(() => jest.clearAllMocks());
 
 it('adds a stranger', () => {
   press(render('none'), 'Add Maya');
-  expect(mockActions.add).toHaveBeenCalledWith('p1');
+  expect(mockActions.add).toHaveBeenCalledWith(MAYA);
 });
 
 it('accepts or declines a request to you', () => {
   const tree = render('incoming');
   press(tree, 'Accept Maya');
   press(tree, 'Decline Maya');
-  expect(mockActions.accept).toHaveBeenCalledWith('p1');
-  expect(mockActions.decline).toHaveBeenCalledWith('p1');
+  expect(mockActions.accept).toHaveBeenCalledWith(MAYA);
+  expect(mockActions.decline).toHaveBeenCalledWith(MAYA);
 });
 
 it('asks before unfriending', () => {
@@ -46,7 +49,7 @@ it('asks before unfriending', () => {
   expect(mockActions.remove).not.toHaveBeenCalled();
   const buttons = alert.mock.calls[0][2] ?? [];
   act(() => buttons.find((b) => b.text === 'Unfriend')?.onPress?.());
-  expect(mockActions.remove).toHaveBeenCalledWith('p1');
+  expect(mockActions.remove).toHaveBeenCalledWith(MAYA);
 });
 
 it('shows nothing on your own page', () => {

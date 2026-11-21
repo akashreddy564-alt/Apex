@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
@@ -16,13 +16,7 @@ function PersonPage({ id }: { id: string }) {
   const router = useRouter();
   const safety = useSafetyMenu(() => (router.canGoBack() ? router.back() : router.replace('/social')));
 
-  if (loading) {
-    return (
-      <View className="mt-16 items-center">
-        <ActivityIndicator color={c.fgMuted} />
-      </View>
-    );
-  }
+  if (loading) return null;
   if (error || !person) {
     return (
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, marginTop: 24 }}>
@@ -58,7 +52,7 @@ function PersonPage({ id }: { id: string }) {
         </Text>
       ) : null}
       <View className="mt-6">
-        <RelationButton personId={person.id} name={person.display_name} relation={relation} compact={false} />
+        <RelationButton personId={person.id} name={person.display_name} username={person.username} relation={relation} compact={false} />
       </View>
       {note ? (
         <Text

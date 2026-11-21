@@ -1,12 +1,12 @@
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View } from 'react-native';
 
-import { GoalRing } from "@/components/habit/GoalRing";
-import { NotificationAsk } from "@/components/habit/NotificationAsk";
-import { StreakChip } from "@/components/habit/StreakChip";
-import { useColors } from "@/hooks/useColors";
-import { displayXL, fonts } from "@/theme/tokens";
+import { GoalRing } from '@/components/habit/GoalRing';
+import { NotificationAsk } from '@/components/habit/NotificationAsk';
+import { StreakChip } from '@/components/habit/StreakChip';
+import { useColors } from '@/hooks/useColors';
+import { displayXL, fonts } from '@/theme/tokens';
 
-export type LogView = "hikes" | "rankings";
+export type LogView = 'hikes' | 'rankings';
 
 interface LogHeaderProps {
   view: LogView;
@@ -17,13 +17,7 @@ interface LogHeaderProps {
 }
 
 /** Log title, profile avatar, the two ways to add a hike, and the Hikes/Rankings switch. */
-export function LogHeader({
-  view,
-  onView,
-  onStart,
-  onLogPast,
-  onProfile,
-}: LogHeaderProps) {
+export function LogHeader({ view, onView, onStart, onLogPast, onProfile }: LogHeaderProps) {
   const c = useColors();
   return (
     <View className="px-4">
@@ -50,21 +44,8 @@ export function LogHeader({
           onPress={onStart}
           className="flex-[1.4] flex-row items-center justify-center gap-2 rounded-2xl bg-accent py-3.5 active:opacity-80"
         >
-          <View
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 5,
-              backgroundColor: c.onAccent,
-            }}
-          />
-          <Text
-            style={{
-              color: c.onAccent,
-              fontFamily: fonts.uiSemibold,
-              fontSize: 15,
-            }}
-          >
+          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: c.onAccent }} />
+          <Text style={{ color: c.onAccent, fontFamily: fonts.uiSemibold, fontSize: 15 }}>
             Start a hike
           </Text>
         </Pressable>
@@ -73,9 +54,7 @@ export function LogHeader({
           onPress={onLogPast}
           className="flex-1 items-center justify-center rounded-2xl bg-surface py-3.5 active:opacity-80"
         >
-          <Text
-            style={{ color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 14 }}
-          >
+          <Text style={{ color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
             Log past hike
           </Text>
         </Pressable>
@@ -83,11 +62,8 @@ export function LogHeader({
 
       <NotificationAsk />
 
-      <View
-        className="mt-3 flex-row rounded-xl bg-surface p-1"
-        accessibilityRole="tablist"
-      >
-        {(["hikes", "rankings"] as const).map((option) => {
+      <View className="mt-3 flex-row rounded-xl bg-surface p-1" accessibilityRole="tablist">
+        {(['hikes', 'rankings'] as const).map((option) => {
           const on = option === view;
           return (
             <Pressable
@@ -95,7 +71,7 @@ export function LogHeader({
               accessibilityRole="tab"
               accessibilityState={{ selected: on }}
               onPress={() => onView(option)}
-              className={`flex-1 items-center rounded-lg py-2 ${on ? "bg-fg" : ""}`}
+              className={`flex-1 items-center rounded-lg py-2 ${on ? 'bg-fg' : ''}`}
             >
               <Text
                 style={{
@@ -104,7 +80,7 @@ export function LogHeader({
                   fontSize: 13,
                 }}
               >
-                {option === "hikes" ? "Hikes" : "Rankings"}
+                {option === 'hikes' ? 'Hikes' : 'Rankings'}
               </Text>
             </Pressable>
           );
