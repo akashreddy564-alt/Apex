@@ -38,7 +38,7 @@ import { weeklyStreak } from '@/lib/streak';
 import { streakGrid } from '@/lib/streakGrid';
 import { shouldRequestNotificationPermission } from '@/lib/notificationPermission';
 import { recordingLinkPlan } from '@/lib/recordingLink';
-import { startPlan } from '@/lib/startLink';
+import { startPlan } from '@/lib/pendingStartPlan';
 import { pushTrail } from '@/lib/remoteSync';
 import { matchTrails } from '@/lib/trailMatch';
 import { buildUserTrail } from '@/lib/userTrail';

@@ -1,6 +1,6 @@
 import { act, create } from 'react-test-renderer';
 
-import { startPlan } from '@/lib/startLink';
+import { startPlan } from '@/lib/pendingStartPlan';
 import { PENDING_START_MAX_AGE_MS, usePendingStart } from '@/stores/pendingStart';
 
 const known = new Set(['t1']);
