@@ -1,13 +1,13 @@
 /**
  * Apex colors. One semantic palette per appearance (`palettes`), read in JS
  * through `useColors()` and in Tailwind classes through CSS variables
- * (`cssVars`). Bone (#EDE6D6) is the only accent.
+ * (`cssVars`). Bone (#EDE6D6) is the accent; the topo colors mark distance, climb and streaks.
  *
  * Headings and titles are one solid color: the palette's `fg`. Never
  * highlight individual words in a heading.
  */
 
-/** One semantic color set per appearance. Bone (#EDE6D6) is the only accent. */
+/** One semantic color set per appearance, in the colors of a topo map. */
 export interface Palette {
   bg: string;
   surface: string;
@@ -28,6 +28,12 @@ export interface Palette {
   disliked: string;
   /** Route lines drawn over maps. */
   mapLine: string;
+  /** Topo colors, each tied to what it measures: lake blue for distance... */
+  distance: string;
+  /** ...contour brown for climb and elevation... */
+  climb: string;
+  /** ...and forest green for streaks and goals met. */
+  streak: string;
 }
 
 /**
@@ -36,39 +42,52 @@ export interface Palette {
  */
 export const palettes: Record<'dark' | 'light', Palette> = {
   dark: {
-    bg: '#09090B',
-    surface: '#18181B',
-    raised: '#27272A',
-    border: '#3F3F46',
-    borderStrong: '#52525B',
-    fg: '#FAFAFA',
-    fg2: '#D4D4D8',
-    fgMuted: '#A1A1AA',
-    fgFaint: '#71717A',
+    bg: '#0C0E0D',
+    surface: '#161917',
+    raised: '#252A27',
+    border: '#363C38',
+    borderStrong: '#4A514C',
+    fg: '#F4F1EA',
+    fg2: '#D6D3CA',
+    fgMuted: '#A3A69E',
+    fgFaint: '#757A73',
     accent: '#EDE6D6',
     onAccent: '#0B0B0C',
-    loved: '#4CC27A',
+    loved: '#5BBE84',
     fine: '#E0B04A',
     disliked: '#E2675A',
     mapLine: '#EDE6D6',
+    distance: '#6FA9D8',
+    climb: '#D9925E',
+    streak: '#5BBE84',
   },
   light: {
-    bg: '#FFFFFF',
-    surface: '#F6F6F4',
-    raised: '#ECECEA',
-    border: '#D9D9D6',
-    borderStrong: '#BDBDB8',
-    fg: '#141414',
-    fg2: '#2E2E30',
-    fgMuted: '#5F5F63',
-    fgFaint: '#8A8A90',
-    accent: '#2A2620',
-    onAccent: '#EDE6D6',
-    loved: '#1F8F4E',
+    // Warm map paper under white cards.
+    bg: '#F5F1E8',
+    surface: '#FFFFFF',
+    raised: '#EAE3D4',
+    border: '#DDD4C2',
+    borderStrong: '#C2B8A3',
+    fg: '#1C211E',
+    fg2: '#2F3531',
+    fgMuted: '#5E5F58',
+    fgFaint: '#8A877D',
+    accent: '#1C211E',
+    onAccent: '#F5F1E8',
+    loved: '#2F7A4A',
     fine: '#A86F0C',
-    disliked: '#C2412F',
-    mapLine: '#2A2620',
+    disliked: '#B4462B',
+    mapLine: '#1C211E',
+    distance: '#2B6A99',
+    climb: '#94552A',
+    streak: '#2F7A4A',
   },
+};
+
+/** The difficulty rating, easiest to very strenuous: forest, moss, ochre, rust, red-brown. */
+export const difficultyRamp: Record<'dark' | 'light', readonly [string, string, string, string, string]> = {
+  dark: ['#5BBE84', '#A3BC5A', '#E3B54E', '#E0844A', '#D0614A'],
+  light: ['#2F7A4A', '#7E9A3C', '#C99A2E', '#C2672B', '#8E3B24'],
 };
 
 /**

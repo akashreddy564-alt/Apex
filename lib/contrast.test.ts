@@ -23,6 +23,12 @@ for (const name of ['dark', 'light'] as const) {
       assert.ok(contrastRatio(p.onAccent, p.accent) >= 4.5));
     it('route line shows on the map surface (≥ 3)', () =>
       assert.ok(contrastRatio(p.mapLine, p.surface) >= 3));
+    it('distance, climb and streak read as text on bg and cards (≥ 4.5)', () => {
+      for (const c of [p.distance, p.climb, p.streak]) {
+        assert.ok(contrastRatio(c, p.bg) >= 4.5, c);
+        assert.ok(contrastRatio(c, p.surface) >= 4.5, c);
+      }
+    });
     it('every score color reads on bg (≥ 3)', () => {
       for (const c of [p.loved, p.fine, p.disliked]) assert.ok(contrastRatio(c, p.bg) >= 3, c);
     });

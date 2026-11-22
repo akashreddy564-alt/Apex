@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell, CircleCheck, Compass } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,7 +24,8 @@ import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
-import { riseIn, Skeleton } from '@/components/motion';
+import { ContourTexture, riseIn, Skeleton } from '@/components/motion';
+import { withAlpha } from '@/theme/color';
 
 /** Coming back to Home refetches when the feed is older than this. */
 const STALE_ON_FOCUS_MS = 30_000;
@@ -217,6 +218,7 @@ function Feed() {
       ItemSeparatorComponent={() => <View className="mx-4 h-px bg-raised" />}
       ListHeaderComponent={
         <View>
+          <HeaderContours />
           <Header />
           <ThisWeek />
           <WeekendPick />
@@ -242,6 +244,19 @@ function Feed() {
   );
 }
 
+/** Brown topo rings behind the top of Home, as on Log. They scroll away with the header. */
+function HeaderContours() {
+  const c = useColors();
+  const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const height = 300;
+  return (
+    <View pointerEvents="none" style={{ position: 'absolute', top: -(insets.top + 12), left: 0, right: 0, height }}>
+      <ContourTexture seed="home" width={width} height={height} opacity={0.6} color={withAlpha(c.climb, 0.28)} />
+    </View>
+  );
+}
+
 /** Home: your and your friends' ranked hikes, newest first. */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
@@ -252,6 +267,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
+      <HeaderContours />
       <Header />
       <ThisWeek />
       <WeekendPick />

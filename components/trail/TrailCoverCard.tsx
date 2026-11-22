@@ -17,7 +17,8 @@ import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
 import { cardTitleLayout } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
-import { fonts, type Palette, photoPill } from '@/theme/tokens';
+import { difficultyRating } from '@/lib/trailDifficulty';
+import { difficultyRamp, fonts, type Palette, photoPill } from '@/theme/tokens';
 import type { Trail } from '@/types/trail';
 import { withAlpha } from '@/theme/color';
 
@@ -77,6 +78,9 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
     `▲${formatOptionalElevation(trail.elevation_gain_m).toUpperCase()}`,
   ].join(' · ');
 
+  // Difficulty sits on the photo in a dark pill, so it reads on any picture and in both appearances.
+  const rating = difficultyRating(trail.distance_km, trail.elevation_gain_m);
+
   // One gradient id per card: on web, duplicate ids resolve to the first.
   const shadeId = `cardShade${useId().replace(/:/g, '')}`;
   return (
@@ -85,7 +89,7 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
       onPress={onPress}
       onLayout={(e) => setCardWidth(Math.round(e.nativeEvent.layout.width))}
       accessibilityRole="button"
-      accessibilityLabel={`${trail.name}, ${trail.region}${score ? `, score ${score}` : ''}`}
+      accessibilityLabel={`${trail.name}, ${trail.region}${rating ? `, ${rating.label.toLowerCase()}` : ''}${score ? `, score ${score}` : ''}`}
     >
       {/* Layout lives on a plain View: NativeWind drops function styles on
           Pressable on iOS, which collapsed the card to zero height. */}
@@ -111,6 +115,13 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
           </Defs>
           <Rect width="100%" height="100%" fill={`url(#${shadeId})`} />
         </Svg>
+
+        {rating ? (
+          <View style={styles.difficulty} pointerEvents="none">
+            <View style={[styles.difficultyDot, { backgroundColor: difficultyRamp.dark[rating.level] }]} />
+            <Text style={styles.difficultyText}>{rating.label}</Text>
+          </View>
+        ) : null}
 
         <View style={styles.info} pointerEvents="none">
           <View style={styles.text}>
@@ -147,6 +158,22 @@ const textShadow = (c: Palette) => ({
 
 const makeStyles = (c: Palette) =>
   StyleSheet.create({
+  difficulty: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: photoPill.fill,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: photoPill.border,
+  },
+  difficultyDot: { width: 8, height: 8, borderRadius: 4 },
+  difficultyText: { color: photoPill.text, fontFamily: fonts.uiSemibold, fontSize: 12 },
   card: {
     height: CARD_HEIGHT,
     borderRadius: 20,

@@ -22,6 +22,7 @@ import {
   type Period,
 } from '@/lib/groups';
 import { fonts, numericStyle } from '@/theme/tokens';
+import { withAlpha } from '@/theme/color';
 import { CountUp, GrowBar, haptics } from '@/components/motion';
 
 const PERIOD_NAMES: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year' };
@@ -64,19 +65,20 @@ function Together({ summary, period }: { summary: GroupSummary; period: Period }
         accessibilityRole="header"
         value={summary.totalGainM}
         format={formatElevation}
-        style={{ ...numericStyle('semibold'), color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 44, letterSpacing: -1, marginTop: 2 }}
+        style={{ ...numericStyle('semibold'), color: c.climb, fontFamily: fonts.displayExtraBold, fontSize: 44, letterSpacing: -1, marginTop: 2 }}
       />
       <Text style={{ color: c.fg2, fontFamily: fonts.uiSemibold, fontSize: 15, marginTop: 2 }}>
         {togetherLine(summary.totalGainM)}
       </Text>
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 4 }}>
-        {summary.totalHikes} {summary.totalHikes === 1 ? 'hike' : 'hikes'} · {formatDistance(summary.totalKm)}
+        {summary.totalHikes} {summary.totalHikes === 1 ? 'hike' : 'hikes'} ·{' '}
+        <Text style={{ color: c.distance }}>{formatDistance(summary.totalKm)}</Text>
       </Text>
     </View>
   );
 }
 
-function StatCard({ label, value, detail }: { label: string; value: string | null; detail: string }) {
+function StatCard({ label, value, detail, tone }: { label: string; value: string | null; detail: string; tone?: string }) {
   const c = useColors();
   return (
     <View className="rounded-2xl bg-surface px-4 py-3.5" style={{ flexBasis: '47%', flexGrow: 1 }}>
@@ -84,7 +86,7 @@ function StatCard({ label, value, detail }: { label: string; value: string | nul
       <Text numberOfLines={1} style={{ color: value ? c.fg : c.fgFaint, fontFamily: fonts.uiSemibold, fontSize: 16, marginTop: 4 }}>
         {value ?? MISSING_METRIC}
       </Text>
-      <Text numberOfLines={2} style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 12, marginTop: 2 }}>
+      <Text numberOfLines={2} style={{ color: tone ?? c.fgMuted, fontFamily: tone ? fonts.uiSemibold : fonts.ui, fontSize: 12, marginTop: 2 }}>
         {detail}
       </Text>
     </View>
@@ -92,12 +94,14 @@ function StatCard({ label, value, detail }: { label: string; value: string | nul
 }
 
 function StatCards({ summary }: { summary: GroupSummary }) {
+  const c = useColors();
   return (
     <View className="mt-5 flex-row flex-wrap gap-3">
       <StatCard
         label="Top climber"
         value={summary.topClimber?.name ?? null}
         detail={summary.topClimber ? formatElevation(summary.topClimber.gainM) : 'No recorded climbs yet'}
+        tone={summary.topClimber ? c.climb : undefined}
       />
       <StatCard
         label="Group favorite"
@@ -113,6 +117,7 @@ function StatCards({ summary }: { summary: GroupSummary }) {
         label="Longest day"
         value={summary.longestDay?.name ?? null}
         detail={summary.longestDay ? formatDistance(summary.longestDay.km) : 'No recorded hikes yet'}
+        tone={summary.longestDay ? c.distance : undefined}
       />
     </View>
   );
@@ -153,12 +158,12 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
                 <Text numberOfLines={1} style={{ flexShrink: 1, color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }}>
                   {row.isMe ? 'You' : row.displayName}
                 </Text>
-                <Text style={{ ...numericStyle('semibold'), color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
+                <Text style={{ ...numericStyle('semibold'), color: c.climb, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
                   {formatElevation(row.gainM)}
                 </Text>
               </View>
               <View className="mt-1.5">
-                <GrowBar fraction={row.gainM / top} index={index} color={row.isMe ? c.accent : c.fgFaint} track={c.raised} />
+                <GrowBar fraction={row.gainM / top} index={index} color={row.isMe ? c.climb : withAlpha(c.climb, 0.4)} track={c.raised} />
               </View>
             </View>
           </Pressable>

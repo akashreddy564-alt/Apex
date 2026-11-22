@@ -28,10 +28,12 @@ interface RingProps {
   size: number;
   stroke: number;
   complete: boolean;
+  /** Arc color: climb brown or distance blue. Goal met turns it streak green. */
+  color?: string;
 }
 
 /** The ring itself. The arc eases to its new length when progress changes. */
-export function Ring({ fraction, size, stroke, complete }: RingProps) {
+export function Ring({ fraction, size, stroke, complete, color }: RingProps) {
   const c = useColors();
   const reduceMotion = useReducedMotion();
   const radius = (size - stroke) / 2;
@@ -63,10 +65,10 @@ export function Ring({ fraction, size, stroke, complete }: RingProps) {
         cx={mid}
         cy={mid}
         r={radius}
-        stroke={c.accent}
+        stroke={complete ? c.streak : (color ?? c.accent)}
         strokeWidth={stroke}
         strokeLinecap="round"
-        fill={complete ? c.accent : 'none'}
+        fill={complete ? c.streak : 'none'}
         strokeDasharray={`${circumference} ${circumference}`}
         transform={`rotate(-90 ${mid} ${mid})`}
         animatedProps={arc}
@@ -74,7 +76,7 @@ export function Ring({ fraction, size, stroke, complete }: RingProps) {
       {complete ? (
         <Path
           d={check}
-          stroke={c.onAccent}
+          stroke={c.surface}
           strokeWidth={Math.max(2, 2.6 * k)}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -146,7 +148,13 @@ export function GoalRing() {
           borderColor: c.border,
         }}
       >
-        <Ring fraction={progress.fraction} size={18} stroke={3} complete={progress.complete} />
+        <Ring
+          fraction={progress.fraction}
+          size={18}
+          stroke={3}
+          complete={progress.complete}
+          color={goal.metric === 'elevation' ? c.climb : c.distance}
+        />
         <Text style={{ ...numericStyle('semibold'), color: c.fg2, fontSize: 13 }}>
           {formatAmount(goal.metric, progress.done)} {unit(goal.metric)}
         </Text>

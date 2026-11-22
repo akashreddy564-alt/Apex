@@ -65,7 +65,7 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
               {trail.name}
             </Text>
             <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }} numberOfLines={1}>
-              {trail.region} · {formatOptionalDistance(trail.distance_km)}
+              {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text>
             </Text>
           </View>
         </Pressable>

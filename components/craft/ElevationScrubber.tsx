@@ -259,15 +259,15 @@ export function ElevationScrubber({
       <View style={{ flexDirection: 'row' }}>
         <View style={{ flex: 1, gap: 4 }}>
           <Eyebrow>At</Eyebrow>
-          <Text style={num}>{formatDistance(point.distanceM / 1000)}</Text>
+          <Text style={[num, { color: c.distance }]}>{formatDistance(point.distanceM / 1000)}</Text>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Eyebrow>Elevation</Eyebrow>
-          <Text style={num}>{formatElevation(point.elevationM)}</Text>
+          <Text style={[num, { color: c.climb }]}>{formatElevation(point.elevationM)}</Text>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Eyebrow>Climbed</Eyebrow>
-          <Text style={num}>{formatElevation(point.climbedM)}</Text>
+          <Text style={[num, { color: c.climb }]}>{formatElevation(point.climbedM)}</Text>
         </View>
       </View>
 
@@ -285,7 +285,7 @@ export function ElevationScrubber({
                 </ClipPath>
               </Defs>
               <Path d={geo.area} fill={c.fg} fillOpacity={0.08} />
-              <Path d={geo.area} fill={c.accent} fillOpacity={0.35} clipPath={`url(#${clipId})`} />
+              <Path d={geo.area} fill={c.climb} fillOpacity={0.4} clipPath={`url(#${clipId})`} />
               <DrawIn d={geo.line} stroke={c.fg} strokeWidth={2} length={geo.length} />
               <AnimatedLine x1={0} x2={0} y1={0} y2={CHART_H} stroke={c.fgFaint} strokeWidth={1} animatedProps={ruleProps} />
               <AnimatedCircle cx={0} cy={gys[0]} r={6} fill={c.fg} stroke={c.surface} strokeWidth={2} animatedProps={dotProps} />

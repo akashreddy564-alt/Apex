@@ -35,7 +35,7 @@ export function StreakGrid({
 }) {
   const c = useColors();
   const days = grid.reduce((n, week) => n + week.filter((d) => d > 0).length, 0);
-  const color = (level: DayLevel) => (level === 2 ? c.accent : level === 1 ? withAlpha(c.accent, 0.35) : c.raised);
+  const color = (level: DayLevel) => (level === 2 ? c.streak : level === 1 ? withAlpha(c.streak, 0.4) : c.raised);
   const legend = { fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1, color: c.fgFaint } as const;
 
   return (

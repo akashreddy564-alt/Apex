@@ -22,6 +22,9 @@ function OpenSheet() {
   );
 }
 
+// eslint-disable-next-line import/first
+import { palettes } from '@/theme/tokens';
+
 it('repaints a mounted screen when appearance changes', () => {
   act(() => {
     useSettings.getState().setAppearance('dark');
@@ -31,9 +34,9 @@ it('repaints a mounted screen when appearance changes', () => {
     tree = create(<OpenSheet />);
   });
   const probe = () => tree.root.findByProps({ testID: 'probe' }).props.children;
-  expect(probe()).toBe('#09090B');
+  expect(probe()).toBe(palettes.dark.bg);
   act(() => {
     useSettings.getState().setAppearance('light');
   });
-  expect(probe()).toBe('#FFFFFF');
+  expect(probe()).toBe(palettes.light.bg);
 });

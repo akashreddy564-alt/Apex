@@ -58,7 +58,7 @@ export function StreakChip() {
 
   // Friday on, an unfinished week is worth flagging.
   const urgent = streak.atRisk && [5, 6, 0].includes(new Date().getDay());
-  const color = urgent ? c.fine : c.accent;
+  const color = urgent ? c.fine : c.streak;
   const label = `${streak.weeks}-week hiking streak${streak.atRisk ? ', hike by Sunday to keep it' : ''}`;
 
   return (
