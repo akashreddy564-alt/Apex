@@ -4,12 +4,34 @@ import { Circle, Polyline, Svg } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
 import { projectPoints } from '@/lib/projectPath';
+import { withAlpha } from '@/theme/color';
 import { fonts } from '@/theme/tokens';
 import type { ElevationSample, GeoJSONLineString } from '@/types/trail';
 
 interface TrackPoint {
   longitude: number;
   latitude: number;
+  altitude?: number | null;
+}
+
+/** Below this rise between fixes a step counts as flat, so GPS jitter doesn't flicker the color. */
+const CLIMB_STEP_M = 0.3;
+
+/**
+ * The recorded track split into runs that climb and runs that don't, each
+ * sharing its end point with the next so the line stays joined.
+ */
+export function climbRuns<T>(xy: T[], altitudes: (number | null | undefined)[]): { up: boolean; points: T[] }[] {
+  const runs: { up: boolean; points: T[] }[] = [];
+  for (let i = 1; i < xy.length; i++) {
+    const a = altitudes[i - 1];
+    const b = altitudes[i];
+    const up = a != null && b != null && b - a > CLIMB_STEP_M;
+    const last = runs[runs.length - 1];
+    if (last && last.up === up) last.points.push(xy[i]);
+    else runs.push({ up, points: [xy[i - 1], xy[i]] });
+  }
+  return runs;
 }
 
 interface LiveTrackMapProps {
@@ -44,7 +66,7 @@ function polyline(points: { x: number; y: number }[]): string {
   return points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(' ');
 }
 
-/** Recorded accent track over the known route. The dashed line is the trail, not a guess. */
+/** Recorded track over the known route, brown where you climbed. The dashed line is the trail, not a guess. */
 export function LiveTrackMap({
   width,
   height,
@@ -85,9 +107,9 @@ export function LiveTrackMap({
       <Svg width={boxW} height={boxH}>
         {peak ? (
           <>
-            <Circle cx={peak.x} cy={peak.y} r={78} stroke="rgba(161,161,170,0.08)" strokeWidth={1} fill="none" />
-            <Circle cx={peak.x} cy={peak.y} r={52} stroke="rgba(161,161,170,0.1)" strokeWidth={1} fill="none" />
-            <Circle cx={peak.x} cy={peak.y} r={28} stroke="rgba(161,161,170,0.12)" strokeWidth={1.2} fill="none" />
+            <Circle cx={peak.x} cy={peak.y} r={78} stroke={withAlpha(c.climb, 0.12)} strokeWidth={1} fill="none" />
+            <Circle cx={peak.x} cy={peak.y} r={52} stroke={withAlpha(c.climb, 0.16)} strokeWidth={1} fill="none" />
+            <Circle cx={peak.x} cy={peak.y} r={28} stroke={withAlpha(c.climb, 0.22)} strokeWidth={1.2} fill="none" />
           </>
         ) : null}
         {showRoute ? (
@@ -111,14 +133,18 @@ export function LiveTrackMap({
               strokeLinecap="round"
               strokeLinejoin="round"
             />
-            <Polyline
-              points={polyline(recordedXY)}
-              fill="none"
-              stroke={c.accent}
-              strokeWidth={4.5}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+            {/* Climbing stretches in contour brown, the rest in ink, so the map shows where the work was. */}
+            {climbRuns(recordedXY, recordedPoints.map((point) => point.altitude)).map((run, i) => (
+              <Polyline
+                key={i}
+                points={polyline(run.points)}
+                fill="none"
+                stroke={run.up ? c.climb : c.accent}
+                strokeWidth={4.5}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            ))}
           </>
         ) : null}
         {start && showRoute ? (

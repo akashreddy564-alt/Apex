@@ -459,7 +459,7 @@ export default function LogScreen() {
   return (
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 12 }}>
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CONTOUR_H }}>
-        <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} />
+        <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} color={withAlpha(c.climb, 0.28)} />
       </View>
       <ScrollView contentContainerStyle={{ paddingBottom: tabInset + (showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40) }}>
         <LogHeader

@@ -12,11 +12,14 @@ export function ContourTexture({
   width,
   height,
   opacity = 1,
+  color,
 }: {
   seed: string;
   width: number;
   height: number;
   opacity?: number;
+  /** Line color; defaults to a faint accent. Headers use climb brown, like a topo map. */
+  color?: string;
 }) {
   const c = useColors();
   const paths = useMemo(() => contourPaths(seed, width, height), [seed, width, height]);
@@ -28,7 +31,7 @@ export function ContourTexture({
     >
       <Svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
         {paths.map((d, i) => (
-          <Path key={i} d={d} fill="none" stroke={withAlpha(c.accent, 0.1)} strokeWidth={1} />
+          <Path key={i} d={d} fill="none" stroke={color ?? withAlpha(c.accent, 0.1)} strokeWidth={1} />
         ))}
       </Svg>
     </View>

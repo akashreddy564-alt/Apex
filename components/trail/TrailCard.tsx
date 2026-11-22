@@ -10,6 +10,8 @@ import type { Trail } from '@/types/trail';
 interface TrailCardProps {
   trail: Trail;
   rank?: number | null;
+  /** The rank number's color, e.g. its Rankings bucket. */
+  rankColor?: string;
   /** One-decimal 0–10 score, already formatted. */
   score?: string | null;
   /** Replaces the plain score, e.g. a ScoreBadge. */
@@ -19,7 +21,7 @@ interface TrailCardProps {
   onPress?: () => void;
 }
 
-export function TrailCard({ trail, rank, score, trailing, reason, onPress }: TrailCardProps) {
+export function TrailCard({ trail, rank, rankColor, score, trailing, reason, onPress }: TrailCardProps) {
   const c = useColors();
   return (
     <Pressable
@@ -29,7 +31,7 @@ export function TrailCard({ trail, rank, score, trailing, reason, onPress }: Tra
       {rank != null ? (
         <Text
           className="w-8 text-[15px] text-fg-faint"
-          style={{ fontVariant: ['tabular-nums'] }}
+          style={{ fontVariant: ['tabular-nums'], ...(rankColor ? { color: rankColor, fontFamily: fonts.uiSemibold } : null) }}
         >
           {rank}
         </Text>

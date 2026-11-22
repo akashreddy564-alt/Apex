@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { TrailCard } from '@/components/trail/TrailCard';
+import { withAlpha } from '@/theme/color';
 import { useColors } from '@/hooks/useColors';
 import { useRankings } from '@/hooks/useRankings';
 import { rankReason } from '@/lib/reasons';
@@ -40,7 +41,15 @@ export function RankingsList({ onOpenTrail }: RankingsListProps) {
     <View>
       {sections.map((section) => (
         <View key={section.bucket}>
-          <View className="flex-row items-baseline justify-between border-b border-raised px-4 pb-2 pt-5">
+          {/* Each bucket reads as its own band of the scorecard, in its score color. */}
+          <View
+            className="mt-4 flex-row items-baseline justify-between px-4 py-2"
+            style={{
+              backgroundColor: withAlpha(c[section.bucket], 0.1),
+              borderLeftWidth: 3,
+              borderLeftColor: c[section.bucket],
+            }}
+          >
             <Text
               style={{
                 color: c[section.bucket],
@@ -61,6 +70,7 @@ export function RankingsList({ onOpenTrail }: RankingsListProps) {
               key={entry.trail.id}
               trail={entry.trail}
               rank={entry.ordinal}
+              rankColor={c[section.bucket]}
               reason={reasons.get(entry.trail.id) ?? null}
               trailing={
                 <ScoreBadge bucket={section.bucket} count={section.count} score={entry.score} size="sm" />
