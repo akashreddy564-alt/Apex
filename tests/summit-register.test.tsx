@@ -130,7 +130,7 @@ describe('StreakGrid', () => {
     const nudge = tree.root.findAllByType(Text).find((n) => n.props.children === 'Hike by Sunday to keep it');
     expect(nudge).toBeTruthy();
     const { palettes } = require('@/theme/tokens');
-    expect(nudge!.props.style.color).toBe(palettes.dark.fine);
+    expect(nudge!.props.style.color).toBe(palettes.light.fine);
     expect(texts(grid(3))).not.toContain('Hike by Sunday to keep it');
   });
 

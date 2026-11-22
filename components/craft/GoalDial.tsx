@@ -78,6 +78,7 @@ export function GoalDial({
   const c = useColors();
   const gradId = `dialDisc-${useId().replace(/:/g, '')}`;
   const { min, max, step } = DIAL_RANGE[metric];
+  const tone = metric === 'elevation' ? c.climb : c.distance;
   const shown = clampDisplay(metric, display);
   const [turned, setTurned] = useState(false);
 
@@ -255,8 +256,8 @@ export function GoalDial({
               ) : null,
             )}
             <Circle cx={C} cy={C} r={C - DISC_INSET} fill={`url(#${gradId})`} stroke={c.border} strokeWidth={1} />
-            {arc ? <Path d={arc} fill="none" stroke={c.accent} strokeWidth={3} strokeLinecap="round" /> : null}
-            <Circle cx={e.x} cy={e.y} r={KNOB_R} fill={c.accent} stroke={c.bg} strokeWidth={3} />
+            {arc ? <Path d={arc} fill="none" stroke={tone} strokeWidth={3} strokeLinecap="round" /> : null}
+            <Circle cx={e.x} cy={e.y} r={KNOB_R} fill={tone} stroke={c.bg} strokeWidth={3} />
           </Svg>
           {Platform.OS === 'web' ? (
             // Web only: the browser must not scroll while the ring turns, but a touch on

@@ -7,7 +7,7 @@ import { useReducedMotion } from 'react-native-reanimated';
 import { useColors } from '@/hooks/useColors';
 import { MISSING_METRIC, toFeet, toMiles } from '@/lib/format';
 import { climbRateFtPerMile, difficultyRating, paceLabel } from '@/lib/trailDifficulty';
-import { cardStyle, fonts, type Palette } from '@/theme/tokens';
+import { cardStyle, difficultyRamp, fonts, palettes, type Palette } from '@/theme/tokens';
 import type { TrailTelemetry } from '@/types/trail';
 
 /** Quick count with a short stagger; the elevation chart starts after the third. */
@@ -16,9 +16,9 @@ export const STAGGER_MS = 120;
 
 const easeOutCubic = (t: number) => 1 - (1 - t) ** 3;
 
-/** Difficulty meter, easiest → very strenuous: a brightness ramp ending in the accent. */
-function levelColors(c: Palette): string[] {
-  return [c.fgFaint, c.fgMuted, c.fg2, c.fg, c.accent];
+/** Difficulty meter, easiest → very strenuous, in the topo ramp. */
+function levelColors(c: Palette): readonly string[] {
+  return difficultyRamp[c === palettes.dark ? 'dark' : 'light'];
 }
 
 /** Eased 0→target count that restarts per trail and freezes while unfocused. */
@@ -78,22 +78,21 @@ function Headline({
   label,
   value,
   unit,
-  accent,
+  color,
   spoken,
 }: {
   label: string;
   value: string;
   unit?: string;
-  accent?: boolean;
+  color?: string;
   spoken: string;
 }) {
   const styles = useStyles();
-  const c = useColors();
   return (
     <View style={styles.headline} accessible accessibilityRole="text" accessibilityLabel={spoken}>
       <Text style={styles.label}>{label}</Text>
       <Text style={styles.bigLine} numberOfLines={1}>
-        <Text style={[styles.big, accent && { color: c.accent }]}>{value}</Text>
+        <Text style={[styles.big, color ? { color } : null]}>{value}</Text>
         {unit ? <Text style={styles.unit}> {unit}</Text> : null}
       </Text>
     </View>
@@ -147,6 +146,7 @@ export function TrailStats({
           label="DISTANCE"
           value={miles == null ? MISSING_METRIC : miles.toFixed(1)}
           unit={miles == null ? undefined : 'mi'}
+          color={miles == null ? undefined : c.distance}
           spoken={`Distance, ${distance_km == null ? 'unknown' : `${toMiles(distance_km).toFixed(1)} miles`}`}
         />
         <View style={styles.vrule} />
@@ -154,7 +154,7 @@ export function TrailStats({
           label="ELEV GAIN"
           value={gainFt == null ? MISSING_METRIC : group(gainFt)}
           unit={gainFt == null ? undefined : 'ft'}
-          accent={gainFt != null}
+          color={gainFt == null ? undefined : c.climb}
           spoken={`Elevation gain, ${elevation_gain_m == null ? 'unknown' : `${group(toFeet(elevation_gain_m))} feet`}`}
         />
         <View style={styles.vrule} />

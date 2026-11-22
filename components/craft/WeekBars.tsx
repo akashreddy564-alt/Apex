@@ -46,7 +46,7 @@ function Bar({ fraction, index, color }: { fraction: number; index: number; colo
  * Monday to Sunday bars for this week, in stored units, with a dashed line at
  * the daily pace (target / 7). Hiked days are in the accent.
  */
-export function WeekBars({ totals, targetStored }: { totals: number[]; targetStored: number }) {
+export function WeekBars({ totals, targetStored, color }: { totals: number[]; targetStored: number; color?: string }) {
   const c = useColors();
   const perDay = Number.isFinite(targetStored) && targetStored > 0 ? targetStored / 7 : 0;
   const peak = Math.max(0, ...totals.filter(Number.isFinite));
@@ -108,7 +108,7 @@ export function WeekBars({ totals, targetStored }: { totals: number[]; targetSto
                 height: '100%',
               }}
             >
-              <Bar fraction={v / scale} index={i} color={v > 0 ? c.accent : c.raised} />
+              <Bar fraction={v / scale} index={i} color={v > 0 ? (color ?? c.accent) : c.raised} />
               <Text
                 style={{
                   fontFamily: fonts.mono,

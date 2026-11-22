@@ -98,7 +98,7 @@ export default function GoalScreen() {
             </Text>
           </View>
           <View style={{ marginTop: 12 }}>
-            <WeekBars totals={totals} targetStored={targetStored} />
+            <WeekBars totals={totals} targetStored={targetStored} color={metric === 'elevation' ? c.climb : c.distance} />
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 10 }}>
             <PaceDot color={pace.tone === 'behind' ? c.fine : c.loved} />

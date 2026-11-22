@@ -46,10 +46,10 @@ export function WeekendPick() {
           {trail.region}
         </Text>
         <View className="mt-3 flex-row gap-5">
-          <Text style={{ color: c.fg, fontSize: 15, ...numericStyle('semibold') }}>
+          <Text style={{ color: c.distance, fontSize: 15, ...numericStyle('semibold') }}>
             {formatOptionalDistance(trail.distance_km)}
           </Text>
-          <Text style={{ color: c.fg, fontSize: 15, ...numericStyle('semibold') }}>
+          <Text style={{ color: c.climb, fontSize: 15, ...numericStyle('semibold') }}>
             {formatOptionalElevation(trail.elevation_gain_m)} climb
           </Text>
         </View>
