@@ -88,11 +88,13 @@ function StatCell({
   value,
   unit,
   edge,
+  tone,
 }: {
   label: string;
   value: string;
   unit: string;
   edge?: boolean;
+  tone?: string;
 }) {
   const c = useColors();
   return (
@@ -106,7 +108,7 @@ function StatCell({
       }}
     >
       <Text style={{ fontSize: 14, color: c.fgMuted, fontFamily: fonts.ui }}>{label}</Text>
-      <Text style={{ marginTop: 2, fontSize: 30, color: c.fg, ...numericStyle('semibold') }}>
+      <Text style={{ marginTop: 2, fontSize: 30, color: tone ?? c.fg, ...numericStyle('semibold') }}>
         {value}
         {unit ? (
           <Text style={{ fontSize: 15, color: c.fgMuted, ...numericStyle('medium') }}>
@@ -442,16 +444,17 @@ export function RecordSession({
         ) : null}
         <View style={{ marginTop: paused ? 12 : 18 }}>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.raised }}>
-            <StatCell label="Distance" value={distance} unit={DISTANCE_UNIT} />
+            <StatCell label="Distance" value={distance} unit={DISTANCE_UNIT} tone={c.distance} />
             <StatCell label="Pace" value={paceValue(distanceM, movingSeconds)} unit={`/${DISTANCE_UNIT}`} edge />
           </View>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.raised }}>
-            <StatCell label="Gained" value={`↑ ${Math.round(toFeet(gainM))}`} unit={ELEVATION_UNIT} />
+            <StatCell label="Gained" value={`↑ ${Math.round(toFeet(gainM))}`} unit={ELEVATION_UNIT} tone={c.climb} />
             <StatCell label="Lost" value={`↓ ${Math.round(toFeet(lossM))}`} unit={ELEVATION_UNIT} edge />
           </View>
           <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: c.raised }}>
             <StatCell
               label="Elevation"
+              tone={elevationM == null ? undefined : c.climb}
               value={elevationM == null ? '—' : String(Math.round(toFeet(elevationM)))}
               unit={elevationM == null ? '' : ELEVATION_UNIT}
             />

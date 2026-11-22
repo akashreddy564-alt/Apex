@@ -299,8 +299,10 @@ export function PastHikeSheet({
                     ) : null}
                     {trail ? (
                       <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                        {trail.region} · {formatOptionalDistance(trail.distance_km)} ·{' '}
-                        {trail.elevation_gain_m == null ? MISSING_METRIC : `${formatElevation(trail.elevation_gain_m)} gain`}
+                        {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text> ·{' '}
+                        <Text style={{ color: trail.elevation_gain_m == null ? c.fgMuted : c.climb }}>
+                          {trail.elevation_gain_m == null ? MISSING_METRIC : `${formatElevation(trail.elevation_gain_m)} gain`}
+                        </Text>
                       </Text>
                     ) : null}
                   </View>

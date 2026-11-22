@@ -65,12 +65,12 @@ function latestLog(logs: HikeLog[], trailId: string, recordedOnly = false): Hike
   return best;
 }
 
-function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
+function Stat({ label, value, unit, tone }: { label: string; value: string; unit?: string; tone?: string }) {
   const c = useColors();
   return (
     <View>
       <Text style={{ fontSize: 12, color: c.fgMuted, fontFamily: fonts.ui }}>{label}</Text>
-      <Text style={{ marginTop: 2, fontSize: 17, color: c.fg, ...numericStyle('semibold') }}>
+      <Text style={{ marginTop: 2, fontSize: 17, color: tone ?? c.fg, ...numericStyle('semibold') }}>
         {value}
         {unit ? (
           <Text style={{ fontSize: 12, color: c.fgMuted, ...numericStyle('medium') }}> {unit}</Text>
@@ -150,6 +150,7 @@ function HikePanel({
                     trail.distance_km == null ? MISSING_METRIC : toMiles(trail.distance_km).toFixed(1)
                   }
                   unit={trail.distance_km == null ? undefined : DISTANCE_UNIT}
+                  tone={trail.distance_km == null ? undefined : c.distance}
                 />
                 <Stat
                   label="Gain"
@@ -159,6 +160,7 @@ function HikePanel({
                       : String(Math.round(toFeet(trail.elevation_gain_m)))
                   }
                   unit={missing || trail.elevation_gain_m == null ? undefined : ELEVATION_UNIT}
+                  tone={missing || trail.elevation_gain_m == null ? undefined : c.climb}
                 />
                 <Stat label="Time" value={duration} />
               </View>

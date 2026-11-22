@@ -57,7 +57,12 @@ export function WeekendPick() {
         {reasons.length > 0 ? (
           <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: c.border }}>
             {reasons.map((reason) => (
-              <ReasonLine key={reason.value} value={reason.value} text={reason.text} />
+              <ReasonLine
+                key={reason.value}
+                value={reason.value}
+                text={reason.text}
+                tone={/^\d[\d,]* mi$/.test(reason.value) ? c.distance : undefined}
+              />
             ))}
           </View>
         ) : null}

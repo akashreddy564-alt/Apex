@@ -259,15 +259,15 @@ export function ElevationScrubber({
       <View style={{ flexDirection: 'row' }}>
         <View style={{ flex: 1, gap: 4 }}>
           <Eyebrow>At</Eyebrow>
-          <Text style={num}>{formatDistance(point.distanceM / 1000)}</Text>
+          <Text style={[num, { color: c.distance }]}>{formatDistance(point.distanceM / 1000)}</Text>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Eyebrow>Elevation</Eyebrow>
-          <Text style={num}>{formatElevation(point.elevationM)}</Text>
+          <Text style={[num, { color: c.climb }]}>{formatElevation(point.elevationM)}</Text>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Eyebrow>Climbed</Eyebrow>
-          <Text style={num}>{formatElevation(point.climbedM)}</Text>
+          <Text style={[num, { color: c.climb }]}>{formatElevation(point.climbedM)}</Text>
         </View>
       </View>
 

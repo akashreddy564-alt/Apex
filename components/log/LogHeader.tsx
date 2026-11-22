@@ -65,7 +65,7 @@ export function LogHeader({ view, onView, onStart, onLogPast, onProfile, onGoal 
           <Eyebrow>{`This week · ${weekRange()}`}</Eyebrow>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 10 }}>
-          <Odometer value={progress.done} format={format} />
+          <Odometer value={progress.done} format={format} color={goal.metric === 'elevation' ? c.climb : c.distance} />
           <View style={{ marginLeft: 8, paddingBottom: 6 }}>
             {unit.label.map((word) => (
               <Text key={word} style={{ fontFamily: fonts.mono, fontSize: minTypeSize, letterSpacing: 1.3, color: c.fgMuted }}>

@@ -15,14 +15,14 @@ import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
 import { PressScale, ReasonLine } from '@/components/motion';
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   const c = useColors();
   return (
     <View>
       <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' }}>
         {label}
       </Text>
-      <Text style={{ ...numericStyle('semibold'), color: c.fg, fontSize: 16, marginTop: 2 }}>{value}</Text>
+      <Text style={{ ...numericStyle('semibold'), color: tone ?? c.fg, fontSize: 16, marginTop: 2 }}>{value}</Text>
     </View>
   );
 }
@@ -90,15 +90,16 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
   const tag = comparisonTag(post, mine);
   const where = [post.region, hikeDayLabel(post.hikedAt)].filter(Boolean).join(' · ');
   const stats = [
-    post.distanceKm != null ? { label: 'Distance', value: formatDistance(post.distanceKm) } : null,
-    post.elevationGainM != null ? { label: 'Elev gain', value: formatElevation(post.elevationGainM) } : null,
+    post.distanceKm != null ? { label: 'Distance', value: formatDistance(post.distanceKm), tone: c.distance } : null,
+    post.elevationGainM != null ? { label: 'Elev gain', value: formatElevation(post.elevationGainM), tone: c.climb } : null,
     post.durationSeconds != null ? { label: 'Time', value: formatCompactDuration(post.durationSeconds) } : null,
-  ].filter((stat): stat is { label: string; value: string } => stat !== null);
+  ].filter((stat): stat is { label: string; value: string; tone?: string } => stat !== null);
   const reasons = useMemo(() => {
     if (!feed) return [];
     const name = post.displayName.split(/\s+/)[0] || post.displayName;
     return postReasons(post, feed, { mine: post.isMine, name }).map((reason) => ({
       text: reason.text,
+      kind: reason.kind,
       value:
         reason.kind === 'distance'
           ? formatDistance(post.distanceKm ?? 0)
@@ -151,7 +152,7 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
       {stats.length > 0 ? (
         <View className="mt-4 flex-row gap-7">
           {stats.map((stat) => (
-            <Stat key={stat.label} label={stat.label} value={stat.value} />
+            <Stat key={stat.label} label={stat.label} value={stat.value} tone={stat.tone} />
           ))}
         </View>
       ) : null}
@@ -159,7 +160,13 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
       {reasons.length > 0 ? (
         <View className="mt-3">
           {reasons.map((reason, i) => (
-            <ReasonLine key={reason.text} value={reason.value} text={reason.text} first={i === 0} />
+            <ReasonLine
+              key={reason.text}
+              value={reason.value}
+              text={reason.text}
+              first={i === 0}
+              tone={reason.kind === 'distance' ? c.distance : reason.kind === 'climb' ? c.climb : undefined}
+            />
           ))}
         </View>
       ) : null}

@@ -37,8 +37,8 @@ export function TrailCard({ trail, rank, score, trailing, reason, onPress }: Tra
       <View className="flex-1 gap-0.5">
         <Text className="text-[15px] font-medium text-fg">{trail.name}</Text>
         <Text className="font-mono text-[11px] text-fg-faint">
-          {trail.region} · {formatOptionalDistance(trail.distance_km)} · ↑
-          {formatOptionalElevation(trail.elevation_gain_m)}
+          {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text> ·{' '}
+          <Text style={{ color: c.climb }}>↑{formatOptionalElevation(trail.elevation_gain_m)}</Text>
         </Text>
         {reason ? (
           <Text numberOfLines={1} style={{ marginTop: 4, fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fg2 }}>

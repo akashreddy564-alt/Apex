@@ -122,7 +122,7 @@ describe('Trail detail', () => {
 
   it('shows difficulty once: the card, not TrailStats', () => {
     const all = texts(render(ANGELS));
-    expect(all.filter((s) => s.endsWith(' on the NPS Shenandoah scale'))).toHaveLength(1);
+    expect(all.filter((s) => s.endsWith(' on the NPS scale'))).toHaveLength(1);
     expect(all).not.toContain('DIFFICULTY');
     expect(all.some((s) => s.startsWith('NPS Shenandoah rating'))).toBe(false);
   });

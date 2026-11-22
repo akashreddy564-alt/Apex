@@ -10,7 +10,7 @@ const SPRING = { damping: 22, stiffness: 120, mass: 1 };
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 /** One split-flap tile: a strip of 0-9 twice over that rolls forward to the digit. */
-function Tile({ digit, size, reduceMotion }: { digit: number; size: number; reduceMotion: boolean }) {
+function Tile({ digit, size, reduceMotion, color }: { digit: number; size: number; reduceMotion: boolean; color?: string }) {
   const c = useColors();
   const w = Math.round(size);
   const h = Math.round((size * 52) / 34);
@@ -52,7 +52,7 @@ function Tile({ digit, size, reduceMotion }: { digit: number; size: number; redu
               fontFamily: fonts.mono,
               fontSize: size,
               fontWeight: '700',
-              color: c.fg,
+              color: color ?? c.fg,
             }}
           >
             {d}
@@ -76,10 +76,13 @@ export function Odometer({
   value,
   format,
   size = 34,
+  color,
 }: {
   value: number;
   format: (n: number) => string;
   size?: number;
+  /** Digit color; defaults to the text color. */
+  color?: string;
 }) {
   const c = useColors();
   const reduceMotion = useReducedMotion();
@@ -95,7 +98,7 @@ export function Odometer({
       {chars.map((ch, i) => {
         const fromRight = chars.length - i;
         return /\d/.test(ch) ? (
-          <Tile key={`d${fromRight}`} digit={Number(ch)} size={size} reduceMotion={reduceMotion} />
+          <Tile key={`d${fromRight}`} digit={Number(ch)} size={size} reduceMotion={reduceMotion} color={color} />
         ) : (
           <Text
             key={`s${fromRight}`}
