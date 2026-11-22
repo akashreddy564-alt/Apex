@@ -51,8 +51,8 @@ function DisplaySettings() {
       <Eyebrow>Appearance</Eyebrow>
       <ChoiceRow<Appearance>
         options={[
-          { value: 'dark', label: 'Dark' },
           { value: 'light', label: 'Light' },
+          { value: 'dark', label: 'Dark' },
         ]}
         value={appearance}
         onChange={setAppearance}

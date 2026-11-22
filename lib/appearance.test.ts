@@ -4,8 +4,8 @@ import { describe, it } from 'node:test';
 import { parseSettings } from './appearance.ts';
 
 describe('parseSettings', () => {
-  it('defaults to dark and number', () => {
-    assert.deepEqual(parseSettings(undefined), { appearance: 'dark', scoreStyle: 'number' });
+  it('defaults to light and number', () => {
+    assert.deepEqual(parseSettings(undefined), { appearance: 'light', scoreStyle: 'number' });
   });
 
   it('keeps valid values', () => {
@@ -17,14 +17,14 @@ describe('parseSettings', () => {
 
   it('drops unknown values field by field', () => {
     assert.deepEqual(parseSettings({ appearance: 'system', scoreStyle: 'peak' }), {
-      appearance: 'dark',
+      appearance: 'light',
       scoreStyle: 'peak',
     });
   });
 
   it('survives garbage', () => {
-    assert.deepEqual(parseSettings('{oops'), { appearance: 'dark', scoreStyle: 'number' });
-    assert.deepEqual(parseSettings(null), { appearance: 'dark', scoreStyle: 'number' });
+    assert.deepEqual(parseSettings('{oops'), { appearance: 'light', scoreStyle: 'number' });
+    assert.deepEqual(parseSettings(null), { appearance: 'light', scoreStyle: 'number' });
   });
 });
 
