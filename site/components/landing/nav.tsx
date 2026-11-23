@@ -1,9 +1,10 @@
 "use client";
 
 import { motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { AppleMark, Peak } from "./icons";
+import { onSoundChange, setSound, sfx, soundOn } from "./sound";
 
 const LINKS = [
   { href: "#record", label: "Record" },
@@ -69,14 +70,44 @@ export function Nav() {
             </li>
           ))}
         </ul>
+        <div className="flex items-center gap-1">
+        <SoundToggle />
         <button
           className="press group flex h-11 items-center gap-2 rounded-full bg-ink px-4 font-medium text-[14px] text-paper"
+          onClick={() => sfx("press")}
           type="button"
         >
           <AppleMark className="size-4 transition-transform duration-300 group-hover:-rotate-12" />
           Download now
         </button>
+        </div>
       </motion.nav>
     </motion.header>
+  );
+}
+
+/** Sound is off until the visitor turns it on; the choice is remembered. */
+function SoundToggle() {
+  const on = useSyncExternalStore(onSoundChange, soundOn, () => false);
+  return (
+    <button
+      aria-label={on ? "Turn interface sounds off" : "Turn interface sounds on"}
+      aria-pressed={on}
+      className="press grid size-11 place-items-center rounded-full text-ink-2 hover:bg-raised"
+      onClick={() => void setSound(!on)}
+      type="button"
+    >
+      <svg aria-hidden className="size-[18px]" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" viewBox="0 0 24 24">
+        <path d="M4 9.5h3l4.5-4v13l-4.5-4H4z" fill="currentColor" stroke="none" />
+        {on ? (
+          <>
+            <path d="M15.5 9a4 4 0 0 1 0 6" />
+            <path d="M18 6.5a7.5 7.5 0 0 1 0 11" />
+          </>
+        ) : (
+          <path d="m16 9.5 5 5m0-5-5 5" />
+        )}
+      </svg>
+    </button>
   );
 }

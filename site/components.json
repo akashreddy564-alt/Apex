@@ -23,6 +23,7 @@
   "menuAccent": "subtle",
   "registries": {
     "@kokonutui": "https://kokonutui.com/r/{name}.json",
-    "@bklit": "https://ui.bklit.com/r/{name}.json"
+    "@bklit": "https://ui.bklit.com/r/{name}.json",
+    "@spell": "https://spell.sh/r/{name}.json"
   }
 }

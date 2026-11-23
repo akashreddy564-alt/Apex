@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { AnimatePresence, LayoutGroup, motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -8,6 +9,7 @@ import { TRAILS, type Trail } from "@/lib/trails";
 
 import { H2, Step } from "./reveal";
 import { fmt, routePath } from "./route";
+import { sfx } from "./sound";
 
 const RAMP = ["#2F7A4A", "#7E9A3C", "#C99A2E", "#C2672B", "#8E3B24"];
 
@@ -59,7 +61,12 @@ export function Rank() {
 
   useEffect(() => {
     if (!inView || reduce) return;
-    const id = window.setTimeout(() => setStep((s) => (s >= STEPS.length + 2 ? 0 : s + 1)), step === 0 ? 900 : 1700);
+    const id = window.setTimeout(() => {
+      const next = step >= STEPS.length + 2 ? 0 : step + 1;
+      if (next >= 1 && next <= STEPS.length) sfx("select");
+      if (next === STEPS.length + 1) sfx("success");
+      setStep(next);
+    }, step === 0 ? 900 : 1700);
     return () => window.clearTimeout(id);
   }, [inView, reduce, step]);
 
@@ -101,7 +108,11 @@ export function Rank() {
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:gap-16">
           <div>
             <Step n={3} />
-            <h2 className={`${H2} text-ink`}>Better than Lake Serene? You decide.</h2>
+            <h2 className={`${H2} text-ink`}>
+            <WordsStagger inView stagger={0.06} speed={0.6}>
+              Better than Lake Serene? You decide.
+            </WordsStagger>
+          </h2>
           </div>
           <p className="max-w-[34rem] text-[1.075rem] text-muted-ink leading-relaxed [text-wrap:pretty] lg:mb-2">
             No star ratings. Apex asks a few quick this-or-that questions and slots each hike into
@@ -115,7 +126,7 @@ export function Rank() {
               <p className="absolute top-5 left-6 font-medium text-[13px] text-muted-ink">
                 Your hikes · flick through
               </p>
-              <CardStack accent="#1C211E" actionLabel="Rank it" cards={cards} className="min-h-[34rem]" />
+              <CardStack accent="#1C211E" actionLabel="Rank it" cards={cards} className="min-h-[34rem]" onChange={() => sfx("swipe")} />
             </div>
           </div>
 

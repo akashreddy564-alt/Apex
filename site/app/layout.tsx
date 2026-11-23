@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Anton, Bricolage_Grotesque, Inter } from "next/font/google";
+import { Anton, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const bricolage = Bricolage_Grotesque({
   variable: "--font-bricolage",
   subsets: ["latin"],
@@ -33,8 +32,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${bricolage.variable} ${anton.variable} antialiased`}
+      className={`${bricolage.variable} ${anton.variable} antialiased`}
     >
+      <head>
+        {/* General Sans from Fontshare (ITF Free Font License, free for commercial use). */}
+        <link href="https://api.fontshare.com" rel="preconnect" />
+        <link
+          href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="grain min-h-full overflow-x-clip">{children}</body>
     </html>
   );

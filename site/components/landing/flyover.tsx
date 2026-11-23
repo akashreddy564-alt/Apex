@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useMemo, useRef } from "react";
 
@@ -48,7 +49,9 @@ export function Flyover() {
         <div>
           <Step dark n={2} />
           <h2 className={`${H2} text-paper`}>
-            Then fly back over every step.
+            <WordsStagger inView stagger={0.06} speed={0.6}>
+              Then fly back over every step.
+            </WordsStagger>
           </h2>
           <div>
             <p className="mt-6 max-w-[34rem] text-[1.075rem] text-paper/75 leading-relaxed [text-wrap:pretty]">

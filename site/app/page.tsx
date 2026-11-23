@@ -7,6 +7,8 @@ import { Hero } from "@/components/landing/hero";
 import { Nav } from "@/components/landing/nav";
 import { Rank } from "@/components/landing/rank";
 import { Record } from "@/components/landing/record";
+import { SmoothScroll } from "@/components/landing/smooth";
+import { TrailMarquee } from "@/components/landing/marquee";
 import { Year } from "@/components/landing/year";
 
 export default function Home() {
@@ -15,9 +17,11 @@ export default function Home() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
+      <SmoothScroll />
       <Nav />
       <main id="main">
         <Hero />
+        <TrailMarquee />
         <Record />
         <Flyover />
         <Rank />

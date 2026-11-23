@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "motion/react";
+import { motion, useInView, useReducedMotion } from "motion/react";
+import { useRef } from "react";
 
 /** Strong ease-out (Emil Kowalski's curve): instant response, long settle. */
 export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
@@ -69,5 +70,45 @@ export function Step({ n, dark = false }: { n: 1 | 2 | 3; dark?: boolean }) {
         <span aria-hidden> · {n} of 3</span>
       </span>
     </p>
+  );
+}
+
+/**
+ * Letters fall into place from scattered, tilted starts when the line scrolls
+ * into view. The words sit in the HTML in their final place for readers and
+ * for reduced motion.
+ */
+export function AssembleLetters({ text, className }: { text: string; className?: string }) {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLSpanElement>(null);
+  // The whole line triggers together, so no letter is left waiting off to one side.
+  const inView = useInView(ref, { once: true, amount: 0.2 });
+  const words = text.split(" ");
+  let k = 0;
+  return (
+    <span aria-label={text} className={className} ref={ref} role="text">
+      {words.map((w, wi) => (
+        <span aria-hidden className="inline-block whitespace-nowrap" key={wi}>
+          {[...w].map((ch) => {
+            const i = k++;
+            const seed = Math.sin(i * 12.9898) * 43758.5453;
+            // Rounded so the server and the browser agree on the starting pose.
+            const r = Math.round((seed - Math.floor(seed)) * 100) / 100;
+            return (
+              <motion.span
+                animate={inView || reduce ? { opacity: 1, x: 0, y: 0, rotate: 0, filter: "blur(0px)" } : undefined}
+                className="inline-block"
+                initial={reduce ? false : { opacity: 0, x: (r - 0.5) * 200, y: -60 - r * 140, rotate: (r - 0.5) * 60, filter: "blur(6px)" }}
+                key={i}
+                transition={{ type: "spring", duration: 0.9, bounce: 0.15, delay: i * 0.02 }}
+              >
+                {ch}
+              </motion.span>
+            );
+          })}
+          {wi < words.length - 1 ? "\u00a0" : ""}
+        </span>
+      ))}
+    </span>
   );
 }
