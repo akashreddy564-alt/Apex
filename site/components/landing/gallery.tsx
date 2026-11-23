@@ -4,7 +4,6 @@ import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "mo
 import { useEffect, useRef, useState } from "react";
 
 import { Phone, Shot } from "./phone";
-import { Eyebrow } from "./reveal";
 
 const SCREENS = [
   { src: "/screens/light-01-opening.png", title: "Opening", note: "A famous summit every time you open it" },
@@ -26,7 +25,7 @@ export function Gallery() {
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const p = useSpring(scrollYProgress, { stiffness: 140, damping: 32, mass: 0.3 });
   const x = useTransform(p, [0, 1], [0, -distance]);
-  const bar = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
+  const bar = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   useEffect(() => {
     const measure = () => {
@@ -41,11 +40,10 @@ export function Gallery() {
     return (
       <section className="py-28" id="screens">
         <div className="mx-auto max-w-7xl px-5 sm:px-8">
-          <Eyebrow>Inside Apex</Eyebrow>
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
             {SCREENS.map((s) => (
               <Phone key={s.src}>
-                <Shot alt={`${s.title} screen`} src={s.src} />
+                <Shot alt={`Apex ${s.title} screen: ${s.note.toLowerCase()}`} src={s.src} />
               </Phone>
             ))}
           </div>
@@ -59,34 +57,21 @@ export function Gallery() {
       <div className="sticky top-0 flex h-[100svh] flex-col justify-center overflow-hidden">
         <div className="mx-auto mb-10 flex w-full max-w-7xl items-end justify-between gap-6 px-5 sm:px-8">
           <div>
-            <Eyebrow>Inside Apex</Eyebrow>
-            <h2 className="font-display font-extrabold text-[clamp(2rem,4vw,3.4rem)] text-ink leading-[0.95] tracking-[-0.04em]">
+            <h2 className="font-display font-extrabold text-[clamp(2rem,4vw,3.4rem)] text-ink leading-[0.98] tracking-[-0.035em] [text-wrap:balance]">
               Every screen, made for the trail.
             </h2>
           </div>
-          <div className="hidden h-1 w-40 overflow-hidden rounded-full bg-raised sm:block">
-            <motion.div className="h-full bg-climb" style={{ width: bar }} />
+          <div aria-hidden className="hidden h-1 w-40 overflow-hidden rounded-full bg-raised sm:block">
+            <motion.div className="h-full origin-left bg-climb" style={{ scaleX: bar }} />
           </div>
         </div>
         <motion.div className="flex w-max gap-6 px-5 sm:gap-10 sm:px-8 lg:px-[max(2rem,calc((100vw-80rem)/2+2rem))]" ref={track} style={{ x }}>
-          {SCREENS.map((s, i) => (
-            <figure className="w-[min(62vw,250px)] shrink-0" key={s.src}>
-              <motion.div
-                initial={{ opacity: 0, y: 40 }}
-                transition={{ duration: 0.8, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                viewport={{ once: true }}
-                whileHover={{ y: -10, rotate: i % 2 ? 1.5 : -1.5 }}
-                whileInView={{ opacity: 1, y: 0 }}
-              >
-                <Phone>
-                  <Shot alt={`${s.title} screen`} src={s.src} />
-                </Phone>
-              </motion.div>
-              <figcaption className="mt-5 px-1">
-                <span className="font-display font-bold text-ink text-lg">{s.title}</span>
-                <span className="block text-[14px] text-muted-ink">{s.note}</span>
-              </figcaption>
-            </figure>
+          {SCREENS.map((s) => (
+            <div className="w-[min(62vw,250px)] shrink-0" key={s.src}>
+              <Phone>
+                <Shot alt={`Apex ${s.title} screen: ${s.note.toLowerCase()}`} src={s.src} />
+              </Phone>
+            </div>
           ))}
         </motion.div>
       </div>

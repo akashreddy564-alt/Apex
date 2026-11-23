@@ -33,3 +33,34 @@ export function feetAt(trail: Trail, miles: number) {
 }
 
 export const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
+
+/**
+ * Walks a polyline by distance: `at(f)` returns the point a fraction `f` of
+ * the way along the drawn line, so a marker sits exactly on the stroke.
+ */
+export function walker(points: readonly (readonly [number, number])[]) {
+  const cum = [0];
+  for (let i = 1; i < points.length; i++) {
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    cum.push(cum[i - 1] + Math.hypot(x1 - x0, y1 - y0));
+  }
+  const total = cum[cum.length - 1];
+  return (f: number): [number, number] => {
+    const d = Math.min(1, Math.max(0, f)) * total;
+    let i = 1;
+    while (i < cum.length - 1 && cum[i] < d) i++;
+    const span = cum[i] - cum[i - 1] || 1;
+    const k = (d - cum[i - 1]) / span;
+    const [x0, y0] = points[i - 1];
+    const [x1, y1] = points[i];
+    return [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k];
+  };
+}
+
+/** Where the summit falls on a round-trip profile, in miles. */
+export function summitMiles(trail: Trail) {
+  let best = trail.profile[0];
+  for (const p of trail.profile) if (p[1] > best[1]) best = p;
+  return best[0];
+}

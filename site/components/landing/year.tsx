@@ -2,7 +2,7 @@
 
 import ActivityTerrain from "@/components/kokonutui/activity-terrain";
 
-import { Eyebrow, Reveal, RiseWords } from "./reveal";
+import { H2 } from "./reveal";
 
 /** A believable year of hikes: weekends, long summer days, a quiet winter. */
 function yearOfHikes() {
@@ -31,31 +31,52 @@ export function Year() {
   const data = DATA;
   const total = data.filter(Boolean).length;
   return (
-    <section className="relative py-28 sm:py-40" id="year">
-      <div className="mx-auto max-w-7xl px-5 sm:px-8">
+    <section className="relative overflow-hidden bg-forest py-28 text-paper sm:py-36" id="year">
+      <ContourField />
+      <div className="relative mx-auto max-w-7xl px-5 sm:px-8">
         <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
           <div>
-            <Eyebrow tone="text-streak">05 · Goals and streaks</Eyebrow>
-            <h2 className="font-display font-extrabold text-[clamp(2.4rem,5.2vw,4.6rem)] text-ink leading-[0.95] tracking-[-0.04em]">
-              <RiseWords text={"A year you can\nturn in your hand."} />
+            <h2 className={`${H2} text-paper`}>
+              A year you can turn in your hand.
             </h2>
           </div>
-          <Reveal delay={0.2}>
-            <p className="max-w-lg text-lg text-muted-ink leading-relaxed lg:mb-2">
+          <div>
+            <p className="max-w-lg text-[1.075rem] text-paper/80 leading-relaxed [text-wrap:pretty] lg:mb-2">
               Set a weekly goal in miles or feet and keep the streak green. Every hike raises the
               ground: {total} days out this year, drawn as terrain. Drag it to turn.
             </p>
-          </Reveal>
+          </div>
         </div>
-        <Reveal className="mt-14 flex justify-center" delay={0.15}>
+        <div className="mt-14 flex justify-center">
           <ActivityTerrain
-            className="max-w-4xl border-line bg-white shadow-[0_40px_80px_-50px_rgba(28,33,30,0.4)] [--terrain-0:#EAE3D4] [--terrain-1:#BFD3AE] [--terrain-2:#7FB08F] [--terrain-3:#2F7A4A] [--terrain-4:#1B4D2E] [--terrain-accent:#94552A] [--terrain-text:#8A877D]"
+            className="max-w-4xl border-0 bg-white shadow-[0_50px_100px_-40px_rgba(0,0,0,0.55)] [--terrain-0:#EAE3D4] [--terrain-1:#BFD3AE] [--terrain-2:#7FB08F] [--terrain-3:#2F7A4A] [--terrain-4:#1B4D2E] [--terrain-accent:#94552A] [--terrain-text:#8A877D]"
             data={data}
             endDate="2026-11-21"
             title="Days on trail, 2026"
           />
-        </Reveal>
+        </div>
       </div>
     </section>
+  );
+}
+
+/** Faint contour rings behind the section, the same map language as the hero. */
+function ContourField() {
+  return (
+    <svg aria-hidden className="pointer-events-none absolute inset-0 size-full opacity-[0.14]" preserveAspectRatio="xMidYMid slice" viewBox="0 0 1200 800">
+      {Array.from({ length: 14 }, (_, i) => (
+        <ellipse
+          cx={930}
+          cy={170}
+          fill="none"
+          key={i}
+          rx={60 + i * 58}
+          ry={40 + i * 44}
+          stroke="#F5F1E8"
+          strokeWidth={i % 5 === 4 ? 1.6 : 0.8}
+          transform="rotate(-18 930 170)"
+        />
+      ))}
+    </svg>
   );
 }

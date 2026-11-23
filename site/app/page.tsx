@@ -12,8 +12,11 @@ import { Year } from "@/components/landing/year";
 export default function Home() {
   return (
     <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
       <Nav />
-      <main>
+      <main id="main">
         <Hero />
         <Record />
         <Flyover />

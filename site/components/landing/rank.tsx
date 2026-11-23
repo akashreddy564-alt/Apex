@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import CardStack, { type DeckCard } from "@/components/kokonutui/card-stack";
 import { TRAILS, type Trail } from "@/lib/trails";
 
-import { Eyebrow, Reveal, RiseWords } from "./reveal";
+import { H2, Step } from "./reveal";
 import { fmt, routePath } from "./route";
 
 const RAMP = ["#2F7A4A", "#7E9A3C", "#C99A2E", "#C2672B", "#8E3B24"];
@@ -96,32 +96,30 @@ export function Rank() {
   );
 
   return (
-    <section className="relative py-28 sm:py-40" id="rank">
+    <section className="relative py-28 sm:py-36" id="rank">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
-        <div className="max-w-3xl">
-          <Eyebrow>03 · Rank</Eyebrow>
-          <h2 className="font-display font-extrabold text-[clamp(2.4rem,5.2vw,4.6rem)] text-ink leading-[0.95] tracking-[-0.04em]">
-            <RiseWords text={"Better than Lake Serene?\nYou decide."} />
-          </h2>
-          <Reveal delay={0.2}>
-            <p className="mt-7 max-w-xl text-lg text-muted-ink leading-relaxed">
-              No star ratings. Apex asks a few quick this-or-that questions and slots each hike into
-              your own list, so your #1 actually means something.
-            </p>
-          </Reveal>
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end lg:gap-16">
+          <div>
+            <Step n={3} />
+            <h2 className={`${H2} text-ink`}>Better than Lake Serene? You decide.</h2>
+          </div>
+          <p className="max-w-[34rem] text-[1.075rem] text-muted-ink leading-relaxed [text-wrap:pretty] lg:mb-2">
+            No star ratings. Apex asks a few quick this-or-that questions and slots each hike into
+            your own list, so your #1 actually means something.
+          </p>
         </div>
 
-        <div className="mt-16 grid items-center gap-12 lg:grid-cols-2" ref={ref}>
-          <Reveal>
+        <div className="mt-14 grid items-center gap-12 lg:grid-cols-2" ref={ref}>
+          <div>
             <div className="relative rounded-[2rem] border border-line bg-[radial-gradient(circle_at_50%_40%,#fff,#F5F1E8_70%)]">
-              <p className="absolute top-5 left-6 font-medium text-[12px] text-muted-ink uppercase tracking-[0.16em]">
+              <p className="absolute top-5 left-6 font-medium text-[13px] text-muted-ink">
                 Your hikes · flick through
               </p>
               <CardStack accent="#1C211E" actionLabel="Rank it" cards={cards} className="min-h-[34rem]" />
             </div>
-          </Reveal>
+          </div>
 
-          <Reveal delay={0.15}>
+          <div>
             <div className="rounded-[2rem] border border-line bg-white p-6 shadow-[0_40px_80px_-50px_rgba(28,33,30,0.4)] sm:p-8">
               <div className="flex items-center justify-between">
                 <p className="font-display font-bold text-ink text-xl">Your rankings</p>
@@ -197,7 +195,7 @@ export function Rank() {
                           <span className="block truncate font-semibold text-[15px] text-ink">{name}</span>
                           <span className="block text-[13px]">
                             <span className="text-distance">{t.miles} mi</span>
-                            <span className="text-faint"> · </span>
+                            <span className="text-muted-ink"> · </span>
                             <span className="text-climb">{fmt(t.gainFt)} ft</span>
                           </span>
                         </span>
@@ -208,7 +206,7 @@ export function Rank() {
                 </ol>
               </LayoutGroup>
             </div>
-          </Reveal>
+          </div>
         </div>
       </div>
     </section>

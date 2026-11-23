@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Gauge } from "@/components/charts/gauge";
 import { TRAILS } from "@/lib/trails";
 
-import { Eyebrow, Reveal, RiseWords } from "./reveal";
+import { H2 } from "./reveal";
 import { fmt } from "./route";
 
 const RAMP = ["#2F7A4A", "#7E9A3C", "#C99A2E", "#C2672B", "#8E3B24"];
@@ -29,24 +29,23 @@ export function Difficulty() {
     <section className="relative border-line border-y bg-white py-28 sm:py-36" id="difficulty">
       <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-2">
         <div>
-          <Eyebrow>04 · Difficulty</Eyebrow>
-          <h2 className="font-display font-extrabold text-[clamp(2.4rem,5.2vw,4.6rem)] text-ink leading-[0.95] tracking-[-0.04em]">
-            <RiseWords text={"Know how hard\nbefore you go."} />
+          <h2 className={`${H2} text-ink`}>
+            Know how hard before you go.
           </h2>
-          <Reveal delay={0.2}>
-            <p className="mt-7 max-w-md text-lg text-muted-ink leading-relaxed">
+          <div>
+            <p className="mt-6 max-w-[34rem] text-[1.075rem] text-muted-ink leading-relaxed [text-wrap:pretty]">
               Every trail gets the National Park Service&apos;s Shenandoah rating, worked out from
               its distance and climb. Five steps, from forest green to red-brown.
             </p>
-          </Reveal>
-          <Reveal delay={0.3}>
+          </div>
+          <div>
             <div className="mt-10 flex flex-wrap gap-1" role="tablist" aria-label="Trails">
               {ORDER.map((i) => {
                 const on = i === pick;
                 return (
                   <button
                     aria-selected={on}
-                    className="relative rounded-full px-4 py-2 font-medium text-[14px] transition-colors"
+                    className="press relative h-11 rounded-full px-4 font-medium text-[14px]"
                     key={TRAILS[i].name}
                     onClick={() => setPick(i)}
                     role="tab"
@@ -64,10 +63,10 @@ export function Difficulty() {
                 );
               })}
             </div>
-          </Reveal>
+          </div>
         </div>
 
-        <Reveal delay={0.1}>
+        <div>
           <div className="rounded-[2rem] border border-line bg-paper/60 p-6 sm:p-10">
             <div className="mx-auto max-w-[420px]">
               <Gauge
@@ -99,7 +98,7 @@ export function Difficulty() {
                   </div>
                 ))}
               </div>
-              <div className="mt-2 flex justify-between text-[11px] text-faint">
+              <div className="mt-2 flex justify-between text-[12px] text-muted-ink">
                 <span>{LABELS[0]}</span>
                 <span>{LABELS[4]}</span>
               </div>
@@ -114,7 +113,7 @@ export function Difficulty() {
               </motion.p>
             </div>
           </div>
-        </Reveal>
+        </div>
       </div>
     </section>
   );
