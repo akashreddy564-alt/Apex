@@ -21,6 +21,8 @@ export function Hero() {
   // The phone sinks a little slower than the page as you leave the hero.
   // Text never moves with the scroll.
   const phoneY = useTransform(p, [0, 1], [0, reduce ? 0 : 90]);
+  // The phone rests at a slight slant and swings the other way as you scroll past.
+  const phoneRotate = useTransform(p, [0, 1], [reduce ? 0 : -4, reduce ? 0 : 6]);
 
   return (
     <section className="relative" id="top" ref={ref}>
@@ -93,7 +95,7 @@ export function Hero() {
           </div>
 
           <div className="relative mx-auto w-full max-w-[340px] lg:max-w-[360px]">
-            <motion.div style={{ y: phoneY }}>
+            <motion.div style={{ y: phoneY, rotate: phoneRotate }}>
               <motion.div
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 initial={reduce ? false : { opacity: 0, y: 60, scale: 0.96 }}
