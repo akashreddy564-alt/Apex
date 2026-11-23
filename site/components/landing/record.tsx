@@ -21,7 +21,7 @@ import { H2, Step } from "./reveal";
 import { feetAt, fmt, routePath, summitMiles, walker } from "./route";
 
 const TRAIL = TRAILS[0]; // Mount Si
-const LOOP_SECONDS = 48;
+const LOOP_SECONDS = 24;
 const TICK_MS = 400;
 const HIKE_HOURS = 4.6;
 const SUMMIT_MI = summitMiles(TRAIL);
