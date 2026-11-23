@@ -10,7 +10,7 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { LiveLine } from "@/components/charts/live-line";
 import { LiveLineChart, type LiveLinePoint } from "@/components/charts/live-line-chart";
@@ -18,7 +18,6 @@ import { LiveYAxis } from "@/components/charts/live-y-axis";
 import { StatusIsland } from "@/components/kokonutui/status-island";
 import { TRAILS } from "@/lib/trails";
 
-import { RecordPinned } from "./record-pinned";
 import { sfx } from "./sound";
 import { H2, Step } from "./reveal";
 import { feetAt, fmt, routePath, summitMiles, walker } from "./route";
@@ -61,8 +60,7 @@ function backfill(t: number, now: number): LiveLinePoint[] {
   });
 }
 
-/** The self-playing version, used on phones and small tablets. */
-function RecordAuto() {
+export function Record() {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { margin: "-15% 0px -15% 0px" });
   const reduce = useReducedMotion();
@@ -250,21 +248,4 @@ function Stat({ label, value, unit, tone }: { label: string; value: string; unit
       </dd>
     </div>
   );
-}
-
-const WIDE = "(min-width: 1024px)";
-const subscribe = (cb: () => void) => {
-  const m = window.matchMedia(WIDE);
-  m.addEventListener("change", cb);
-  return () => m.removeEventListener("change", cb);
-};
-
-/**
- * Laptops get the pinned hike that the scrollbar drives; phones keep the
- * self-playing card, which fits a small screen and a thumb.
- */
-export function Record() {
-  const wide = useSyncExternalStore(subscribe, () => window.matchMedia(WIDE).matches, () => false);
-  const reduce = useReducedMotion();
-  return wide && !reduce ? <RecordPinned /> : <RecordAuto />;
 }
