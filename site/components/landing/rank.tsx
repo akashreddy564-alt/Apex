@@ -3,6 +3,7 @@
 import { WordsStagger } from "@/components/spell/words-stagger";
 import { AnimatePresence, LayoutGroup, motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import CardStack, { type DeckCard } from "@/components/kokonutui/card-stack";
 import { TRAILS, type Trail } from "@/lib/trails";
@@ -14,7 +15,7 @@ import { sfx } from "./sound";
 const RAMP = ["#2F7A4A", "#7E9A3C", "#C99A2E", "#C2672B", "#8E3B24"];
 
 /** A trail as a little map card: contour paper, its route, and its profile. */
-function TrailArt({ trail, seed }: { trail: Trail; seed: number }) {
+function TrailArt({ trail, seed, fit = false }: { trail: Trail; seed: number; fit?: boolean }) {
   const { d } = routePath(trail, 320, 46);
   const max = Math.max(...trail.profile.map((p) => p[1]));
   const min = Math.min(...trail.profile.map((p) => p[1]));
@@ -23,7 +24,7 @@ function TrailArt({ trail, seed }: { trail: Trail; seed: number }) {
     .map(([m, f], i) => `${i ? "L" : "M"}${((m / last) * 320).toFixed(1)} ${(400 - 14 - ((f - min) / (max - min || 1)) * 74).toFixed(1)}`)
     .join(" ");
   return (
-    <svg aria-hidden className="absolute inset-0 size-full" preserveAspectRatio="xMidYMid slice" viewBox="0 30 320 340">
+    <svg aria-hidden className="absolute inset-0 size-full" preserveAspectRatio={fit ? "xMidYMid meet" : "xMidYMid slice"} viewBox={fit ? "0 0 320 400" : "0 30 320 340"}>
       <rect fill="#F5F1E8" height="400" width="320" />
       {Array.from({ length: 9 }, (_, i) => (
         <ellipse
@@ -58,9 +59,10 @@ export function Rank() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { margin: "-20% 0px" });
   const [step, setStep] = useState(reduce ? STEPS.length + 1 : 0);
+  const [open, setOpen] = useState<Trail | null>(null);
 
   useEffect(() => {
-    if (!inView || reduce) return;
+    if (!inView || reduce || open) return;
     const id = window.setTimeout(() => {
       const next = step >= STEPS.length + 2 ? 0 : step + 1;
       if (next >= 1 && next <= STEPS.length) sfx("select");
@@ -68,7 +70,7 @@ export function Rank() {
       setStep(next);
     }, step === 0 ? 900 : 1700);
     return () => window.clearTimeout(id);
-  }, [inView, reduce, step]);
+  }, [inView, reduce, step, open]);
 
   const placed = step > STEPS.length;
   const list = placed ? [BASE[0], NEW, ...BASE.slice(1)] : BASE;
@@ -190,12 +192,21 @@ export function Rank() {
                     return (
                       <motion.li
                         animate={{ opacity: 1, scale: 1 }}
-                        className={`flex items-center gap-4 rounded-2xl border px-4 py-3 ${fresh ? "border-streak/40 bg-streak/[0.07]" : "border-line bg-paper/50"}`}
+                        className={`rounded-2xl border ${fresh ? "border-streak/40 bg-streak/[0.07]" : "border-line bg-paper/50"}`}
                         initial={fresh ? { opacity: 0, scale: 0.9 } : false}
                         key={name}
-                        layout
+                        layoutId={`rank-${name}`}
                         transition={{ type: "spring", stiffness: 420, damping: 34 }}
                       >
+                        <button
+                          aria-label={`Open ${name}, ranked ${i + 1}`}
+                          className="press flex w-full items-center gap-4 rounded-2xl px-4 py-3 text-left transition-colors duration-150 ease-out hover:bg-white"
+                          onClick={() => {
+                            sfx("press");
+                            setOpen(t);
+                          }}
+                          type="button"
+                        >
                         <motion.span
                           className={`w-7 font-display font-extrabold text-2xl tabular-nums ${i === 0 ? "text-streak" : "text-ink"}`}
                           layout="position"
@@ -211,15 +222,103 @@ export function Rank() {
                           </span>
                         </span>
                         <span className="h-2 w-10 rounded-full" style={{ background: RAMP[t.level] }} />
+                        </button>
                       </motion.li>
                     );
                   })}
                 </ol>
+                <TrailSheet onClose={() => setOpen(null)} rank={open ? list.indexOf(open.name) + 1 : 0} trail={open} />
               </LayoutGroup>
+              <p className="mt-4 text-[13px] text-muted-ink">Tap a trail to open it.</p>
             </div>
           </div>
         </div>
       </div>
     </section>
+  );
+}
+
+/** A ranked row grows into the trail's card: its map, its profile and its numbers. */
+function TrailSheet({ trail, rank, onClose }: { trail: Trail | null; rank: number; onClose: () => void }) {
+  useEffect(() => {
+    if (!trail) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [trail, onClose]);
+
+  // Portalled to the body: the section wrapper scales on its way out, and a
+  // transformed ancestor would trap a fixed sheet inside it.
+  if (typeof document === "undefined") return null;
+  return createPortal(
+    <AnimatePresence>
+      {trail ? (
+        <>
+          <motion.div
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[60] bg-ink/45"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            key="scrim"
+            onClick={onClose}
+            transition={{ duration: 0.25 }}
+          />
+          <div className="pointer-events-none fixed inset-0 z-[61] grid place-items-center p-4 sm:p-10" key="sheet">
+            <motion.div
+              aria-label={trail.name}
+              aria-modal="true"
+              className="pointer-events-auto relative w-full max-w-2xl overflow-hidden rounded-[2rem] border border-line bg-white shadow-[0_60px_120px_-40px_rgba(28,33,30,0.6)]"
+              data-lenis-prevent
+              layoutId={`rank-${trail.name}`}
+              role="dialog"
+              transition={{ type: "spring", duration: 0.5, bounce: 0.08 }}
+            >
+              <div className="relative h-[min(42vh,22rem)] w-full overflow-hidden bg-paper">
+                <TrailArt fit seed={TRAILS.indexOf(trail) + 1} trail={trail} />
+                <span className="absolute top-4 left-4 rounded-full bg-ink px-3 py-1 font-display font-bold text-paper text-sm tabular-nums">
+                  #{rank}
+                </span>
+                <span
+                  className="absolute top-4 right-4 rounded-full px-3 py-1 font-semibold text-[12px] text-white"
+                  style={{ background: RAMP[trail.level] }}
+                >
+                  {trail.label}
+                </span>
+              </div>
+              <motion.div
+                animate={{ opacity: 1, y: 0 }}
+                className="p-6 sm:p-8"
+                initial={{ opacity: 0, y: 10 }}
+                transition={{ delay: 0.15, duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+              >
+                <p className="font-display font-extrabold text-3xl text-ink tracking-[-0.03em] sm:text-4xl">{trail.name}</p>
+                <p className="mt-1 text-muted-ink">{trail.region ?? "Washington"}</p>
+                <dl className="mt-6 grid grid-cols-3 gap-4">
+                  {[
+                    { label: "Distance", value: `${trail.miles} mi`, tone: "text-distance" },
+                    { label: "Climb", value: `${fmt(trail.gainFt)} ft`, tone: "text-climb" },
+                    { label: "High point", value: `${fmt(trail.peakFt)} ft`, tone: "text-ink" },
+                  ].map((s) => (
+                    <div key={s.label}>
+                      <dt className="text-[12px] text-muted-ink">{s.label}</dt>
+                      <dd className={`mt-0.5 font-display font-bold text-xl tabular-nums sm:text-2xl ${s.tone}`}>{s.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+                <button
+                  autoFocus
+                  className="press mt-7 h-11 rounded-full bg-ink px-5 font-medium text-paper"
+                  onClick={onClose}
+                  type="button"
+                >
+                  Back to rankings
+                </button>
+              </motion.div>
+            </motion.div>
+          </div>
+        </>
+      ) : null}
+    </AnimatePresence>,
+    document.body
   );
 }
