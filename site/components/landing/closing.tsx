@@ -4,7 +4,6 @@ import AttractButton from "@/components/kokonutui/attract-button";
 import TopoBackground from "@/components/kokonutui/topo-background";
 
 import { AppleMark, Peak } from "./icons";
-import { Reveal, RiseWords } from "./reveal";
 
 export function Closing() {
   return (
@@ -17,24 +16,24 @@ export function Closing() {
       >
         <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center px-5 py-32 text-center">
           <Peak className="mb-8 size-14 text-paper" />
-          <h2 className="font-display font-extrabold text-[clamp(2.8rem,7vw,6.2rem)] text-paper leading-[0.92] tracking-[-0.045em]">
-            <RiseWords text={"Your next summit\nis already waiting."} />
+          <h2 className="font-display font-extrabold text-[clamp(2.8rem,7vw,6rem)] text-paper leading-[0.94] tracking-[-0.035em] [text-wrap:balance]">
+            Your next summit is already waiting.
           </h2>
-          <Reveal delay={0.3}>
-            <p className="mx-auto mt-8 max-w-lg text-lg text-paper/70 leading-relaxed">
+          <div>
+            <p className="mx-auto mt-8 max-w-lg text-lg text-paper/75 leading-relaxed">
               Record it, fly over it, rank it. Apex for iPhone.
             </p>
-          </Reveal>
-          <Reveal className="mt-12" delay={0.4}>
+          </div>
+          <div className="mt-12">
             <AttractButton
-              className="h-16 min-w-0 gap-3 rounded-full bg-paper px-9 font-semibold text-[17px] text-ink hover:bg-white"
+              className="press h-16 min-w-0 gap-3 rounded-full bg-paper px-9 font-semibold text-[17px] text-ink hover:bg-white"
               containerClassName="[&_canvas]:text-[#d9925e]"
               radius={96}
             >
               <AppleMark className="size-5" />
               Download now
             </AttractButton>
-          </Reveal>
+          </div>
         </div>
       </TopoBackground>
     </section>
@@ -50,7 +49,7 @@ export function Footer() {
         </a>
         <p>
           Mount Rainier photo by Walter Siegmund,{" "}
-          <a className="underline underline-offset-2 hover:text-paper" href="https://commons.wikimedia.org/wiki/File:Mount_Rainier_5917.JPG">
+          <a className="link-draw text-paper/80 hover:text-paper" href="https://commons.wikimedia.org/wiki/File:Mount_Rainier_5917.JPG">
             CC BY-SA 3.0
           </a>
           . Trail data © OpenStreetMap contributors.

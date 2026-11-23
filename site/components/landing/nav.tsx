@@ -45,7 +45,7 @@ export function Nav() {
         className="flex w-full items-center justify-between gap-4 rounded-full border py-1.5 pr-1.5 backdrop-blur-xl"
         transition={{ type: "spring", stiffness: 260, damping: 32 }}
       >
-        <a className="flex items-center gap-2 pl-2 font-display font-extrabold text-[22px] text-ink tracking-[-0.03em]" href="#top">
+        <a className="flex h-11 items-center gap-2 pl-2 font-display font-extrabold text-[22px] text-ink tracking-[-0.03em]" href="#top">
           <Peak className="size-7 text-ink" />
           Apex
         </a>
@@ -60,7 +60,7 @@ export function Nav() {
                 />
               )}
               <a
-                className="relative block px-4 py-2 font-medium text-[14px] text-ink-2"
+                className="relative flex h-11 items-center px-4 font-medium text-[14px] text-ink-2"
                 href={l.href}
                 onMouseEnter={() => setHovered(l.href)}
               >
@@ -70,7 +70,7 @@ export function Nav() {
           ))}
         </ul>
         <button
-          className="group flex h-10 items-center gap-2 rounded-full bg-ink px-4 font-medium text-[14px] text-paper transition-transform duration-200 active:scale-95"
+          className="press group flex h-11 items-center gap-2 rounded-full bg-ink px-4 font-medium text-[14px] text-paper"
           type="button"
         >
           <AppleMark className="size-4 transition-transform duration-300 group-hover:-rotate-12" />

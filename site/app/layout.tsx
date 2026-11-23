@@ -10,10 +10,19 @@ const bricolage = Bricolage_Grotesque({
 });
 const anton = Anton({ variable: "--font-anton", subsets: ["latin"], weight: "400" });
 
+const DESCRIPTION =
+  "Apex records your hike, flies you back over it in 3D, and ranks it against every trail you've done.";
+
 export const metadata: Metadata = {
   title: "Apex: rank every trail you climb",
-  description:
-    "Apex records your hike, flies you back over it in 3D, and ranks it against every trail you've done.",
+  description: DESCRIPTION,
+  openGraph: {
+    title: "Apex: rank every trail you climb",
+    description: DESCRIPTION,
+    type: "website",
+    images: [{ url: "/screens/light-07-trail-page.png", width: 780, height: 1688, alt: "The Apex trail page" }],
+  },
+  twitter: { card: "summary_large_image", title: "Apex: rank every trail you climb", description: DESCRIPTION },
 };
 
 export const viewport: Viewport = {

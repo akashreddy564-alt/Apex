@@ -8,10 +8,12 @@ import { ParticleLine } from "@/components/charts/particle-line";
 import { TRAILS } from "@/lib/trails";
 
 import { Phone } from "./phone";
-import { Eyebrow, Reveal, RiseWords } from "./reveal";
+import { H2, Step } from "./reveal";
 import { fmt } from "./route";
 
 const TRAIL = TRAILS[0];
+/** Where the flyover footage starts inside the screen recording, in seconds. */
+const FLY_START = 13.4;
 const EMBERS = ["#94552a", "#d9925e", "#f0c08a", "#fff1dc"] as const;
 
 export function Flyover() {
@@ -22,8 +24,6 @@ export function Flyover() {
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const photoY = useTransform(scrollYProgress, [0, 1], reduce ? ["0%", "0%"] : ["-12%", "12%"]);
   const photoScale = useTransform(scrollYProgress, [0, 0.5, 1], reduce ? [1, 1, 1] : [1.25, 1.08, 1.18]);
-  const phoneScale = useTransform(scrollYProgress, [0.1, 0.45], reduce ? [1, 1] : [0.82, 1]);
-  const phoneRotate = useTransform(scrollYProgress, [0.1, 0.45], reduce ? [0, 0] : [8, 0]);
 
   // The profile as a time series: one "minute" per sample, so the chart's
   // time axis lays the trail out by distance.
@@ -46,25 +46,25 @@ export function Flyover() {
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-5 py-28 sm:px-8 sm:py-40 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <Eyebrow tone="text-[#d9925e]">02 · Flyover</Eyebrow>
-          <h2 className="font-display font-extrabold text-[clamp(2.4rem,5.2vw,4.6rem)] text-paper leading-[0.95] tracking-[-0.04em]">
-            <RiseWords text={"Then fly back\nover every step."} />
+          <Step dark n={2} />
+          <h2 className={`${H2} text-paper`}>
+            Then fly back over every step.
           </h2>
-          <Reveal delay={0.2}>
-            <p className="mt-7 max-w-md text-lg text-paper/70 leading-relaxed">
+          <div>
+            <p className="mt-6 max-w-[34rem] text-[1.075rem] text-paper/75 leading-relaxed [text-wrap:pretty]">
               Finish a hike and Apex turns it into a 3D flyover on real terrain: the line draws
               itself up the mountain, circles the summit and pulls back to show the whole day.
               Share it as a video in one tap.
             </p>
-          </Reveal>
+          </div>
 
-          <Reveal delay={0.25}>
+          <div>
             <div
-              className="mt-12 rounded-3xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-md sm:p-6"
+              className="mt-12 rounded-3xl bg-[#0c0e0d]/70 p-5 shadow-[0_0_0_1px_rgba(245,241,232,0.1)] sm:p-6"
               ref={chartRef}
             >
               <div className="mb-3 flex items-baseline justify-between gap-4">
-                <p className="font-medium text-[12px] text-paper/60 uppercase tracking-[0.16em]">
+                <p className="font-medium text-[13px] text-paper/70">
                   {TRAIL.name} · elevation
                 </p>
                 <p className="font-display font-bold text-[#d9925e] text-xl">
@@ -97,23 +97,23 @@ export function Flyover() {
                 <span>{TRAIL.miles} mi</span>
               </div>
             </div>
-          </Reveal>
+          </div>
         </div>
 
-        <motion.div className="mx-auto w-full max-w-[320px]" style={{ scale: phoneScale, rotate: phoneRotate }}>
+        <div className="mx-auto w-full max-w-[320px]">
           <Phone className="bg-black shadow-[0_60px_120px_-30px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.08)]">
             <video
               aria-label="A Mount Si flyover playing in Apex"
               autoPlay
               className="absolute inset-0 size-full object-cover"
               muted
-              // The first seconds are the map loading; start and loop past them.
+              // The recording opens on the app's opening and home screens; the flyover itself starts at 13.4 s.
               onEnded={(e) => {
-                e.currentTarget.currentTime = 2.2;
+                e.currentTarget.currentTime = FLY_START;
                 void e.currentTarget.play();
               }}
               onLoadedMetadata={(e) => {
-                e.currentTarget.currentTime = 2.2;
+                e.currentTarget.currentTime = FLY_START;
               }}
               playsInline
               poster="/screens/dark-12-flyover-end.png"
@@ -122,7 +122,7 @@ export function Flyover() {
               <source src="/screens/1-flyover.webm" type="video/webm" />
             </video>
           </Phone>
-        </motion.div>
+        </div>
       </div>
     </section>
   );
