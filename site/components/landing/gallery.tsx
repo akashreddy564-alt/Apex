@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -58,8 +59,10 @@ export function Gallery() {
         <div className="mx-auto mb-10 flex w-full max-w-7xl items-end justify-between gap-6 px-5 sm:px-8">
           <div>
             <h2 className="font-display font-extrabold text-[clamp(2rem,4vw,3.4rem)] text-ink leading-[0.98] tracking-[-0.035em] [text-wrap:balance]">
+            <WordsStagger inView stagger={0.06} speed={0.6}>
               Every screen, made for the trail.
-            </h2>
+            </WordsStagger>
+          </h2>
           </div>
           <div aria-hidden className="hidden h-1 w-40 overflow-hidden rounded-full bg-raised sm:block">
             <motion.div className="h-full origin-left bg-climb" style={{ scaleX: bar }} />

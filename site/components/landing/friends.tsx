@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { LayoutGroup, motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 
@@ -7,7 +8,8 @@ import NotificationStack, { type StackNotification } from "@/components/kokonutu
 
 import { Peak } from "./icons";
 import { EASE_OUT, H2 } from "./reveal";
-import { fmt } from "./route";
+import NumberFlow from "@number-flow/react";
+import { sfx } from "./sound";
 
 function Badge({ bg }: { bg: string }) {
   return (
@@ -61,7 +63,9 @@ export function Friends() {
       <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-2">
         <div>
           <h2 className={`${H2} text-ink`}>
-            Start a group. Climb the board.
+            <WordsStagger inView stagger={0.06} speed={0.6}>
+              Start a group. Climb the board.
+            </WordsStagger>
           </h2>
           <p className="mt-6 max-w-[34rem] text-[1.075rem] text-muted-ink leading-relaxed [text-wrap:pretty]">
             Share hikes with friends, see what they ranked, and race a weekly climbing board with
@@ -74,7 +78,8 @@ export function Friends() {
             <NotificationStack
               key={round}
               notifications={NOTES}
-              onDismiss={() =>
+              onDismiss={() => {
+                sfx("swipe");
                 setLeft((n) => {
                   if (n <= 1) {
                     window.setTimeout(() => {
@@ -83,8 +88,8 @@ export function Friends() {
                     }, 700);
                   }
                   return n - 1;
-                })
-              }
+                });
+              }}
             />
           </div>
           <p className="mt-6 text-[13px] text-muted-ink">
@@ -118,7 +123,10 @@ function Board() {
 
   useEffect(() => {
     if (!inView || reduce) return;
-    const id = window.setTimeout(() => setPassed(true), 1500);
+    const id = window.setTimeout(() => {
+      sfx("notification");
+      setPassed(true);
+    }, 1500);
     return () => window.clearTimeout(id);
   }, [inView, reduce]);
 
@@ -150,7 +158,9 @@ function Board() {
                   transition={{ duration: reduce ? 0 : 0.9, delay: passed ? 0 : 0.08 * i, ease: EASE_OUT }}
                 />
               </span>
-              <span className="text-right text-climb tabular-nums">{fmt(c.ft)}</span>
+              <span className="text-right text-climb tabular-nums">
+                <NumberFlow value={c.ft} />
+              </span>
             </motion.li>
           ))}
         </ol>

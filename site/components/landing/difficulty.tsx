@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { motion } from "motion/react";
 import { useState } from "react";
 
@@ -7,7 +8,8 @@ import { Gauge } from "@/components/charts/gauge";
 import { TRAILS } from "@/lib/trails";
 
 import { H2 } from "./reveal";
-import { fmt } from "./route";
+import NumberFlow from "@number-flow/react";
+import { sfx } from "./sound";
 
 const RAMP = ["#2F7A4A", "#7E9A3C", "#C99A2E", "#C2672B", "#8E3B24"];
 const LABELS = ["Easiest", "Moderate", "Mod. strenuous", "Strenuous", "Very strenuous"];
@@ -30,7 +32,9 @@ export function Difficulty() {
       <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-2">
         <div>
           <h2 className={`${H2} text-ink`}>
-            Know how hard before you go.
+            <WordsStagger inView stagger={0.06} speed={0.6}>
+              Know how hard before you go.
+            </WordsStagger>
           </h2>
           <div>
             <p className="mt-6 max-w-[34rem] text-[1.075rem] text-muted-ink leading-relaxed [text-wrap:pretty]">
@@ -47,7 +51,10 @@ export function Difficulty() {
                     aria-selected={on}
                     className="press relative h-11 rounded-full px-4 font-medium text-[14px]"
                     key={TRAILS[i].name}
-                    onClick={() => setPick(i)}
+                    onClick={() => {
+                      sfx("select");
+                      setPick(i);
+                    }}
                     role="tab"
                     type="button"
                   >
@@ -102,15 +109,16 @@ export function Difficulty() {
                 <span>{LABELS[0]}</span>
                 <span>{LABELS[4]}</span>
               </div>
-              <motion.p
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 text-center text-[15px] text-muted-ink"
-                initial={{ opacity: 0, y: 6 }}
-                key={t.name}
-              >
-                <b className="font-semibold text-ink">{t.label}</b> · <span className="text-distance">{t.miles} mi</span> ·{" "}
-                <span className="text-climb">{fmt(t.gainFt)} ft</span>
-              </motion.p>
+              <p className="mt-6 text-center text-[15px] text-muted-ink">
+                <b className="font-semibold text-ink">{t.label}</b> ·{" "}
+                <span className="text-distance tabular-nums">
+                  <NumberFlow format={{ minimumFractionDigits: 1 }} value={t.miles} /> mi
+                </span>{" "}
+                ·{" "}
+                <span className="text-climb tabular-nums">
+                  <NumberFlow value={t.gainFt} /> ft
+                </span>
+              </p>
             </div>
           </div>
         </div>

@@ -266,7 +266,7 @@
 }
 
 :root {
-  --font-sans: var(--font-inter);
+  --font-sans: "General Sans";
   --background: #f5f1e8;
   --foreground: #1c211e;
   --card: #ffffff;
@@ -319,7 +319,7 @@ html {
 }
 
 body {
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: "General Sans", ui-sans-serif, system-ui, sans-serif;
   font-feature-settings: "ss01", "cv11";
 }
 

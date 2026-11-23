@@ -10,6 +10,8 @@ import TopoBackground from "@/components/kokonutui/topo-background";
 import { AppleMark } from "./icons";
 import { Phone, Shot } from "./phone";
 import { EASE_OUT, HeroWords } from "./reveal";
+import { sfx } from "./sound";
+import { HighlightedText } from "@/components/spell/highlighted-text";
 
 const BOARD = ["MOUNT SI", "LAKE SERENE", "MAILBOX PEAK", "COLCHUCK LK", "RATTLESNAKE"];
 
@@ -63,8 +65,11 @@ export function Hero() {
               initial={reduce ? false : { opacity: 0, y: 10 }}
               transition={{ duration: 0.7, delay: 0.32, ease: EASE_OUT }}
             >
-              Apex records your hike, flies you back over it in 3D, and ranks it against every
-              trail you&apos;ve done. Your hiking life, finally in order.
+              Apex records your hike, flies you back over it in 3D, and{" "}
+              <HighlightedText className="font-medium" delay={1.1} from="left">
+                ranks it against every trail
+              </HighlightedText>{" "}
+              you&apos;ve done. Your hiking life, finally in order.
             </motion.p>
 
             <motion.div
@@ -75,6 +80,7 @@ export function Hero() {
             >
               <AttractButton
                 className="press h-14 min-w-0 gap-2.5 rounded-full bg-ink px-7 text-[15px] text-paper hover:bg-ink-2"
+                onClick={() => sfx("press")}
                 containerClassName="w-full sm:w-auto [&_canvas]:text-climb [&>button]:w-full sm:[&>button]:w-auto"
                 radius={80}
               >

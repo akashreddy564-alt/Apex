@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { Pause, Play } from "lucide-react";
 import {
   motion,
@@ -9,7 +10,7 @@ import {
   useReducedMotion,
   useTransform,
 } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { LiveLine } from "@/components/charts/live-line";
 import { LiveLineChart, type LiveLinePoint } from "@/components/charts/live-line-chart";
@@ -17,6 +18,8 @@ import { LiveYAxis } from "@/components/charts/live-y-axis";
 import { StatusIsland } from "@/components/kokonutui/status-island";
 import { TRAILS } from "@/lib/trails";
 
+import { RecordPinned } from "./record-pinned";
+import { sfx } from "./sound";
 import { H2, Step } from "./reveal";
 import { feetAt, fmt, routePath, summitMiles, walker } from "./route";
 
@@ -58,7 +61,8 @@ function backfill(t: number, now: number): LiveLinePoint[] {
   });
 }
 
-export function Record() {
+/** The self-playing version, used on phones and small tablets. */
+function RecordAuto() {
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { margin: "-15% 0px -15% 0px" });
   const reduce = useReducedMotion();
@@ -113,7 +117,11 @@ export function Record() {
       <div className="mx-auto grid max-w-7xl gap-14 px-5 sm:px-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-center lg:gap-20">
         <div>
           <Step n={1} />
-          <h2 className={`${H2} text-ink`}>Press record. Apex does the rest.</h2>
+          <h2 className={`${H2} text-ink`}>
+            <WordsStagger inView stagger={0.06} speed={0.6}>
+              Press record. Apex does the rest.
+            </WordsStagger>
+          </h2>
           <p className="mt-6 max-w-[34rem] text-[1.075rem] text-muted-ink leading-relaxed [text-wrap:pretty]">
             Your route, distance and every foot of climb, tracked with the screen off and no signal.
             Apex knows which trail you&apos;re on before you reach the top.
@@ -151,7 +159,10 @@ export function Record() {
               <button
                 aria-label={paused ? "Play the recording demo" : "Pause the recording demo"}
                 className="press absolute top-2 right-2 z-10 grid size-11 place-items-center rounded-full text-muted-ink transition-colors duration-150 hover:bg-raised hover:text-ink"
-                onClick={() => setPaused((p) => !p)}
+                onClick={() => {
+                  sfx(paused ? "play" : "pause");
+                  setPaused((p) => !p);
+                }}
                 type="button"
               >
                 {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
@@ -239,4 +250,21 @@ function Stat({ label, value, unit, tone }: { label: string; value: string; unit
       </dd>
     </div>
   );
+}
+
+const WIDE = "(min-width: 1024px)";
+const subscribe = (cb: () => void) => {
+  const m = window.matchMedia(WIDE);
+  m.addEventListener("change", cb);
+  return () => m.removeEventListener("change", cb);
+};
+
+/**
+ * Laptops get the pinned hike that the scrollbar drives; phones keep the
+ * self-playing card, which fits a small screen and a thumb.
+ */
+export function Record() {
+  const wide = useSyncExternalStore(subscribe, () => window.matchMedia(WIDE).matches, () => false);
+  const reduce = useReducedMotion();
+  return wide && !reduce ? <RecordPinned /> : <RecordAuto />;
 }

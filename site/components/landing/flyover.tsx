@@ -1,8 +1,10 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from "motion/react";
 import { useMemo, useRef } from "react";
 
+import FlowField from "@/components/kokonutui/flow-field";
 import { LineChart } from "@/components/charts/line-chart";
 import { ParticleLine } from "@/components/charts/particle-line";
 import { TRAILS } from "@/lib/trails";
@@ -42,13 +44,19 @@ export function Flyover() {
         <img alt="" className="size-full object-cover opacity-55" loading="lazy" src="/photos/mount-rainier.jpg" />
       </motion.div>
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(120%_80%_at_70%_40%,transparent,rgba(12,14,13,0.75)_55%,#0c0e0d_90%)]" />
+      {/* Wind over the ridge: streamlines part around the cursor. */}
+      <div aria-hidden className="absolute inset-0 text-[#d9925e]">
+        <FlowField className="opacity-60" density={0.8} interactive speed={0.8} />
+      </div>
       <div aria-hidden className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-paper/0 to-transparent" />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-16 px-5 py-28 sm:px-8 sm:py-40 lg:grid-cols-[1.1fr_0.9fr]">
         <div>
           <Step dark n={2} />
           <h2 className={`${H2} text-paper`}>
-            Then fly back over every step.
+            <WordsStagger inView stagger={0.06} speed={0.6}>
+              Then fly back over every step.
+            </WordsStagger>
           </h2>
           <div>
             <p className="mt-6 max-w-[34rem] text-[1.075rem] text-paper/75 leading-relaxed [text-wrap:pretty]">

@@ -1,5 +1,6 @@
 "use client";
 
+import { WordsStagger } from "@/components/spell/words-stagger";
 import ActivityTerrain from "@/components/kokonutui/activity-terrain";
 
 import { H2 } from "./reveal";
@@ -37,8 +38,10 @@ export function Year() {
         <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
           <div>
             <h2 className={`${H2} text-paper`}>
+            <WordsStagger inView stagger={0.06} speed={0.6}>
               A year you can turn in your hand.
-            </h2>
+            </WordsStagger>
+          </h2>
           </div>
           <div>
             <p className="max-w-lg text-[1.075rem] text-paper/80 leading-relaxed [text-wrap:pretty] lg:mb-2">
