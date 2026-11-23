@@ -10,7 +10,6 @@ import { Nav } from "@/components/landing/nav";
 import { Rank } from "@/components/landing/rank";
 import { Record } from "@/components/landing/record";
 import { SmoothScroll } from "@/components/landing/smooth";
-import { TrailMarquee } from "@/components/landing/marquee";
 import { Year } from "@/components/landing/year";
 
 export default function Home() {
@@ -26,7 +25,6 @@ export default function Home() {
         <Handoff label="Trailhead">
           <Hero />
         </Handoff>
-        <TrailMarquee />
         <Handoff label="Record" tone="none">
           <Record />
         </Handoff>
