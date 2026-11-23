@@ -25,7 +25,7 @@ export default function Home() {
         <Handoff label="Trailhead">
           <Hero />
         </Handoff>
-        <Handoff label="Record" tone="none">
+        <Handoff label="Record">
           <Record />
         </Handoff>
         <Handoff label="Fly back" tone="dark">

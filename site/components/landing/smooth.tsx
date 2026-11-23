@@ -17,10 +17,10 @@ export function scrollToTarget(el: HTMLElement) {
  * near the top of a section and the page settles onto it; stop anywhere else
  * and it stays put. Off under reduced motion.
  */
-export function SmoothScroll({ lerp = 0.08 }: { lerp?: number }) {
+export function SmoothScroll({ lerp = 0.13 }: { lerp?: number }) {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const lenis = new Lenis({ lerp, wheelMultiplier: 0.9 });
+    const lenis = new Lenis({ lerp, wheelMultiplier: 1.15, smoothWheel: true });
     current = lenis;
     let raf = 0;
     const tick = (t: number) => {
@@ -33,9 +33,9 @@ export function SmoothScroll({ lerp = 0.08 }: { lerp?: number }) {
     if (window.matchMedia("(min-width: 1024px) and (pointer: fine)").matches) {
       snap = new Snap(lenis, {
         type: "proximity",
-        distanceThreshold: "18%",
-        debounce: 380,
-        duration: 0.9,
+        distanceThreshold: "12%",
+        debounce: 450,
+        duration: 0.7,
         easing: (t) => 1 - Math.pow(1 - t, 4),
       });
     }
