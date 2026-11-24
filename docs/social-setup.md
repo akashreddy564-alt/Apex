@@ -11,6 +11,7 @@ Each social step adds a migration. You run them in the Supabase SQL Editor, the 
 | 6. Notifications, report and block | `supabase/migrations/013_notifications_and_safety.sql` | 012 |
 | Launch gaps: friends board, a friend's hikes | `supabase/migrations/016_friend_board_and_person_posts.sql` | 015 |
 | Launch gaps: schools and companies | `supabase/migrations/017_organizations.sql` | 016 |
+| Terms agreement | `supabase/migrations/018_terms.sql` | 017 |
 
 Each is safe to run more than once. After running one, run `supabase/checks/migration_status.sql` and check that every row says `true`.
 
@@ -47,3 +48,18 @@ People join their school's or company's board by verifying an email there. The a
 Until step 2 is done the app says "Email verification isn't switched on yet." Personal mail (Gmail, iCloud, Outlook and the rest in `apex_private.personal_domains`) is refused. The first verified person from a domain names the board; anyone verified there later joins it. Verifications last a year, and each person can be on 3 boards. To rename an organization or merge two domains, edit `organizations` / `organization_domains` in the table editor.
 
 The week share card uses `react-native-view-shot`, so rebuild the dev client once before trying it on a phone.
+
+## Terms (018)
+
+Apple asks apps where people post to have them agree to rules first (guideline 1.2). New accounts tick a box when they pick a username; accounts from before see a one-time "Agree and continue" card on Home and Social. After `018`, posting a hike or a comment without agreeing is refused. The rules live at `/terms` on the site (`site/app/terms`), next to `/privacy` and `/support`. The app links to them from `lib/legal.ts`; change `SITE_URL` there once the real domain exists.
+
+## App Review demo account
+
+Reviewers can't receive a sign-in email, so they sign in with a password from Settings → "Have a password? Sign in with it".
+
+1. Run `supabase/seed/test_hikers.sql` (all of it) so there are posts and the Test crew group.
+2. In **Authentication → Users → Add user**, create the reviewer with an email you control, a strong password and **Auto Confirm User** on.
+3. Put that email on the first line of `supabase/seed/app_review.sql` and run it. It checks itself: one row with `friends = 2` and `in_group = true`.
+4. Give the email and password to App Store Connect → **App Review Information**, with a note: "Sign in from Settings → Have a password? Sign in with it. Home shows friends' hikes; Social shows friends, a group and its leaderboard."
+
+Supabase must allow email + password sign-in (**Authentication → Providers → Email**, on by default). Turning off "Allow new users to sign up" doesn't affect this account.

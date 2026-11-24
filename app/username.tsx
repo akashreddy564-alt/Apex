@@ -6,6 +6,7 @@ import { ScrollView, Text, TextInput, View } from 'react-native';
 import { Skeleton } from '@/components/motion';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { GateCard } from '@/components/social/SignInGate';
+import { TermsCheckbox } from '@/components/social/TermsAgreement';
 import { useColors } from '@/hooks/useColors';
 import { profileKey, useMyProfile } from '@/hooks/useProfile';
 import { saveProfile } from '@/lib/profile';
@@ -31,6 +32,7 @@ export default function UsernameScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [filled, setFilled] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   // Start from the saved profile, or a guess from the email.
   useEffect(() => {
@@ -58,7 +60,12 @@ export default function UsernameScreen() {
     );
   }
 
-  const problem = usernameProblem(username) ?? displayNameProblem(name);
+  // New accounts agree to the terms here; older ones agree on a card (SignInGate).
+  const needsTerms = !profile;
+  const problem =
+    usernameProblem(username) ??
+    displayNameProblem(name) ??
+    (needsTerms && !agreed ? 'Agree to the terms to continue.' : null);
   const shown = touched ? (message ?? problem) : message;
 
   const save = async () => {
@@ -67,7 +74,7 @@ export default function UsernameScreen() {
     setBusy(true);
     setMessage(null);
     try {
-      const result = await saveProfile(uid, username, name);
+      const result = await saveProfile(uid, username, name, needsTerms && agreed);
       if (!result.ok) {
         setMessage(result.message);
         return;
@@ -148,6 +155,18 @@ export default function UsernameScreen() {
       >
         {shown ?? 'Letters, numbers and underscores.'}
       </Text>
+
+      {needsTerms ? (
+        <View className="mt-4">
+          <TermsCheckbox
+            checked={agreed}
+            onChange={(next) => {
+              setAgreed(next);
+              setMessage(null);
+            }}
+          />
+        </View>
+      ) : null}
 
       <View className="mt-6">
         <PrimaryButton label={profile ? 'Save' : 'Continue'} busy={busy} onPress={() => void save()} />

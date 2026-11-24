@@ -60,6 +60,9 @@ from (values
                                            and coalesce(has_table_privilege('authenticated', to_regclass('public.organization_members'), 'select'), false)
                                            and to_regprocedure('public.confirm_org_code(text)') is not null
                                            and to_regprocedure('public.organization_board(uuid, text)') is not null
-                                           and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.issue_org_code(uuid, text)'), 'execute'), false))
+                                           and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.issue_org_code(uuid, text)'), 'execute'), false)),
+  (24, '018 terms',                       exists (select 1 from information_schema.columns
+                                           where table_schema = 'public' and table_name = 'profiles' and column_name = 'terms_accepted_at')
+                                           and exists (select 1 from pg_trigger where tgname = 'post_comments_require_terms'))
 ) as checks (n, step, ok)
 order by n;

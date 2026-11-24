@@ -39,6 +39,9 @@ export function apiError(error: unknown): AppError {
     const action = match?.[1] ?? '';
     return new AppError(RATE_MESSAGES[action] ?? 'Slow down a little. Try again in a few minutes.', 'rate_limited');
   }
+  if (/terms_required/.test(message)) {
+    return new AppError('Agree to Apex’s terms first. You’ll find them on Social.', 'other');
+  }
   if (isOffline(error)) return new AppError('You’re offline. It will go through when you reconnect.', 'offline');
   return new AppError(message || 'Something went wrong. Try again.', 'other');
 }
