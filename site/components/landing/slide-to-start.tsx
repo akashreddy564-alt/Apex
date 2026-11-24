@@ -58,14 +58,27 @@ export function SlideToStart({ onState }: { onState?: (state: HikeState) => void
 
   useEffect(() => onState?.(state), [state, onState]);
 
-  // Until someone tries it, the knob gives a small nudge every few seconds.
+  // Until someone tries it, the knob buzzes like a phone (a quick, tight
+  // shake), then leans right to show which way to slide. Soon after load,
+  // then every few seconds.
+  const buzz = useMotionValue(0);
   useEffect(() => {
     if (touched || reduce || state !== "idle" || max === 0) return;
-    const id = window.setInterval(() => {
-      void animate(x, [0, 18, 0], { duration: 0.9, ease: EASE_OUT });
-    }, 4200);
-    return () => window.clearInterval(id);
-  }, [touched, reduce, state, max, x]);
+    const hint = () => {
+      void animate(buzz, [0, -6, 6, -5, 5, -3, 3, 0], { duration: 0.4, ease: "linear" });
+      void animate(x, [0, 3, -3, 3, -3, 2, -2, 0, 20, 0], {
+        duration: 1.15,
+        times: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.6, 1],
+        ease: "easeOut",
+      });
+    };
+    const first = window.setTimeout(hint, 1800);
+    const id = window.setInterval(hint, 3600);
+    return () => {
+      window.clearTimeout(first);
+      window.clearInterval(id);
+    };
+  }, [touched, reduce, state, max, x, buzz]);
 
   const start = () => {
     if (state !== "idle") return;
@@ -119,7 +132,7 @@ export function SlideToStart({ onState }: { onState?: (state: HikeState) => void
                 start();
               }
             }}
-            style={{ x }}
+            style={{ x, rotate: buzz }}
             type="button"
             whileTap={{ scale: 0.94 }}
           >
