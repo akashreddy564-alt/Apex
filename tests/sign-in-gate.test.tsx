@@ -1,6 +1,8 @@
 import { Text } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
 import { SignInGate } from '@/components/social/SignInGate';
 
 const mockPush = jest.fn();
@@ -10,7 +12,13 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 let mockState: Record<string, unknown> = {};
-jest.mock('@/hooks/useProfile', () => ({ useMyProfile: () => mockState }));
+jest.mock('@/hooks/useProfile', () => ({ useMyProfile: () => mockState, profileKey: (id: string) => ['profile', id] }));
+const mockAccept = jest.fn();
+jest.mock('@/lib/profile', () => ({ acceptTerms: (...args: unknown[]) => mockAccept(...args) }));
+jest.mock('expo-web-browser', () => ({ openBrowserAsync: jest.fn(async () => undefined) }));
+
+const client = new QueryClient({ defaultOptions: { queries: { gcTime: Infinity, retry: false } } });
+afterAll(() => client.clear());
 
 const base = { configured: true, session: null, profile: null, loading: false, error: null, refetch: jest.fn() };
 
@@ -18,7 +26,9 @@ function render() {
   let tree!: ReactTestRenderer;
   act(() => {
     tree = create(
-      <SignInGate why="see friends">{(profile) => <Text>{`hello ${profile.username}`}</Text>}</SignInGate>,
+      <QueryClientProvider client={client}>
+        <SignInGate why="see friends">{(profile) => <Text>{`hello ${profile.username}`}</Text>}</SignInGate>
+      </QueryClientProvider>,
     );
   });
   return tree;
@@ -54,7 +64,21 @@ it('shows the content once there is a profile', () => {
   mockState = {
     ...base,
     session: { user: { id: 'u1' } },
-    profile: { id: 'u1', username: 'maya_c', display_name: 'Maya', created_at: '' },
+    profile: { id: 'u1', username: 'maya_c', display_name: 'Maya', created_at: '', terms_accepted: true },
   };
   expect(texts(render()).join(' ')).toContain('maya_c');
+});
+
+it('asks an older account to agree to the terms once, then shows the content', async () => {
+  mockState = {
+    ...base,
+    session: { user: { id: 'u1' } },
+    profile: { id: 'u1', username: 'maya_c', display_name: 'Maya', created_at: '', terms_accepted: false },
+  };
+  mockAccept.mockResolvedValueOnce({ id: 'u1', username: 'maya_c', display_name: 'Maya', created_at: '', terms_accepted: true });
+  const tree = render();
+  expect(texts(tree).join(' ')).toContain('One thing before you post');
+  expect(texts(tree).join(' ')).not.toContain('hello maya_c');
+  await act(async () => button(tree, 'Agree and continue').props.onPress());
+  expect(mockAccept).toHaveBeenCalledWith('u1');
 });

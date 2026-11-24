@@ -8,8 +8,11 @@
     "scheme": "apex",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.apex.trails"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.apex.trails",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

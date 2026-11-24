@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
@@ -5,8 +6,9 @@ import { Text, View } from 'react-native';
 import { ContourTexture, Eyebrow } from '@/components/motion';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
-import { useMyProfile } from '@/hooks/useProfile';
-import type { Profile } from '@/lib/profile';
+import { profileKey, useMyProfile } from '@/hooks/useProfile';
+import { acceptTerms, type Profile } from '@/lib/profile';
+import { TermsSummary } from '@/components/social/TermsAgreement';
 import { cardStyle, fonts } from '@/theme/tokens';
 
 /** The gate's card (also used for other empty and dead-end screens): contour lines across the whole card behind an eyebrow, title and one plain sentence. */
@@ -86,5 +88,35 @@ export function SignInGate({
       </GateCard>
     );
   }
+  if (!profile.terms_accepted) {
+    return <TermsGate profile={profile} />;
+  }
   return <>{children(profile)}</>;
+}
+
+/** Accounts from before the terms agree once before using social features. */
+function TermsGate({ profile }: { profile: Profile }) {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const c = useColors();
+  const agree = async () => {
+    setBusy(true);
+    setProblem(null);
+    try {
+      const next = await acceptTerms(profile.id);
+      if (next) queryClient.setQueryData(profileKey(profile.id), next);
+    } catch (e) {
+      setProblem(e instanceof Error ? e.message : 'Couldn’t save that. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <GateCard eyebrow="Terms" title="One thing before you post" body="Apex has a few rules for what people share with friends.">
+      <TermsSummary />
+      {problem ? <Text style={{ color: c.disliked, fontFamily: fonts.ui, fontSize: 14 }}>{problem}</Text> : null}
+      <PrimaryButton label="Agree and continue" busy={busy} onPress={() => void agree()} />
+    </GateCard>
+  );
 }

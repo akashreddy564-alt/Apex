@@ -65,7 +65,12 @@ export function Footer() {
           </a>
           . Trail data © OpenStreetMap contributors. Sounds: UI SFX (CC0).
         </p>
-        <p>© 2026 Apex</p>
+        <nav aria-label="Legal" className="flex gap-5">
+          <a className="link-draw text-paper/80 hover:text-paper" href="/privacy">Privacy</a>
+          <a className="link-draw text-paper/80 hover:text-paper" href="/terms">Terms</a>
+          <a className="link-draw text-paper/80 hover:text-paper" href="/support">Support</a>
+          <span>© 2026 Apex</span>
+        </nav>
       </div>
       <motion.p
         aria-hidden

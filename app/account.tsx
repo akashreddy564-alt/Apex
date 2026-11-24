@@ -83,6 +83,9 @@ export default function AccountScreen() {
   const [address, setAddress] = useState('');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState('');
+  // Password sign-in exists for App Review's demo account; everyone else uses the link.
+  const [withPassword, setWithPassword] = useState(false);
+  const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -153,6 +156,20 @@ export default function AccountScreen() {
     }
   };
 
+  const signInWithPassword = async () => {
+    const next = address.trim().toLowerCase();
+    if (!next || !password) return;
+    setBusy(true);
+    setStatus(null);
+    try {
+      const { error } = await client.auth.signInWithPassword({ email: next, password });
+      if (error) setStatus(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : apiError(error).message);
+      else setPassword('');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const sync = async () => {
     setBusy(true);
     try {
@@ -217,10 +234,51 @@ export default function AccountScreen() {
               className="mt-4 rounded-2xl border border-raised bg-bg px-4 text-fg"
               style={{ fontFamily: fonts.ui, fontSize: 16, minHeight: 48 }}
             />
+            {withPassword ? (
+              <TextInput
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholder="Password"
+                placeholderTextColor={c.fgFaint}
+                accessibilityLabel="Password"
+                textContentType="password"
+                autoComplete="password"
+                returnKeyType="go"
+                onSubmitEditing={() => void signInWithPassword()}
+                className="mt-3 rounded-2xl border border-raised bg-bg px-4 text-fg"
+                style={{ fontFamily: fonts.ui, fontSize: 16, minHeight: 48 }}
+              />
+            ) : null}
             <View className="mt-3">
-              <PrimaryButton label="Send magic link" busy={busy} onPress={() => void sendLink()} />
+              {withPassword ? (
+                <PrimaryButton
+                  label="Sign in"
+                  a11y="Sign in with password"
+                  busy={busy}
+                  disabled={!address.trim() || !password}
+                  onPress={() => void signInWithPassword()}
+                />
+              ) : (
+                <PrimaryButton label="Send magic link" busy={busy} onPress={() => void sendLink()} />
+              )}
             </View>
-            {sentTo ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setWithPassword((on) => !on);
+                setStatus(null);
+              }}
+              hitSlop={8}
+              className="mt-3 self-start active:opacity-60"
+            >
+              <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 }}>
+                {withPassword ? 'Use a magic link instead' : 'Have a password? Sign in with it'}
+              </Text>
+            </Pressable>
+            {!withPassword && sentTo ? (
               <View className="mt-4 flex-row gap-2">
                 <TextInput
                   value={code}
