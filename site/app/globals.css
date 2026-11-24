@@ -399,3 +399,20 @@ h2,
 h3 {
   text-wrap: balance;
 }
+
+/* "Slide to start this hike": light sweeps across the label, as on iOS. */
+.slide-shimmer {
+  background: linear-gradient(100deg, rgba(28, 33, 30, 0.55) 40%, rgba(28, 33, 30, 0.95) 50%, rgba(28, 33, 30, 0.55) 60%);
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: slide-shimmer 2.6s linear infinite;
+}
+@keyframes slide-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -50% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide-shimmer { animation: none; }
+}

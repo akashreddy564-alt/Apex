@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from "motion/react";
-import { type ReactNode, useRef } from "react";
+import { type ReactNode, useRef, useState } from "react";
 
 import AttractButton from "@/components/kokonutui/attract-button";
 import SplitFlapText from "@/components/kokonutui/split-flap-text";
@@ -10,6 +10,7 @@ import TopoBackground from "@/components/kokonutui/topo-background";
 import { AppleMark } from "./icons";
 import { Phone, Shot } from "./phone";
 import { EASE_OUT, HeroWords } from "./reveal";
+import { type HikeState, SlideToStart, StartBurst } from "./slide-to-start";
 import { sfx } from "./sound";
 import { HighlightedText } from "@/components/spell/highlighted-text";
 
@@ -25,6 +26,7 @@ export function Hero() {
   const phoneY = useTransform(p, [0, 1], [0, reduce ? 0 : 90]);
   // The phone rests at a slight slant and swings the other way as you scroll past.
   const phoneRotate = useTransform(p, [0, 1], [reduce ? 0 : -4, reduce ? 0 : 6]);
+  const [hike, setHike] = useState<HikeState>("idle");
 
   return (
     <section className="relative" id="top" ref={ref}>
@@ -107,13 +109,30 @@ export function Hero() {
                 initial={reduce ? false : { opacity: 0, y: 60, scale: 0.96 }}
                 transition={{ duration: 1.1, delay: 0.12, ease: EASE_OUT }}
               >
-                <Phone>
-                  <Shot alt="The Apex trail page for Angels Landing with its elevation profile" priority src="/screens/light-07-trail-page.png" />
-                </Phone>
+                <motion.div
+                  animate={hike === "idle" || reduce ? { scale: 1 } : { scale: [1, 1.05, 0.99, 1] }}
+                  className="relative"
+                  transition={{ duration: 0.7, times: [0, 0.25, 0.7, 1], ease: "easeOut" }}
+                >
+                  <StartBurst active={hike !== "idle"} />
+                  <Phone>
+                    <Shot alt="The Apex trail page for Angels Landing with its elevation profile" priority src="/screens/light-07-trail-page.png" />
+                    {/* The screenshot's slider, made real: drag it to start a hike. */}
+                    <div className="absolute inset-0 [container-type:inline-size]">
+                      <SlideToStart onState={setHike} />
+                    </div>
+                  </Phone>
+                </motion.div>
               </motion.div>
             </motion.div>
 
-            <motion.div className="pointer-events-none absolute inset-0" style={{ y: phoneY }}>
+            {/* The chips step aside while a hike is recording, so they don't cover its numbers. */}
+            <motion.div
+              animate={{ opacity: hike === "idle" ? 1 : 0 }}
+              className="pointer-events-none absolute inset-0"
+              style={{ y: phoneY }}
+              transition={{ duration: 0.3, ease: EASE_OUT }}
+            >
               <FloatChip className="-left-6 top-[52%] sm:-left-28" delay={0.95}>
                 <span className="size-2 rounded-full bg-climb" />
                 <span className="font-display font-bold text-ink">1,638 ft</span>
