@@ -13,6 +13,7 @@ import {
   FEED_PAGE_SIZE,
   fetchComments,
   fetchFeedPage,
+  fetchPersonPage,
   fetchPost,
   type FeedPost,
   type PostComment,
@@ -65,6 +66,34 @@ export function useFeed() {
     },
     loadingMore: query.isFetchingNextPage,
     hasMore: query.hasNextPage,
+  };
+}
+
+/**
+ * One person's posts for their page. Keyed under "feed" so likes made here
+ * or on Home update both at once.
+ */
+export function usePersonPosts(person: string | undefined, enabled: boolean) {
+  const { session } = useAuth();
+  const uid = session?.user.id ?? null;
+  const query = useInfiniteQuery({
+    queryKey: ['feed', 'person', uid, person],
+    queryFn: ({ pageParam }: { pageParam: string | null }) => fetchPersonPage(person as string, pageParam),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last: FeedPost[]) =>
+      last.length < FEED_PAGE_SIZE ? undefined : (last[last.length - 1]?.postedAt ?? undefined),
+    enabled: enabled && uid !== null && Boolean(person),
+  });
+  return {
+    posts: query.data?.pages.flat() ?? [],
+    loading: enabled && uid !== null && query.isPending,
+    error: query.error ? query.error.message : null,
+    refetch: query.refetch,
+    loadMore: () => {
+      if (query.hasNextPage && !query.isFetchingNextPage) void query.fetchNextPage();
+    },
+    hasMore: query.hasNextPage,
+    loadingMore: query.isFetchingNextPage,
   };
 }
 

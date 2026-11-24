@@ -139,6 +139,8 @@ export default function RootLayout() {
               <Stack.Screen name="create-group" options={{ title: 'New group', headerBackTitle: 'Social' }} />
               <Stack.Screen name="join-group" options={{ title: 'Join a group', headerBackTitle: 'Social' }} />
               <Stack.Screen name="group/[id]" options={{ title: '', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="verify-org" options={{ title: 'School or work', headerBackTitle: 'Social' }} />
+              <Stack.Screen name="org/[id]" options={{ title: '', headerBackTitle: 'Social' }} />
               <Stack.Screen name="notifications" options={{ title: 'Notifications', headerBackTitle: 'Home' }} />
               <Stack.Screen name="report" options={{ title: 'Report', presentation: 'modal' }} />
               <Stack.Screen name="blocked" options={{ title: 'Blocked people', headerBackTitle: 'Settings' }} />

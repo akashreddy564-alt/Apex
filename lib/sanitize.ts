@@ -22,6 +22,7 @@ export const LIMITS = {
   reportDetails: { max: 1000, multiline: true },
   displayName: { max: 40 },
   groupName: { max: 40 },
+  orgName: { max: 60 },
   trailName: { max: 80 },
   search: { max: 40 },
 } as const satisfies Record<string, TextRules>;
