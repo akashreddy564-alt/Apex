@@ -66,6 +66,7 @@ from (values
                                            and exists (select 1 from pg_trigger where tgname = 'post_comments_require_terms')),
   (25, '019 friend trails',               exists (select 1 from pg_policies
                                            where schemaname = 'public' and tablename = 'trails'
-                                             and policyname = 'trails_select_catalog_own_or_friend'))
+                                             and policyname = 'trails_select_catalog_own_or_friend')),
+  (26, '020 account deletion skips storage', position('storage.objects' in pg_get_functiondef('public.delete_own_account()'::regprocedure)) = 0)
 ) as checks (n, step, ok)
 order by n;
