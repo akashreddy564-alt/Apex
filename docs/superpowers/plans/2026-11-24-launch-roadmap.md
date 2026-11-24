@@ -68,7 +68,7 @@ Owner actions are marked **(owner)**.
    - Flyover: 60 fps, export and memory.
    - The terms card and checkbox.
 7. **Mapbox token, bundle id `com.apex.trails`, and EAS production env vars (owner).** See `docs/RELEASING.md` and `docs/security.md`.
-8. **Listing (owner, with builder help):** iPhone screenshots, privacy labels (location, photos, email, user content), an age rating for user content, and a review note about background location while recording.
+8. **Listing (owner):** paste from `docs/app-store-listing.md` (name, subtitle, description, keywords, privacy labels, age-rating answers, review notes), and add 6.9" iPhone screenshots. The privacy manifest (required-reason APIs from every native dependency) is already in `app.json`.
 9. **TestFlight**, with friends testing on their own phones, **then submit.** Run `npm run build:prod` and `npm run submit:ios`, and add `ascAppId` to `eas.json`.
 10. **Link the site:** point the three "Download now" buttons at the App Store URL.
 

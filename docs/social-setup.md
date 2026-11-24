@@ -60,6 +60,6 @@ Reviewers can't receive a sign-in email, so they sign in with a password from Se
 1. Run `supabase/seed/test_hikers.sql` (all of it) so there are posts and the Test crew group.
 2. In **Authentication → Users → Add user**, create the reviewer with an email you control, a strong password and **Auto Confirm User** on.
 3. Put that email on the first line of `supabase/seed/app_review.sql` and run it. It checks itself: one row with `friends = 2` and `in_group = true`.
-4. Give the email and password to App Store Connect → **App Review Information**, with a note: "Sign in from Settings → Have a password? Sign in with it. Home shows friends' hikes; Social shows friends, a group and its leaderboard."
+4. Give the email and password to App Store Connect → **App Review Information**, with a note: "On the Log tab, tap the profile button, then Have a password? Sign in with it. Home shows friends' hikes; Social shows friends, a group and its leaderboard."
 
 Supabase must allow email + password sign-in (**Authentication → Providers → Email**, on by default). Turning off "Allow new users to sign up" doesn't affect this account.
