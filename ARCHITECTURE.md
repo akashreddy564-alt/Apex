@@ -2,76 +2,45 @@
 
 ```
 /
-├── .cursorrules
-├── app.json
-├── babel.config.js
-├── metro.config.js
-├── tailwind.config.js
-├── global.css
-├── nativewind-env.d.ts
-├── package.json
-├── README.md
+├── app.json · app.config.ts · eas.json      # Expo config; app.config.ts only swaps a local bundle id
+├── AGENTS.md / CLAUDE.md                   # rules for coding agents (Expo docs, how we check)
+│
+├── app/                                    # expo-router screens
+│   ├── _layout.tsx                         # providers, stack and screen titles
+│   ├── (tabs)/                             # Home (feed + habit cards) · Log (record, rank) · Social
+│   ├── trail/[id].tsx · trails.tsx         # trail page, catalog search
+│   ├── flyover/[logId].tsx                 # 3D route flyover and video share
+│   ├── post/[id].tsx                       # one hike with likes and comments
+│   ├── friend/[id].tsx                     # a person, with their hikes when you're friends
+│   ├── add-friends · friend-requests       # search, QR, invite links, requests
+│   ├── group/[id] · create-group · join-group
+│   ├── org/[id] · verify-org               # verified school or company boards
+│   ├── notifications · report · blocked
+│   ├── account · username · goal · rankings · credits · delete-account
+│
+├── components/                             # by area
+│   ├── feed/ · social/ · groups/           # PostCard, SignInGate, TermsAgreement, WeekCard, Leaderboard…
+│   ├── trail/ · ranking/ · score/ · log/   # trail detail, ranking sheet, score badge, recording UI
+│   ├── flyover/ · opening/ · habit/        # flyover WebView, opening screen, streak/goal/pick
+│   ├── safety/ · settings/ · craft/        # report and block, settings rows, polished cards
+│   └── motion/                             # haptics, CountUp, GrowBar, Skeleton, ContourTexture…
+│
+├── hooks/                                  # TanStack Query data hooks (feed, friends, groups,
+│                                           # organizations, notifications) and device hooks
+├── lib/                                    # pure rules with node tests (*Rules.ts, ranking, streak,
+│                                           # weekRecap, orgRules…), Supabase clients, remoteSync
+├── stores/                                 # Zustand: trail cache, rankings, goal, settings
+├── data/                                   # catalog trails, opening-screen places
+├── tests/                                  # jest screen tests
 │
 ├── supabase/
-│   └── migrations/
-│       ├── 001_initial_schema.sql      # trails, hike_logs, trail_rankings, pairwise
-│       ├── 002_hike_photos_storage.sql # private hike-photos bucket
-│       ├── 003_geojson_views.sql       # trails_api / hike_logs_api
-│       ├── 004_delete_own_account.sql  # immediate account removal
-│       └── 005_bucket_ranking.sql      # drop Elo; bucket + fractional position
+│   ├── migrations/                         # 001–018, run in order (see README)
+│   ├── checks/                             # migration_status.sql, open_reports.sql
+│   ├── seed/                               # test hikers, App Review account, catalog trails
+│   └── functions/org-verify/               # emails school/work codes through Resend
 │
-├── types/
-│   └── trail.ts                        # Trail, HikeLog, TrailRanking, ComparisonRound…
-│
-├── lib/
-│   ├── ranking.ts                      # bucket insert, score, undo, fractional keys
-│   ├── format.ts                       # duration / elevation / distance formatters
-│   ├── geo.ts                          # uuid, EWKT, haversine
-│   ├── hikePhotos.ts                   # stripped JPEG file URI or hike-photos bucket ref
-│   ├── locationTask.ts                 # native background location task
-│   ├── photoEncode.ts                  # re-encode via ImageManipulator, reject EXIF
-│   ├── remoteSync.ts                   # optional Supabase pull / push
-│   └── supabase.ts                     # client (env + local mock fallback)
-│
-├── data/
-│   └── mockTrails.ts                   # seeded Bay Area / Cascades trails + profiles
-│
-├── stores/
-│   ├── trailCache.ts                   # Zustand offline trail + log cache
-│   ├── rankingStore.ts                 # bucket order + comparison log
-│   └── comparisonStore.ts              # pairwise comparison history
-│
-├── hooks/
-│   ├── useTrailTracker.ts              # active hike session (duration, notes, photos)
-│   ├── useHikePhotos.ts                # library / camera → log photo refs
-│   ├── useAuth.ts                      # magic-link session
-│   ├── useRemoteSync.ts                # hydrate caches when signed in
-│   ├── useLiveLocation.ts              # foreground watch or background task
-│   ├── useRankings.ts                  # ranked list + optimistic mutations
-│   └── useTrailComparison.ts           # bucket, then binary insert; save on Place
-│
-├── components/
-│   ├── trail/
-│   │   ├── CountUpText.tsx             # UI-thread count-up for telemetry
-│   │   ├── TelemetryRow.tsx            # dense mono telemetry grid
-│   │   ├── TrailCard.tsx               # list row (no card chrome bloat)
-│   │   ├── PhotoStrip.tsx              # hike photo thumbnails
-│   │   └── TrailMap.tsx                # canonical + recorded polyline
-│   └── ranking/
-│       ├── PairwiseModal.tsx           # swipeable “which was better?”
-│       └── LeaderboardReveal.tsx       # animated top-10 slot-in
-│
-└── app/                                # expo-router
-    ├── _layout.tsx                     # providers (Query, Gesture, dark theme)
-    ├── +html.tsx
-    ├── +not-found.tsx
-    ├── (tabs)/
-    │   ├── _layout.tsx                 # Home / Log / Rankings
-    │   ├── index.tsx                   # trail feed
-    │   ├── log.tsx                     # finish hike → triggers ranking modal
-    │   └── rankings.tsx                # personal top trails
-    └── trail/
-        └── [id].tsx                    # Trail Detail + elevation profile
+├── site/                                   # Next.js landing page (Vercel), incl. /privacy /terms /support
+└── docs/                                   # setup, security, releasing, specs and plans
 ```
 
 ## Data flow (ranking)
