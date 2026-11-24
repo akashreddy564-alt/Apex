@@ -53,6 +53,13 @@ from (values
                                            and exists (select 1 from pg_trigger where tgname = 'post_likes_rate')
                                            and exists (select 1 from pg_constraint where conname = 'hike_logs_notes_check')),
   (21, '015 safety fixes',               to_regprocedure('apex_private.board_gain(uuid, integer, geography)') is not null
-                                           and to_regprocedure('public.counted_gain(uuid, integer, boolean)') is null)
+                                           and to_regprocedure('public.counted_gain(uuid, integer, boolean)') is null),
+  (22, '016 friend board, person posts', to_regprocedure('public.friend_board(text, text)') is not null
+                                           and to_regprocedure('public.person_posts(uuid, timestamptz, integer)') is not null),
+  (23, '017 schools and companies',      to_regclass('public.organizations') is not null
+                                           and coalesce(has_table_privilege('authenticated', to_regclass('public.organization_members'), 'select'), false)
+                                           and to_regprocedure('public.confirm_org_code(text)') is not null
+                                           and to_regprocedure('public.organization_board(uuid, text)') is not null
+                                           and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.issue_org_code(uuid, text)'), 'execute'), false))
 ) as checks (n, step, ok)
 order by n;

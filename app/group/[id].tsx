@@ -1,10 +1,10 @@
 import * as Linking from 'expo-linking';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 
 import { GroupMark, groupColor } from '@/components/groups/GroupMark';
-import { Avatar } from '@/components/social/Avatar';
+import { Leaderboard, PeriodSwitch } from '@/components/groups/Leaderboard';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
@@ -12,7 +12,6 @@ import { useGroupActions, useGroupPage, useMyGroups } from '@/hooks/useGroups';
 import { formatDistance, formatElevation, MISSING_METRIC } from '@/lib/format';
 import {
   groupInvitePath,
-  PERIODS,
   periodLabel,
   spacedCode,
   togetherLine,
@@ -22,37 +21,7 @@ import {
   type Period,
 } from '@/lib/groups';
 import { fonts, numericStyle } from '@/theme/tokens';
-import { withAlpha } from '@/theme/color';
-import { CountUp, GrowBar, haptics } from '@/components/motion';
-
-const PERIOD_NAMES: Record<Period, string> = { week: 'Week', month: 'Month', year: 'Year' };
-
-function PeriodSwitch({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
-  const c = useColors();
-  return (
-    <View className="flex-row rounded-xl bg-surface p-1" accessibilityRole="tablist">
-      {PERIODS.map((option) => {
-        const on = option === period;
-        return (
-          <Pressable
-            key={option}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: on }}
-            onPress={() => {
-              haptics.select();
-              onChange(option);
-            }}
-            className={`flex-1 items-center rounded-lg py-2 ${on ? 'bg-fg' : ''}`}
-          >
-            <Text style={{ color: on ? c.bg : c.fgMuted, fontFamily: fonts.uiSemibold, fontSize: 13 }}>
-              {PERIOD_NAMES[option]}
-            </Text>
-          </Pressable>
-        );
-      })}
-    </View>
-  );
-}
+import { CountUp, haptics } from '@/components/motion';
 
 function Together({ summary, period }: { summary: GroupSummary; period: Period }) {
   const c = useColors();
@@ -124,10 +93,7 @@ function StatCards({ summary }: { summary: GroupSummary }) {
 }
 
 function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) {
-  const c = useColors();
   const { remove } = useGroupActions();
-  const top = Math.max(1, ...rows.map((row) => row.gainM));
-
   const confirmRemove = (row: BoardRow) => {
     if (!group?.isOwner || row.isMe) return;
     haptics.tapMedium();
@@ -136,43 +102,14 @@ function Board({ rows, group }: { rows: BoardRow[]; group: Group | undefined }) 
       { text: 'Remove', style: 'destructive', onPress: () => group && remove(group.id, row.userId) },
     ]);
   };
-
   return (
     <View className="mt-7">
-      <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Elevation</Text>
-      <View className="mt-2">
-        {rows.map((row, index) => (
-          <Pressable
-            key={row.userId}
-            accessibilityLabel={`${row.place}. ${row.isMe ? 'You' : row.displayName}, ${formatElevation(row.gainM)}`}
-            accessibilityHint={group?.isOwner && !row.isMe ? 'Long press to remove from the group' : undefined}
-            onLongPress={() => confirmRemove(row)}
-            className="flex-row items-center gap-3 py-2"
-          >
-            <Text style={{ ...numericStyle('semibold'), width: 22, color: c.fgMuted, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
-              {row.place}
-            </Text>
-            <Avatar name={row.displayName} size={34} />
-            <View className="flex-1">
-              <View className="flex-row items-baseline justify-between gap-2">
-                <Text numberOfLines={1} style={{ flexShrink: 1, color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }}>
-                  {row.isMe ? 'You' : row.displayName}
-                </Text>
-                <Text style={{ ...numericStyle('semibold'), color: c.climb, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
-                  {formatElevation(row.gainM)}
-                </Text>
-              </View>
-              <View className="mt-1.5">
-                <GrowBar fraction={row.gainM / top} index={index} color={row.isMe ? c.climb : withAlpha(c.climb, 0.4)} track={c.raised} />
-              </View>
-            </View>
-          </Pressable>
-        ))}
-      </View>
-      <Text style={{ color: c.fgFaint, fontFamily: fonts.ui, fontSize: 12, lineHeight: 17, marginTop: 8 }}>
-        Recorded hikes only. Weeks run Monday to Sunday.
-        {group?.isOwner ? ' Long-press someone to remove them.' : ''}
-      </Text>
+      <Leaderboard
+        rows={rows}
+        onLongPressRow={confirmRemove}
+        longPressHint={(row) => (group?.isOwner && !row.isMe ? 'Long press to remove from the group' : undefined)}
+        footnote={`Recorded hikes only. Weeks run Monday to Sunday.${group?.isOwner ? ' Long-press someone to remove them.' : ''}`}
+      />
     </View>
   );
 }

@@ -77,3 +77,10 @@ export async function removeMember(groupId: string, member: string): Promise<voi
 export function groupInvitePath(code: string): string {
   return `/join-group?code=${code}`;
 }
+
+/** You and your friends by recorded climb, in this phone's time zone. */
+export async function fetchFriendBoard(period: Period): Promise<BoardRow[]> {
+  const { data, error } = await client().rpc('friend_board', { period, tz: deviceTimeZone() });
+  if (error) throw apiError(error);
+  return list(data, mapBoardRow);
+}

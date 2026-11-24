@@ -29,6 +29,13 @@ export async function fetchFeedPage(before: string | null): Promise<FeedPost[]> 
   return rows(data);
 }
 
+/** One person's posts for their page: yourself or a friend. */
+export async function fetchPersonPage(person: string, before: string | null): Promise<FeedPost[]> {
+  const { data, error } = await client().rpc('person_posts', { person, before, max_rows: FEED_PAGE_SIZE });
+  if (error) throw apiError(error);
+  return rows(data);
+}
+
 export async function fetchPost(id: string): Promise<FeedPost | null> {
   const { data, error } = await client().rpc('feed_posts', { before: null, max_rows: 1, only_post: id });
   if (error) throw apiError(error);

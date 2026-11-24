@@ -4,6 +4,9 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GroupsSection } from '@/components/groups/GroupsSection';
+import { FriendsBoard } from '@/components/social/FriendsBoard';
+import { OrganizationsSection } from '@/components/social/OrganizationsSection';
+import { WeekCard } from '@/components/social/WeekCard';
 import { Avatar } from '@/components/social/Avatar';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -36,6 +39,8 @@ function FriendsSection({ profile }: { profile: Profile }) {
           </Text>
         </View>
       </Pressable>
+
+      <WeekCard name={profile.display_name} />
 
       {incoming.length > 0 ? (
         <Pressable
@@ -112,7 +117,9 @@ function FriendsSection({ profile }: { profile: Profile }) {
         </Text>
       ) : null}
 
+      {friends.length > 0 ? <FriendsBoard /> : null}
       <GroupsSection />
+      <OrganizationsSection />
     </View>
   );
 }

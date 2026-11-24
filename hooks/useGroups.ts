@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   createGroup,
   fetchBoard,
+  fetchFriendBoard,
   fetchMyGroups,
   fetchSummary,
   joinGroup,
@@ -124,5 +125,23 @@ export function usePrefetchGroup() {
     if (!uid) return;
     void queryClient.prefetchQuery({ queryKey: ['groupBoard', uid, groupId, 'week'], queryFn: () => fetchBoard(groupId, 'week') });
     void queryClient.prefetchQuery({ queryKey: ['groupSummary', uid, groupId, 'week'], queryFn: () => fetchSummary(groupId, 'week') });
+  };
+}
+
+/** You and your friends by recorded climb for a period. */
+export function useFriendBoard(period: Period) {
+  const { session } = useAuth();
+  const uid = session?.user.id ?? null;
+  const query = useQuery({
+    queryKey: ['friendBoard', uid, period],
+    queryFn: () => fetchFriendBoard(period),
+    enabled: uid !== null,
+    placeholderData: keepPreviousData,
+  });
+  return {
+    board: query.data ?? [],
+    loading: uid !== null && query.data === undefined && query.isPending,
+    error: query.error ? query.error.message : null,
+    refetch: query.refetch,
   };
 }
