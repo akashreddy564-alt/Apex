@@ -170,7 +170,8 @@ begin
   insert into apex_private.org_code_sends (user_id) values (person);
   delete from apex_private.org_code_sends where user_id = person and at < now() - interval '1 day';
 
-  code := lpad((floor(random() * 1000000))::integer::text, 6, '0');
+  -- From pgcrypto's CSPRNG, not random(), so codes can't be predicted.
+  code := lpad(((('x' || encode(extensions.gen_random_bytes(4), 'hex'))::bit(32)::bigint % 1000000))::text, 6, '0');
   insert into apex_private.org_codes (user_id, domain, code_hash, expires_at, attempts, verified_domain, verified_until)
   values (person, d, encode(digest(person::text || ':' || code, 'sha256'), 'hex'), now() + interval '15 minutes', 0, null, null)
   on conflict (user_id) do update set
