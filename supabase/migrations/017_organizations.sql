@@ -77,8 +77,10 @@ stable
 security definer
 set search_path = public
 as $$
+  -- Only a verification from the last year opens the board.
   select exists (
-    select 1 from public.organization_members where organization_id = o and user_id = auth.uid()
+    select 1 from public.organization_members
+    where organization_id = o and user_id = auth.uid() and verified_at > now() - interval '1 year'
   );
 $$;
 
@@ -90,7 +92,9 @@ create policy "organizations_select_members"
 drop policy if exists "organization_members_select_members" on public.organization_members;
 create policy "organization_members_select_members"
   on public.organization_members for select to authenticated
-  using (public.is_org_member(organization_id));
+  -- Your own rows only. Other members are seen through organization_board(),
+  -- which applies blocks and the one-year limit.
+  using (user_id = auth.uid());
 
 grant select on public.organizations to authenticated;
 grant select on public.organization_members to authenticated;
