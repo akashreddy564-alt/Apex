@@ -1,5 +1,7 @@
 # Apex iPhone launch roadmap
 
+> **Current status lives in [`2026-11-24-launch-roadmap.md`](2026-11-24-launch-roadmap.md).** This file keeps the plans and the "How we check" rules.
+
 **Spec:** `docs/superpowers/specs/2026-10-16-apex-launch-design.md`
 
 The spec covers several independent subsystems, so it ships as separate plans. Each plan produces working, tested software on its own and lands as its own PR(s) based on main. Detailed plans are written when their turn comes, against the code as it is then.

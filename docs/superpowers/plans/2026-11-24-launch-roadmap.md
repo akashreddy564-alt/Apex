@@ -80,7 +80,7 @@ Owner actions are marked **(owner)**.
 - Weekend pick using friends' rankings.
 - Android, after iPhone. Google's 14-day closed test needs 12 testers, so it can start early.
 - Admin tools for organizations: rename or merge domains. Today this is done in the table editor.
-- Housekeeping: delete merged branches, `test-all`, `tmp/native-check2` and `lab/scroll-options`.
+- Housekeeping, done 2026-11-24: merged branches deleted locally and on GitHub. Branches with commits not in `main` are kept as tags (`archive/lab/scroll-options`, `archive/claude/roadmap-update-1fa555` and four old `archive/cursor/*` branches); restore one with `git switch -c <name> archive/<name>`.
 
 ## Suggested order
 
