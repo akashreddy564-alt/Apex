@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
 import { Glass } from '@/components/motion';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import { isCatalogTrail, OSM_CREDIT } from '@/lib/catalog';
@@ -53,6 +54,7 @@ function SuggestionCard({ suggestion, onPress }: { suggestion: TrailSuggestion; 
   const styles = useStyles();
   const c = useColors();
   const { trail, startDistanceM } = suggestion;
+  const addedBy = useTrailOwnerLabels()(trail);
   const cover = mapCoverUrl(trail.path, MAPBOX_TOKEN, { width: 600, height: 260 });
   const meta = [
     startLabel(startDistanceM),
@@ -86,7 +88,7 @@ function SuggestionCard({ suggestion, onPress }: { suggestion: TrailSuggestion; 
             {trail.name}
           </Text>
           <Text style={styles.region} numberOfLines={1}>
-            {trail.region}
+            {addedBy ? `${addedBy} · ${trail.region}` : trail.region}
           </Text>
           <Text style={styles.meta} numberOfLines={1}>
             {meta}
