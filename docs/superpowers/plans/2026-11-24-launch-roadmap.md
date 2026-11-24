@@ -18,7 +18,7 @@
   - iPhone only, with `ITSAppUsesNonExemptEncryption: false`.
 - **#55 and #56 (merged):** the landing site dropped the trail marquee and the pinned hike, and scrolls faster. It's live at https://apex-landing-kappa.vercel.app.
 
-**Checks on `f9f1a9e`:** typecheck is clean. `npm test` passes: 342 node tests and 30/30 jest suites (150 tests). Migrations `016`–`018` were run against the Apex project as the test hikers inside rolled-back transactions; they are **not applied**. No phone pass yet.
+**Checks on `f9f1a9e`:** typecheck is clean. `npm test` passes: 342 node tests and 30/30 jest suites (150 tests). Migrations `016`–`018` are **applied** to the Apex project (2026-11-24), `migration_status.sql` shows all 24 rows true, the test hikers are seeded (3 posts, Test crew) and `org-verify` is deployed. No phone pass yet.
 
 ## Roadmap at a glance
 
@@ -28,8 +28,8 @@
 | 1 | Opening screen | Done, phone check owed | Launch-screen timing on the phone |
 | 2 | Trail catalog and freeform hikes | Done, phone check owed | Finish → trail sheet on the phone |
 | 3 | Accounts, friends, feed, groups, safety | **Built, including the friends board and friends' hikes.** Phone check owed | Custom SMTP so others can sign in (owner). Run `016` and `018` |
-| 3b | Schools and companies | **Built** | Run `017`, add the Resend secrets, deploy `org-verify` (owner) |
-| 3c | Terms and App Review access | **Built** | Run `018`, create the reviewer, run `test_hikers.sql` then `app_review.sql` (owner) |
+| 3b | Schools and companies | **Built** | Add the Resend secrets (owner) |
+| 3c | Terms and App Review access | **Built** | Create the reviewer, then run `app_review.sql` (owner) |
 | 4 | Habit loops, plus the week share card | Built, phone check owed | Phone pass (dev client rebuild: `expo-notifications`, `react-native-view-shot`) |
 | 5 | Route flyover and video share | Built, phone check owed | Allow `https://flyover.apex.app/` on the Mapbox token (owner). 60 fps, export and memory checks |
 | 6a | Visual pass | Done in code | Look at the signed-in social screens in the phone pass |
@@ -54,10 +54,7 @@ Owner actions are marked **(owner)**.
 
 1. **Apple Developer enrollment (owner).** It can take days, so start it first.
 2. **Domain and Resend (owner).** Custom SMTP for sign-in (add `{{ .Token }}` to the templates), plus `RESEND_API_KEY` and `ORG_EMAIL_FROM` for `org-verify`. Until then, only the owner can sign in.
-3. **Database (owner).**
-   - Run `016`, `017` and `018`, then `supabase/checks/migration_status.sql` (rows 22–24 should be true).
-   - Run all of `supabase/seed/test_hikers.sql`; the live database has no Test crew or test posts yet.
-   - Deploy `org-verify` (`docs/social-setup.md`).
+3. **Database: done 2026-11-24.** `016`–`018` applied (24/24 checks true), test hikers seeded, `org-verify` deployed. It answers "not switched on yet" until the Resend secrets in step 2 exist.
 4. **Reviewer account (owner).** Create it with a password in Supabase Auth, put its email in `app_review.sql` and run it. Add the credentials and the note from `docs/social-setup.md` to App Review Information.
 5. **Support contact (owner, then builder).** Set `SUPPORT_EMAIL` in `site/lib/contact.ts`. When the domain exists, point `SITE_URL` in `lib/legal.ts` at it and deploy the site there.
 6. **Phone pass**, with the dev client rebuilt once. It covers:
