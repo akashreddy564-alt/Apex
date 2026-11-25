@@ -1,26 +1,26 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, CircleCheck, Compass } from 'lucide-react-native';
+import { Bell, CircleCheck, Search } from 'lucide-react-native';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, FlatList, Pressable, RefreshControl, ScrollView, Text, View, useWindowDimensions } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
-import { GoalRing } from '@/components/habit/GoalRing';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
-import { StreakChip } from '@/components/habit/StreakChip';
-import { WeekendPick } from '@/components/habit/WeekendPick';
+import { NearbyTrails } from '@/components/home/NearbyTrails';
+import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
+import { TopTrails } from '@/components/home/TopTrails';
+import { WeekHero } from '@/components/home/WeekHero';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
-import { SignInGate } from '@/components/social/SignInGate';
+import { SymbolIcon } from '@/components/SymbolIcon';
 import { useColors } from '@/hooks/useColors';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { useFeed, useLike } from '@/hooks/useFeed';
 import { useFriendships } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
-import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
 import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
@@ -56,14 +56,13 @@ function Header() {
       </View>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Browse trails"
-        onPress={() => router.push('/trails')}
+        accessibilityLabel="Search trails"
+        onPress={() => router.push({ pathname: '/trails', params: { focus: 'search' } })}
         hitSlop={8}
-        className="ml-auto flex-row items-center gap-1.5 active:opacity-70"
-        style={{ minHeight: 44 }}
+        className="ml-auto items-center justify-center active:opacity-70"
+        style={{ minHeight: 44, minWidth: 32 }}
       >
-        <Compass size={18} strokeWidth={1.6} color={c.fg2} />
-        <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>Trails</Text>
+        <SymbolIcon name="magnifyingglass" fallback={Search} size={21} color={c.fg2} />
       </Pressable>
       <Pressable
         accessibilityRole="button"
@@ -73,7 +72,7 @@ function Header() {
         className="ml-4 items-center justify-center active:opacity-70"
         style={{ minHeight: 44, minWidth: 32 }}
       >
-        <Bell size={20} strokeWidth={1.6} color={c.fg2} />
+        <SymbolIcon name="bell" fallback={Bell} size={21} color={c.fg2} />
         {unread > 0 ? (
           <View
             className="absolute rounded-full"
@@ -81,28 +80,6 @@ function Header() {
           />
         ) : null}
       </Pressable>
-    </View>
-  );
-}
-
-/**
- * This week at a glance: the streak and the goal ring, under a label so the
- * feet read as this week's goal, not a lifetime total. Hides until the first hike.
- */
-function ThisWeek() {
-  const c = useColors();
-  const { hasHiked } = useWeeklyGoal();
-  if (!hasHiked) return null;
-  return (
-    <View className="mt-2 flex-row flex-wrap items-center px-4" style={{ columnGap: 16, rowGap: 8 }}>
-      <Text
-        style={{ color: c.fgMuted, fontFamily: fonts.uiSemibold, fontSize: 11, letterSpacing: 1.2 }}
-        accessibilityRole="header"
-      >
-        THIS WEEK
-      </Text>
-      <StreakChip />
-      <GoalRing />
     </View>
   );
 }
@@ -205,7 +182,12 @@ function Feed() {
       </View>
     );
   } else {
-    empty = <EmptyFeed />;
+    empty = (
+      <View>
+        <NearbyTrails />
+        <EmptyFeed />
+      </View>
+    );
   }
 
   return (
@@ -233,11 +215,20 @@ function Feed() {
         <View>
           <HeaderContours />
           <Header />
-          <ThisWeek />
-          <WeekendPick />
+          <WeekHero />
+          <StartHikeCard />
+          <TopTrails />
           <View className="px-4">
             <NotificationAsk />
           </View>
+          {posts.length > 0 ? (
+            <Text
+              accessibilityRole="header"
+              style={{ marginHorizontal: 16, marginTop: 22, color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 16 }}
+            >
+              Friends
+            </Text>
+          ) : null}
         </View>
       }
       ListEmptyComponent={empty}
@@ -270,7 +261,10 @@ function HeaderContours() {
   );
 }
 
-/** Home: your and your friends' ranked hikes, newest first. */
+/**
+ * Home: this week, Start a hike, your top trails, then friends' ranked hikes
+ * (signed in) or trails near you and a sign-in strip (signed out).
+ */
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const tabInset = useTabBarInset();
@@ -282,9 +276,11 @@ export default function HomeScreen() {
     <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
       <HeaderContours />
       <Header />
-      <ThisWeek />
-      <WeekendPick />
-      <SignInGate why="see what your friends hiked">{() => null}</SignInGate>
+      <WeekHero />
+      <StartHikeCard />
+      <TopTrails />
+      <NearbyTrails />
+      <SignInStrip />
     </ScrollView>
   );
 }

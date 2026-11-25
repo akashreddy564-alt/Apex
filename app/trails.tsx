@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -45,6 +45,7 @@ export default function TrailsScreen() {
   const rankings = useRankingStore((s) => s.rankings);
   const logs = useTrailCache((s) => s.logs);
   const ready = useTrailsReady();
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [query, setQuery] = useState('');
   const searching = query.trim().length >= 2;
   const remote = useCatalogSearch(query);
@@ -98,6 +99,7 @@ export default function TrailsScreen() {
               autoCorrect={false}
               returnKeyType="search"
               accessibilityLabel="Search trails"
+              autoFocus={focus === 'search'}
               style={{ flex: 1, height: 46, color: c.fg, fontFamily: fonts.ui, fontSize: 16 }}
             />
           </View>
