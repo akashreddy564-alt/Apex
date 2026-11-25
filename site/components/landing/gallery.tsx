@@ -5,6 +5,7 @@ import {
   AnimatePresence,
   motion,
   type MotionValue,
+  useMotionValue,
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
@@ -51,20 +52,63 @@ const SLOTS = [
 ];
 const CENTRE = { x: SCENE.w / 2, y: 504.32 + 422.798 / 2 };
 const TILT = -27;
-/** Under reduced motion the ring rests here, a front card turned towards you. */
-const REST_ANGLE = -18;
 
-/** Which slot is nearest the viewer once the ring has turned by `deg`. */
-function frontSlot(deg: number) {
-  const a = (deg * Math.PI) / 180;
+/** Two decimals, so server and client print the same transform. */
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const wrap = (deg: number) => ((((deg + 180) % 360) + 360) % 360) - 180;
+const smooth = (t: number) => t * t * (3 - 2 * t);
+const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+
+/** Where each slot sits round the ring, as an angle (0° = straight at you). */
+const RING = SLOTS.map((s) => {
+  const dx = s.cx - CENTRE.x;
+  return { ...s, dx, at: (Math.atan2(dx, s.z) * 180) / Math.PI };
+});
+/**
+ * Slots in the order they come to the front as the ring turns forwards. The
+ * screens are dealt onto them in that order, and the ring starts offset so
+ * the first screen is already in front at 0°.
+ */
+const ORDER = RING.map((r, i) => ({ i, front: (((-r.at % 360) + 360) % 360) })).sort((x, y) => x.front - y.front);
+const BASE = ORDER[0].front;
+/** The turn, 0 → 360°, at which each screen is square to you. */
+const STOPS = ORDER.map((o) => o.front - BASE);
+const CARDS = SCREENS.map((screen, k) => ({ screen, slot: RING[ORDER[k].i], stop: STOPS[k] }));
+
+/**
+ * Scroll progress → turn. Each screen gets an equal share of the scroll: it
+ * holds square to you for the first part, then the ring eases on to the next.
+ * After the last screen the ring comes round to the first again (360°) and
+ * the page lets go.
+ */
+const HOLD = 0.42;
+const SPAN = 0.96;
+const KEYS: number[] = [];
+const ANGLES: number[] = [];
+STOPS.forEach((stop, k) => {
+  const c = (k / STOPS.length) * SPAN;
+  KEYS.push(c, c + (HOLD / STOPS.length) * SPAN);
+  ANGLES.push(stop, stop);
+});
+KEYS.push(SPAN, 1);
+ANGLES.push(360, 360);
+const EASES = KEYS.slice(1).map((_, k) => (k % 2 === 0 ? (t: number) => t : easeInOut));
+
+/** How far into focus a card is, 0–1, from how far it is from square to you. */
+const FOCUS_WINDOW = 24;
+function focusOf(stop: number, deg: number) {
+  const off = Math.abs(wrap(deg - stop));
+  return smooth(Math.max(0, 1 - off / FOCUS_WINDOW));
+}
+
+function frontCard(deg: number) {
   let best = 0;
-  let bestZ = -Infinity;
-  SLOTS.forEach((s, i) => {
-    const x = s.cx - CENTRE.x;
-    const z = -x * Math.sin(a) + s.z * Math.cos(a);
-    if (z > bestZ) {
-      bestZ = z;
-      best = i;
+  let bestOff = Infinity;
+  CARDS.forEach((c, k) => {
+    const off = Math.abs(wrap(deg - c.stop));
+    if (off < bestOff) {
+      bestOff = off;
+      best = k;
     }
   });
   return best;
@@ -92,7 +136,7 @@ function useStageScale(stage: RefObject<HTMLDivElement | null>) {
     if (!el) return;
     const fit = () => {
       const { width, height } = el.getBoundingClientRect();
-      const w = width < 640 ? 1000 : FOOTPRINT.w;
+      const w = width < 640 ? 820 : FOOTPRINT.w;
       setScale(Math.max(0.25, Math.min(width / w, height / FOOTPRINT.h, 1)));
     };
     fit();
@@ -103,11 +147,46 @@ function useStageScale(stage: RefObject<HTMLDivElement | null>) {
   return scale;
 }
 
-function Ring({ spin }: { spin: MotionValue<number> | number }) {
+/**
+ * A card in focus slides out along its spoke to the same distance from the
+ * ring's centre (the ring is oval, so each needs a different push), then
+ * grows a touch: every screen arrives at the same size.
+ */
+const FOCUS_RADIUS = 700;
+const GROW = 0.12;
+/** And how far it rises, so it sits clear of the caption. */
+const LIFT_FOCUS = 275;
+
+function Card({ card, spin }: { card: (typeof CARDS)[number]; spin: MotionValue<number> }) {
+  const { slot, screen } = card;
+  const push = FOCUS_RADIUS / Math.hypot(slot.dx, slot.z) - 1;
   const transform = useTransform(() => {
-    const deg = typeof spin === "number" ? spin : spin.get();
-    return `rotateX(${TILT}deg) rotateY(${deg}deg)`;
+    const f = focusOf(card.stop, spin.get());
+    // In focus the card turns to face you: its yaw swings from the Figma
+    // tumble to the spoke's angle, and the tilt flips to cancel the ring's.
+    const yaw = slot.at + (1 - f) * wrap(slot.turn - slot.at);
+    const pitch = -12 * (1 - f) - TILT * f;
+    const roll = -13 * (1 - f);
+    return (
+      `translate3d(${r2(slot.dx * push * f)}px, ${r2(-LIFT_FOCUS * f)}px, ${r2(slot.z * (1 + push * f))}px) ` +
+      `rotateY(${r2(yaw)}deg) rotateX(${r2(pitch)}deg) rotateZ(${r2(roll)}deg) scale(${r2(1 + GROW * f)})`
+    );
   });
+  const opacity = useTransform(() => r2(0.55 + 0.45 * focusOf(card.stop, spin.get())));
+  return (
+    <motion.figure
+      className="absolute m-0 [transform-style:preserve-3d]"
+      style={{ left: r2(slot.cx - CARD_W / 2), top: r2(CENTRE.y - CARD_H / 2), width: CARD_W, transform, opacity }}
+    >
+      <Phone className="shadow-[0_30px_60px_-28px_rgba(28,33,30,0.5),inset_0_0_0_1.5px_rgba(255,255,255,0.12)]">
+        <Shot alt={`Apex ${screen.title} screen: ${screen.note.toLowerCase()}`} priority src={screen.src} />
+      </Phone>
+    </motion.figure>
+  );
+}
+
+function Ring({ spin }: { spin: MotionValue<number> }) {
+  const transform = useTransform(() => `rotateX(${TILT}deg) rotateY(${r2(spin.get() + BASE)}deg)`);
   return (
     <div
       className="absolute top-1/2 left-1/2"
@@ -120,25 +199,9 @@ function Ring({ spin }: { spin: MotionValue<number> | number }) {
       }}
     >
       <motion.div className="absolute inset-0 will-change-transform [transform-style:preserve-3d]" style={{ transform }}>
-        {SCREENS.map((s, i) => {
-          const slot = SLOTS[i];
-          return (
-            <figure
-              className="absolute m-0 [transform-style:preserve-3d]"
-              key={s.src}
-              style={{
-                left: slot.cx - CARD_W / 2,
-                top: CENTRE.y - CARD_H / 2,
-                width: CARD_W,
-                transform: `translateZ(${slot.z}px) rotateX(-12deg) rotateY(${slot.turn}deg) rotateZ(-13deg)`,
-              }}
-            >
-              <Phone className="shadow-[0_30px_60px_-28px_rgba(28,33,30,0.5),inset_0_0_0_1.5px_rgba(255,255,255,0.12)]">
-                <Shot alt={`Apex ${s.title} screen: ${s.note.toLowerCase()}`} priority src={s.src} />
-              </Phone>
-            </figure>
-          );
-        })}
+        {CARDS.map((card) => (
+          <Card card={card} key={card.screen.src} spin={spin} />
+        ))}
       </motion.div>
     </div>
   );
@@ -146,7 +209,8 @@ function Ring({ spin }: { spin: MotionValue<number> | number }) {
 
 /**
  * Pinned while you scroll: the screens ride a tilted 3D ring that turns once,
- * 0 → 360°, with the scroll. When the turn is done the page lets go.
+ * 0 → 360°, with the scroll, stopping on each screen in turn so it can square
+ * up and come forward. When the turn is done the page lets go.
  */
 export function Gallery() {
   const ref = useRef<HTMLElement>(null);
@@ -154,14 +218,16 @@ export function Gallery() {
   const reduce = useReducedMotion();
   const scale = useStageScale(stage);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  // A short hold at each end so the ring settles before it starts and after it's round.
-  const turn = useTransform(scrollYProgress, [0.04, 0.96], [0, 360], { clamp: true });
-  const spin = useSpring(turn, { stiffness: 120, damping: 30, mass: 0.4 });
-  const bar = useTransform(scrollYProgress, [0.04, 0.96], [0, 1], { clamp: true });
-  const [front, setFront] = useState(() => frontSlot(0));
-  useMotionValueEvent(spin, "change", (deg) => setFront(frontSlot(deg)));
+  const turn = useTransform(scrollYProgress, KEYS, ANGLES, { clamp: true, ease: EASES });
+  const spring = useSpring(turn, { stiffness: 120, damping: 30, mass: 0.4 });
+  // Under reduced motion the ring rests with the first screen square to you.
+  const still = useMotionValue(0);
+  const spin = reduce ? still : spring;
+  const bar = useTransform(scrollYProgress, [0, SPAN], [0, 1], { clamp: true });
+  const [front, setFront] = useState(0);
+  useMotionValueEvent(spring, "change", (deg) => setFront(frontCard(deg)));
 
-  const caption = SCREENS[reduce ? frontSlot(REST_ANGLE) : front];
+  const caption = CARDS[reduce ? 0 : front].screen;
 
   const body = (
     <>
@@ -182,7 +248,7 @@ export function Gallery() {
           className="absolute top-1/2 left-1/2"
           style={{ width: CANVAS.w, height: CANVAS.h, transform: `translate(-50%, -50%) scale(${scale})` }}
         >
-          <Ring spin={reduce ? REST_ANGLE : spin} />
+          <Ring spin={spin} />
         </div>
       </div>
       <div className="relative mx-auto mb-10 h-14 w-full max-w-7xl px-5 text-center sm:mb-12 sm:px-8">
@@ -212,7 +278,7 @@ export function Gallery() {
   }
 
   return (
-    <section className="relative bg-paper" id="screens" ref={ref} style={{ height: "360svh" }}>
+    <section className="relative bg-paper" id="screens" ref={ref} style={{ height: "640svh" }}>
       <div className="sticky top-0 flex h-[100svh] flex-col overflow-hidden">{body}</div>
     </section>
   );
