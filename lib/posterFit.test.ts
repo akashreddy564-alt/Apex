@@ -53,19 +53,37 @@ describe('cardTitleLayout', () => {
 });
 
 describe('posterLineStyle', () => {
-  it('gives every line room for Anton so iOS does not clip glyphs', () => {
-    const first = posterLineStyle(80, 0);
-    assert.ok(first.lineHeight >= 80 * 1.1);
-    assert.equal(first.marginTop, 0);
+  // Anton's ascent + descent is 1.505 em. A shorter line box makes iOS trim the
+  // tops of the letters, because React Native only centres text in a box that
+  // is at least the font's own height.
+  const ANTON_NATURAL = 1.506;
+
+  it('gives every line a box at least as tall as Anton, so iOS cannot clip it', () => {
+    for (const size of [40, 64, 84]) {
+      for (const index of [0, 1]) {
+        assert.ok(posterLineStyle(size, index).lineHeight >= size * ANTON_NATURAL);
+      }
+    }
   });
 
-  it('pulls later lines up so lines still sit 0.92 em apart', () => {
+  it('keeps lines 0.92 em apart', () => {
+    const first = posterLineStyle(80, 0);
     const second = posterLineStyle(80, 1);
-    assert.equal(second.lineHeight + second.marginTop, Math.round(80 * 0.92));
+    assert.equal(second.marginTop + first.lineHeight, Math.round(80 * 0.92));
   });
 
   it('accepts a different visual spacing', () => {
+    const first = posterLineStyle(50, 0, 0.95);
     const second = posterLineStyle(50, 1, 0.95);
-    assert.equal(second.lineHeight + second.marginTop, Math.round(50 * 0.95));
+    assert.equal(second.marginTop + first.lineHeight, Math.round(50 * 0.95));
+  });
+
+  it('takes up the same space as a 1.12 em line, so the layout does not move', () => {
+    const one = posterLineStyle(80, 0, 0.92, true);
+    assert.equal(one.lineHeight + one.marginTop + one.marginBottom, Math.round(80 * 1.12));
+    const top = posterLineStyle(80, 0);
+    const bottom = posterLineStyle(80, 1, 0.92, true);
+    const total = top.lineHeight + top.marginTop + top.marginBottom + bottom.lineHeight + bottom.marginTop + bottom.marginBottom;
+    assert.equal(total, Math.round(80 * 1.12) + Math.round(80 * 0.92));
   });
 });

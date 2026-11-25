@@ -15,7 +15,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { PressScale } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
-import { cardTitleLayout } from '@/lib/posterFit';
+import { cardTitleLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
 import { difficultyRating } from '@/lib/trailDifficulty';
 import { difficultyRamp, fonts, type Palette, photoPill } from '@/theme/tokens';
@@ -128,10 +128,14 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, addedBy, o
 
         <View style={styles.info} pointerEvents="none">
           <View style={styles.text}>
-            {title.lines.map((line) => (
+            {title.lines.map((line, index) => (
               <Text
                 key={line}
-                style={[styles.name, { fontSize: title.fontSize, lineHeight: Math.round(title.fontSize * 1.08) }]}
+                style={[
+                  styles.name,
+                  { fontSize: title.fontSize },
+                  posterLineStyle(title.fontSize, index, 1.04, index === title.lines.length - 1),
+                ]}
                 numberOfLines={1}
               >
                 {line}

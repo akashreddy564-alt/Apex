@@ -141,7 +141,7 @@ export function OpeningScreen({ place, photo, onReady, onDone, held = false }: O
           {poster.lines.map((line, index) => (
             <Text
               key={line}
-              style={[styles.name, { fontSize: poster.fontSize }, posterLineStyle(poster.fontSize, index)]}
+              style={[styles.name, { fontSize: poster.fontSize }, posterLineStyle(poster.fontSize, index, 0.92, index === poster.lines.length - 1)]}
               numberOfLines={1}
             >
               {line}
