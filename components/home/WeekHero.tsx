@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Ring } from '@/components/habit/GoalRing';
@@ -7,6 +7,7 @@ import { useColors } from '@/hooks/useColors';
 import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
 import { weekCard } from '@/lib/homeDashboard';
 import { weekRange } from '@/lib/weekRecap';
+import { posterLineStyle } from '@/lib/posterFit';
 import { toDisplay } from '@/lib/weeklyGoal';
 import { useTrailCache } from '@/stores/trailCache';
 import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
@@ -24,11 +25,16 @@ export function WeekHero() {
   const { goal } = useWeeklyGoal();
   const logs = useTrailCache((s) => s.logs);
   const trails = useTrailCache((s) => s.trails);
-  const now = useMemo(() => new Date(), []);
-  const card = useMemo(() => {
+  // Read the clock whenever the hikes change or Home comes back into view, so a
+  // hike just finished counts and a new week starts on Monday without a restart.
+  const [visit, setVisit] = useState(0);
+  useFocusEffect(useCallback(() => setVisit((n) => n + 1), []));
+  const { card, now } = useMemo(() => {
+    const at = new Date();
     const byId = new Map(trails.map((t) => [t.id, t]));
-    return weekCard(logs, (id) => byId.get(id), goal, now);
-  }, [goal, logs, now, trails]);
+    return { card: weekCard(logs, (id) => byId.get(id), goal, at), now: at };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `visit` re-reads the clock.
+  }, [goal, logs, trails, visit]);
 
   const unit = card.metric === 'elevation' ? 'ft' : 'mi';
   const tone = card.metric === 'elevation' ? c.climb : c.distance;
@@ -55,7 +61,7 @@ export function WeekHero() {
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
           <View style={{ flex: 1 }}>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={{ color: tone, fontFamily: fonts.poster, fontSize: 40, lineHeight: 60, marginVertical: -10 }}>
+              <Text style={[{ color: tone, fontFamily: fonts.poster, fontSize: 40 }, posterLineStyle(40, 0, 0.92, true)]}>
                 {doneText}
               </Text>
               <Text style={label}>{unit.toUpperCase()}</Text>

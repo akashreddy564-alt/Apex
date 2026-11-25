@@ -8,7 +8,17 @@ jest.mock('@/lib/supabase', () => ({ supabase: null, isSupabaseConfigured: false
 
 const mockPush = jest.fn();
 const mockNavigate = jest.fn();
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, navigate: mockNavigate }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush, navigate: mockNavigate }), useFocusEffect: () => {} }));
+
+const mockProfile = {
+  configured: true,
+  session: null as null | object,
+  profile: null as null | object,
+  loading: false,
+  error: null as null | string,
+  refetch: jest.fn(),
+};
+jest.mock('@/hooks/useProfile', () => ({ useMyProfile: () => mockProfile }));
 
 const mockKnownPosition = jest.fn();
 const mockCatalogNear = jest.fn();
@@ -61,6 +71,8 @@ const ranking = (trail_id: string, score: number, position: string) => ({
 });
 
 beforeEach(() => {
+  Object.assign(mockProfile, { configured: true, session: null, profile: null, loading: false, error: null });
+  mockProfile.refetch.mockReset();
   mockPush.mockReset();
   mockNavigate.mockReset();
   mockKnownPosition.mockReset().mockResolvedValue(null);
@@ -142,4 +154,70 @@ describe('Trails near you', () => {
     await act(async () => {});
     expect(mockCatalogNear).toHaveBeenCalledWith(-84.14, 34.03, 5000);
   });
+});
+
+describe('the week card', () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('counts a hike finished after Home first loaded', () => {
+    jest.useFakeTimers({ now: new Date(2026, 10, 25, 9) });
+    const tree = draw(<WeekHero />);
+    expect(text(tree)).toContain('Goal 3,000 ft');
+    // The hiker records a hike and comes back an hour later.
+    jest.setSystemTime(new Date(2026, 10, 25, 10));
+    act(() => {
+      useTrailCache.setState({
+        logs: [
+          {
+            id: 'new',
+            user_id: 'me',
+            trail_id: CATALOG_TRAILS[0].id,
+            duration_seconds: 3000,
+            created_at: new Date(2026, 10, 25, 9, 55).toISOString(),
+            elevation_gain_m: 300,
+            distance_km: 4,
+          } as never,
+        ],
+      });
+    });
+    expect(text(tree)).toContain('of your 3,000 ft goal');
+    expect(text(tree)).not.toContain('Goal 3,000 ft');
+  });
+});
+
+describe('the account strip', () => {
+  it('asks a signed-in hiker with no username to pick one', () => {
+    mockProfile.session = { user: { id: 'me' } };
+    const tree = draw(<SignInStrip />);
+    expect(text(tree)).toContain("Pick a username to see friends' hikes");
+    expect(text(tree)).not.toContain('Sign in');
+    act(() => pressable(tree, "Pick a username to see friends' hikes").props.onPress());
+    expect(mockPush).toHaveBeenCalledWith('/username');
+  });
+
+  it('shows nothing while the profile loads', () => {
+    mockProfile.session = { user: { id: 'me' } };
+    mockProfile.loading = true;
+    expect(text(draw(<SignInStrip />))).toBe('');
+  });
+
+  it('offers a retry when the profile fails to load', () => {
+    mockProfile.session = { user: { id: 'me' } };
+    mockProfile.error = 'offline';
+    const tree = draw(<SignInStrip />);
+    act(() => pressable(tree, 'Couldn’t load your profile. Try again').props.onPress());
+    expect(mockProfile.refetch).toHaveBeenCalled();
+  });
+
+  it('shows nothing on a phone with no server (local mode)', () => {
+    mockProfile.configured = false;
+    expect(text(draw(<SignInStrip />))).toBe('');
+  });
+});
+
+it('gives the big week number a full Anton line box, so iPhone cannot clip it', () => {
+  const tree = draw(<WeekHero />);
+  const big = tree.root.findAllByType(Text).find((node) => [node.props.style].flat(3).some((s) => s?.fontSize === 40))!;
+  const style = Object.assign({}, ...[big.props.style].flat(3).filter(Boolean));
+  expect(style.lineHeight).toBeGreaterThanOrEqual(40 * 1.51);
 });

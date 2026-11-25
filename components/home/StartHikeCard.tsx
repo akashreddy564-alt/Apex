@@ -3,6 +3,7 @@ import { ArrowRight, ChevronRight } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 
 import { useColors } from '@/hooks/useColors';
+import { useMyProfile } from '@/hooks/useProfile';
 import { useWeekendPick } from '@/hooks/useWeekendPick';
 import { fonts } from '@/theme/tokens';
 
@@ -58,16 +59,35 @@ export function StartHikeCard() {
   );
 }
 
-/** One line, signed out: where friends' hikes would be. Opens sign-in. */
+/**
+ * One line where friends' hikes would be, for whatever is missing: sign in,
+ * pick a username, or retry a profile that didn't load. Nothing while the
+ * profile loads, or on a phone with no server.
+ */
 export function SignInStrip() {
   const c = useColors();
   const router = useRouter();
-  const label = "Sign in to see friends' hikes";
+  const { configured, session, profile, loading, error, refetch } = useMyProfile();
+  if (!configured || loading) return null;
+  let label: string;
+  let onPress: () => void;
+  if (!session) {
+    label = "Sign in to see friends' hikes";
+    onPress = () => router.push('/account');
+  } else if (error) {
+    label = 'Couldn’t load your profile. Try again';
+    onPress = () => void refetch();
+  } else if (!profile) {
+    label = "Pick a username to see friends' hikes";
+    onPress = () => router.push('/username');
+  } else {
+    return null;
+  }
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={() => router.push('/account')}
+      onPress={onPress}
       style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
     >
       <View
