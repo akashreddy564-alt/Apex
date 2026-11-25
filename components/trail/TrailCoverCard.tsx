@@ -24,13 +24,13 @@ import { withAlpha } from '@/theme/color';
 
 const CARD_HEIGHT = 184;
 const DRIFT_MS = 14_000;
-/** Card padding (16 + 14), score pill and gap. */
-const TITLE_INSET = 30 + 76;
+/** Card padding (16 + 14), score pill (wide enough for "9.47") and gap. */
+const TITLE_INSET = 30 + 84;
 
 interface TrailCoverCardProps {
   trail: Trail;
   cover: TrailCover | null;
-  /** One-decimal 0–10 score, already formatted. */
+  /** Two-decimal 0–10 score, already formatted. */
   score?: string | null;
   /** The user's top-ranked trail gets the warm score. */
   top?: boolean;

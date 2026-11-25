@@ -6,6 +6,7 @@ import { Avatar } from '@/components/social/Avatar';
 import { useColors } from '@/hooks/useColors';
 import type { PersonSummary } from '@/lib/friends';
 import { fonts } from '@/theme/tokens';
+import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 
 /** Avatar, name and @username. Tapping opens their page; `action` sits on the right. */
 export function PersonRow({ person, action }: { person: PersonSummary; action?: ReactNode }) {
@@ -27,6 +28,7 @@ export function PersonRow({ person, action }: { person: PersonSummary; action?: 
           <Text numberOfLines={1} style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13 }}>
             @{person.username}
           </Text>
+          <FirstAscentBadge userId={person.id} style={{ marginTop: 4 }} />
         </View>
       </Pressable>
       {action}

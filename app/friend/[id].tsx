@@ -13,6 +13,7 @@ import { useFriendships, usePerson } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
 import type { FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
+import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 
 /** Their ranked hikes, newest first. Friends and yourself only. */
 function TheirHikes({ id, name, posts, loading, error, onMore }: {
@@ -105,6 +106,7 @@ function PersonPage({ id }: { id: string }) {
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, marginTop: 4 }}>
         @{person.username}
       </Text>
+      <FirstAscentBadge userId={person.id} size="lg" style={{ marginTop: 12 }} />
       {friendCount !== null ? (
         <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14, marginTop: 10 }}>
           {friendCount} {friendCount === 1 ? 'friend' : 'friends'}

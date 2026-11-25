@@ -39,7 +39,7 @@ test('binary insert lands at the start, middle, and end of a frozen order', () =
   assert.equal(place([], []), 0);
 });
 
-test('scores stay inside each bucket band and use one decimal', () => {
+test('scores stay inside each bucket band and use two decimals', () => {
   for (const bucket of BUCKETS) {
     const { lo, hi } = BUCKET_BANDS[bucket];
     for (const count of [1, 2, 5, 20]) {
@@ -48,16 +48,16 @@ test('scores stay inside each bucket band and use one decimal', () => {
       );
       for (const score of scores) {
         assert.ok(score >= lo && score <= hi, `${bucket} ${score} outside ${lo}-${hi}`);
-        assert.equal(score, Math.round(score * 10) / 10);
-        assert.match(formatRankScore(score), /^\d+\.\d$/);
+        assert.equal(score, Math.round(score * 100) / 100);
+        assert.match(formatRankScore(score), /^\d+\.\d\d$/);
       }
       for (let i = 1; i < scores.length; i++) {
         assert.ok(scores[i] <= scores[i - 1]);
       }
     }
   }
-  assert.equal(formatRankScore(8.7), '8.7');
-  assert.equal(formatRankScore(8), '8.0');
+  assert.equal(formatRankScore(8.7), '8.70');
+  assert.equal(formatRankScore(8), '8.00');
 });
 
 test('undo restores the previous bounds and clears a finished placement', () => {
@@ -193,11 +193,19 @@ test('a 50-hike bucket stays inside its band and follows position', () => {
     const scores = Array.from({ length: 50 }, (_, index) => bandScore(bucket, index, 50));
     for (const score of scores) {
       assert.ok(score >= lo && score <= hi, `${bucket} ${score} outside ${lo}-${hi}`);
-      assert.equal(score, Math.round(score * 10) / 10);
+      assert.equal(score, Math.round(score * 100) / 100);
     }
     for (let index = 1; index < scores.length; index++) {
       assert.ok(scores[index] <= scores[index - 1]);
     }
+  }
+});
+
+test('a long bucket never shows two trails with the same score', () => {
+  // One decimal ran out of room past ~30 loved trails; hundredths last into the hundreds.
+  for (const bucket of BUCKETS) {
+    const shown = Array.from({ length: 150 }, (_, index) => formatRankScore(bandScore(bucket, index, 150)));
+    assert.equal(new Set(shown).size, shown.length, bucket);
   }
 });
 
@@ -259,4 +267,9 @@ test('expected comparisons follow the binary-search bound', () => {
   assert.equal(expectedComparisons(0), 0);
   assert.equal(expectedComparisons(1), 1);
   assert.equal(expectedComparisons(15), 4);
+});
+
+test('rounds half-hundredths up like the database does', () => {
+  // A lone Didn't-like hike: 3.99 - 0.5 * 3.99 = 1.995, which Postgres rounds to 2.00.
+  assert.equal(bandScore('disliked', 0, 1), 2);
 });

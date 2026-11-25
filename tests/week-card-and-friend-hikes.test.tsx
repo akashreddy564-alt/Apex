@@ -28,6 +28,8 @@ jest.mock('@/hooks/useFeed', () => ({
   usePersonPosts: (...args: unknown[]) => mockPersonPosts(...args),
 }));
 jest.mock('@/hooks/useMyRankedTrails', () => ({ useMyRankedTrails: () => [] }));
+// u2 is First Ascent #7; nobody else has a number.
+jest.mock('@/hooks/useFirstAscent', () => ({ useFirstAscent: (id: string) => (id === 'u2' ? 7 : null) }));
 jest.mock('@/components/safety/useSafetyMenu', () => ({ useSafetyMenu: () => jest.fn() }));
 jest.mock('@/components/social/RelationButton', () => ({ RelationButton: () => null }));
 jest.mock('@/components/feed/PostCard', () => {
@@ -90,6 +92,15 @@ describe('friend page', () => {
     });
     expect(texts(tree)).toContain('post:Lake Serene');
     expect(mockPersonPosts).toHaveBeenCalledWith('u2', true);
+  });
+
+  it('shows their First Ascent number', () => {
+    mockRelation = 'none';
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<FriendScreen />);
+    });
+    expect(texts(tree)).toContain('FIRST ASCENT | #007');
   });
 
   it('keeps a stranger’s hikes hidden', () => {

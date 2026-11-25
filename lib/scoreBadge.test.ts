@@ -4,9 +4,9 @@ import { describe, it } from 'node:test';
 import { scoreBadgeContent } from './scoreBadge.ts';
 
 describe('scoreBadgeContent', () => {
-  it('shows a one-decimal score once a bucket has 3 or more hikes', () => {
-    assert.deepEqual(scoreBadgeContent('disliked', 5, 3.14), { value: '3.1', label: 'Nope', tone: 'disliked' });
-    assert.equal(scoreBadgeContent('fine', 3, 6).value, '6.0');
+  it('shows a two-decimal score once a bucket has 3 or more hikes', () => {
+    assert.deepEqual(scoreBadgeContent('disliked', 5, 3.14), { value: '3.14', label: 'Nope', tone: 'disliked' });
+    assert.equal(scoreBadgeContent('fine', 3, 6).value, '6.00');
   });
 
   it('shows only the bucket word for a bucket of 1 or 2', () => {

@@ -27,8 +27,8 @@ export interface BucketBand {
 /** Bands chosen for Apex. A position-based score cannot leave its band. */
 export const BUCKET_BANDS: Record<Bucket, BucketBand> = {
   loved: { label: 'Loved', lo: 7, hi: 10 },
-  fine: { label: 'Fine', lo: 4, hi: 6.9 },
-  disliked: { label: "Didn't like", lo: 0, hi: 3.9 },
+  fine: { label: 'Fine', lo: 4, hi: 6.99 },
+  disliked: { label: "Didn't like", lo: 0, hi: 3.99 },
 };
 
 export interface PlacementStep {
@@ -203,19 +203,22 @@ export function undo(session: PlacementSession): PlacementSession {
 
 /**
  * Score for 0-based rank `index` inside a bucket of `count` hikes (best = 0).
- * Rounded to 0.1 and clamped to the band, so it cannot inflate past the bucket.
+ * Rounded to 0.01 and clamped to the band, so it cannot inflate past the bucket.
  */
 export function bandScore(bucket: Bucket, index: number, count: number): number {
   if (count <= 0) throw new Error('Bucket count must be positive');
   const { lo, hi } = BUCKET_BANDS[bucket];
   const raw = hi - ((index + 0.5) * (hi - lo)) / count;
-  const rounded = Math.round(raw * 10) / 10;
+  // Hundredths, so a long bucket doesn't show two trails with the same score.
+  // The nudge stops float error (1.995 * 100 = 199.4999…) rounding down, so this
+  // matches Postgres's exact numeric rounding in migration 021.
+  const rounded = Math.round(raw * 100 + 1e-9) / 100;
   return Math.min(hi, Math.max(lo, rounded));
 }
 
-/** Always one decimal, including trailing zeros (`8.0`). */
+/** Always two decimals, including trailing zeros (`8.50`). */
 export function formatRankScore(score: number): string {
-  return score.toFixed(1);
+  return score.toFixed(2);
 }
 
 /**

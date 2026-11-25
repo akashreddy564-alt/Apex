@@ -46,10 +46,10 @@ it('groups trails by bucket and hides the number in a one-hike bucket', () => {
   });
   const shown = tree.root.findAllByType(Text).map((n) => String([n.props.children].flat().join('')));
   expect(shown.some((t) => t.startsWith('Loved'))).toBe(true);
-  expect(shown.filter((t) => /^\d+\.\d$/.test(t))).toHaveLength(3);
+  expect(shown.filter((t) => /^\d+\.\d\d$/.test(t))).toHaveLength(3);
   // The single Fine hike shows the word, not a score.
   expect(shown.filter((t) => t === 'Fine').length).toBeGreaterThanOrEqual(1);
-  expect(shown.some((t) => /^[4-6]\.\d$/.test(t))).toBe(false);
+  expect(shown.some((t) => /^[4-6]\.\d\d$/.test(t))).toBe(false);
 });
 
 it('gives each row one reason naming its neighbours in the list', () => {
