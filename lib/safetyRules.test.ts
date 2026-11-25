@@ -24,6 +24,13 @@ describe('notificationText', () => {
     assert.equal(notificationText(make({ kind: 'comment', comment_body: 'Nice' })), 'commented: “Nice”');
     assert.equal(notificationText(make({ kind: 'passed', group_name: 'Desk hikers' })), 'passed you in Desk hikers this week');
     assert.equal(notificationText(make({ kind: 'group_join' })), 'joined your group');
+    assert.equal(notificationText(make({ kind: 'follow' })), 'followed you');
+  });
+
+  it('keeps a follow notification (not dropped as unknown) and opens their page', () => {
+    const n = make({ kind: 'follow' });
+    assert.notEqual(n, null);
+    assert.deepEqual(notificationTarget(n), { pathname: '/friend/[id]', params: { id: 'u2' } });
   });
 });
 

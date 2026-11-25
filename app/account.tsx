@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/stores/settingsStore';
 import { apiError } from '@/lib/apiError';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
+import { FollowCountsRow } from '@/components/social/FollowCountsRow';
 
 const SCORE_STYLES: { value: ScoreStyle; label: string }[] = [
   { value: 'number', label: 'Number' },
@@ -209,6 +210,7 @@ export default function AccountScreen() {
             <ChevronRight size={18} strokeWidth={1.6} color={c.fgMuted} />
           </Pressable>
         ) : null}
+        {profile ? <FollowCountsRow personId={profile.id} /> : null}
 
         {session ? (
           <View className="mt-4">

@@ -5,10 +5,12 @@ import { PostCard } from '@/components/feed/PostCard';
 import { Skeleton } from '@/components/motion';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
+import { FollowButton } from '@/components/social/FollowButton';
 import { RelationButton } from '@/components/social/RelationButton';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useLike, usePersonPosts } from '@/hooks/useFeed';
+import { useFollowCounts } from '@/hooks/useFollows';
 import { useFriendships, usePerson } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
 import type { FeedPost } from '@/lib/feed';
@@ -67,7 +69,9 @@ function PersonPage({ id }: { id: string }) {
   const { relationTo } = useFriendships();
   const router = useRouter();
   const safety = useSafetyMenu(() => (router.canGoBack() ? router.back() : router.replace('/social')));
-  const canSee = person ? ['friend', 'self'].includes(relationTo(person.id)) : false;
+  const { counts } = useFollowCounts(id);
+  // Friends and followers both see someone's hikes.
+  const canSee = person ? ['friend', 'self'].includes(relationTo(person.id)) || counts?.iFollow === true : false;
   const hikes = usePersonPosts(id, canSee);
 
   if (loading) {
@@ -92,7 +96,7 @@ function PersonPage({ id }: { id: string }) {
       : relation === 'outgoing'
         ? 'Request sent. You’ll see their hikes once they accept.'
         : relation === 'none'
-          ? 'Friends see each other’s hikes, routes and rankings.'
+          ? 'Follow to see their hikes. Friends also share boards and groups.'
           : null;
 
   return (
@@ -107,12 +111,44 @@ function PersonPage({ id }: { id: string }) {
         @{person.username}
       </Text>
       <FirstAscentBadge userId={person.id} size="lg" style={{ marginTop: 12 }} />
-      {friendCount !== null ? (
-        <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14, marginTop: 10 }}>
-          {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
-        </Text>
-      ) : null}
-      <View className="mt-6">
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+        {friendCount !== null ? (
+          <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
+            {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
+          </Text>
+        ) : null}
+        {counts ? (
+          <>
+            <Text style={{ color: c.fgFaint, fontSize: 14 }}>·</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${counts.followers} followers`}
+              onPress={() => router.push({ pathname: '/follows/[id]', params: { id: person.id, kind: 'followers' } })}
+              hitSlop={8}
+            >
+              <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
+                <Text style={{ fontFamily: fonts.uiSemibold, color: c.fg }}>{counts.followers}</Text>{' '}
+                {counts.followers === 1 ? 'follower' : 'followers'}
+              </Text>
+            </Pressable>
+            <Text style={{ color: c.fgFaint, fontSize: 14 }}>·</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${counts.following} following`}
+              onPress={() => router.push({ pathname: '/follows/[id]', params: { id: person.id, kind: 'following' } })}
+              hitSlop={8}
+            >
+              <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
+                <Text style={{ fontFamily: fonts.uiSemibold, color: c.fg }}>{counts.following}</Text> following
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </View>
+      <View className="mt-6" style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+        {relation !== 'self' ? (
+          <FollowButton personId={person.id} name={person.display_name} following={counts?.iFollow === true} />
+        ) : null}
         <RelationButton personId={person.id} name={person.display_name} username={person.username} relation={relation} compact={false} />
       </View>
       {note ? (
