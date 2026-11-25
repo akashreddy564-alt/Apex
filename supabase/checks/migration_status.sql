@@ -75,6 +75,11 @@ from (values
                                            where table_schema = 'public' and table_name = 'profiles' and column_name = 'ascent_no')
                                            and exists (select 1 from pg_trigger where tgname = 'profiles_first_ascent')
                                            and not coalesce(has_table_privilege('authenticated', to_regclass('public.first_ascent_counter'), 'select'), false)),
-  (28, '022 First Ascent skips own domain', position('@hikeapex.com' in pg_get_functiondef('public.is_test_account(uuid)'::regprocedure)) > 0)
+  (28, '022 First Ascent skips own domain', position('@hikeapex.com' in pg_get_functiondef('public.is_test_account(uuid)'::regprocedure)) > 0),
+  (29, '023 catalog search',              to_regprocedure('public.search_catalog(text, double precision, double precision, integer)') is not null
+                                           and to_regprocedure('public.catalog_near(double precision, double precision, integer, integer)') is not null
+                                           and to_regprocedure('public.catalog_trails(uuid[])') is not null
+                                           and exists (select 1 from information_schema.columns
+                                                       where table_schema = 'public' and table_name = 'trails' and column_name = 'state'))
 ) as checks (n, step, ok)
 order by n;

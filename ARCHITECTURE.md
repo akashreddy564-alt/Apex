@@ -34,7 +34,7 @@
 ├── tests/                                  # jest screen tests
 │
 ├── supabase/
-│   ├── migrations/                         # 001–018, run in order (see README)
+│   ├── migrations/                         # 001–023, run in order (see README)
 │   ├── checks/                             # migration_status.sql, open_reports.sql
 │   ├── seed/                               # test hikers, App Review account, catalog trails
 │   └── functions/org-verify/               # emails school/work codes through Resend
@@ -50,6 +50,15 @@
 3. The user picks Loved, Fine, or Didn't like. `useTrailComparison` binary-searches that bucket's order, frozen at the start.
 4. Undo walks a history stack. Too close inserts beside the current hike and stops. Nothing is written yet.
 5. Place saves one ranking row (fractional `position`) and the session's `pairwise_comparisons`. The 0–10 score is derived from that position.
+
+## Trail catalog
+
+Two tiers, both `source = 'catalog'`:
+
+- **Curated (23 trails):** hand-routed by `scripts/catalog/build.ts`, bundled in `data/catalogTrails.json` so they work offline. `state` is null.
+- **Bulk (every named trail, by state):** `scripts/catalog/bulk_extract.py` reads one Geofabrik extract, turns named hiking routes, same-name footpaths and parks with unnamed paths into one line each, and adds elevation from the AWS Terrain Tiles open dataset. `bulk-all.sh` runs it state by state (one extract on disk at a time); `load_catalog.py` upserts the NDJSON into Supabase over a direct connection (`APEX_DB_URL`). `state` is the two-letter code.
+
+The app never downloads the whole catalog. Migration 023 adds `search_catalog` (by name or town, nearest first), `catalog_near` (Finish suggestions) and `catalog_trails` (by id), all callable signed out. Fetched trails join the trail cache through `rememberTrails`. Sign-in sync pulls only `source = 'user'` trails, then fetches any catalog trail a hike or ranking points at.
 
 ## Location package pin
 

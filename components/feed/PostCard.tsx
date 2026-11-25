@@ -11,6 +11,7 @@ import { formatCompactDuration, formatDistance, formatElevation } from '@/lib/fo
 import { comparisonTag, hikeDayLabel, type FeedPost, type MyRankedTrail } from '@/lib/postRules';
 import { postReasons } from '@/lib/reasons';
 import { useSavedTrails } from '@/stores/savedTrailsStore';
+import { ensureTrail } from '@/lib/catalogRemote';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
 import { PressScale, ReasonLine } from '@/components/motion';
@@ -115,8 +116,15 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
     router.push({ pathname: '/friend/[id]', params: { id: post.authorId } });
   };
   const openTrail = () => {
-    if (hasTrail) router.push({ pathname: '/trail/[id]', params: { id: post.trailId } });
-    else onOpen?.(post);
+    if (hasTrail) {
+      router.push({ pathname: '/trail/[id]', params: { id: post.trailId } });
+      return;
+    }
+    // A catalog trail this phone hasn't fetched yet (the big catalog lives on the server).
+    void ensureTrail(post.trailId).then((trail) => {
+      if (trail) router.push({ pathname: '/trail/[id]', params: { id: trail.id } });
+      else onOpen?.(post);
+    });
   };
 
   const body = (

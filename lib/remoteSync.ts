@@ -49,7 +49,7 @@ function point(value: unknown): [number, number] | null {
 
 const SHAPES = new Set(['loop', 'out-and-back', 'point-to-point']);
 
-function mapTrail(row: Record<string, unknown>): Trail | null {
+export function mapTrail(row: Record<string, unknown>): Trail | null {
   if (typeof row.id !== 'string' || typeof row.name !== 'string') return null;
   const source = row.source === 'user' ? 'user' : 'catalog';
   const path = asLineString(row.path);
@@ -99,7 +99,8 @@ export async function pullRemote(): Promise<SyncResult> {
   if (!uid) return { ok: true, message: 'Signed out' };
 
   const [trailsRes, logsRes, ranksRes, pairsRes] = await Promise.all([
-    supabase.from('trails_api').select('*'),
+    // Your trails and friends' trails. Catalog rows are fetched as needed (023).
+    supabase.from('trails_api').select('*').eq('source', 'user'),
     supabase.from('hike_logs_api').select('*').eq('user_id', uid),
     supabase.from('trail_rankings').select('*').eq('user_id', uid),
     supabase.from('pairwise_comparisons').select('*').eq('user_id', uid),
@@ -151,11 +152,32 @@ export async function pullRemote(): Promise<SyncResult> {
   });
 
   void flushOutbox();
+  await fetchReferencedCatalog();
 
   return {
     ok: true,
     message: trails.length === 0 ? 'No remote trails yet' : `${trails.length} trails`,
   };
+}
+
+/** Catalog trails a hike or ranking points at but this phone hasn't seen yet. */
+async function fetchReferencedCatalog(): Promise<void> {
+  if (!supabase) return;
+  const cache = useTrailCache.getState();
+  const ids = new Set([
+    ...cache.logs.map((log) => log.trail_id),
+    ...useRankingStore.getState().rankings.map((row) => row.trail_id),
+  ]);
+  const missing = [...ids].filter((id) => isUuid(id) && !cache.getTrail(id));
+  for (let i = 0; i < missing.length; i += 200) {
+    const { data, error } = await supabase.rpc('catalog_trails', { ids: missing.slice(i, i + 200) });
+    if (error || !Array.isArray(data)) return;
+    useTrailCache
+      .getState()
+      .rememberTrails(
+        data.map((row) => mapTrail(row as Record<string, unknown>)).filter((t): t is Trail => t !== null),
+      );
+  }
 }
 
 /** Remote rows fill in; local rows that are missing remotely or still unsent stay. */

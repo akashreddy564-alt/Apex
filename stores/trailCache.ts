@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
-import { MOCK_TRAILS, MOCK_USER_ID } from '@/data/mockTrails';
+import { MOCK_USER_ID } from '@/data/mockTrails';
 import { CATALOG_TRAILS } from '@/lib/catalog';
 import { mergeCatalog } from '@/lib/catalogMerge';
 import { useRankingStore } from '@/stores/rankingStore';
@@ -15,6 +15,8 @@ interface TrailCacheState {
   getTrail: (id: string) => Trail | undefined;
   /** A user trail made from a hike. Goes on top of the list. */
   addTrail: (trail: Trail) => void;
+  /** Catalog trails fetched from the server. Kept in name order, never on top. */
+  rememberTrails: (trails: Trail[]) => void;
   upsertLog: (log: HikeLog) => void;
   updateLog: (id: string, patch: Partial<HikeLog>) => void;
 }
@@ -28,7 +30,7 @@ function loggedIds(logs: HikeLog[]): Set<string> {
 export const useTrailCache = create<TrailCacheState>()(
   persist(
     (set, get) => ({
-      trails: mergeCatalog(__DEV__ ? MOCK_TRAILS : [], CATALOG_TRAILS, loggedIds([])),
+      trails: mergeCatalog([], CATALOG_TRAILS, loggedIds([])),
       logs: [],
       hydrateFromSeed: () => {
         const { trails, logs } = get();
@@ -39,6 +41,16 @@ export const useTrailCache = create<TrailCacheState>()(
         set((state) => ({
           trails: [trail, ...state.trails.filter((t) => t.id !== trail.id)],
         })),
+      rememberTrails: (fetched) => {
+        if (fetched.length === 0) return;
+        set((state) => {
+          const byId = new Map(fetched.map((t) => [t.id, t]));
+          const kept = state.trails.map((t) => byId.get(t.id) ?? t);
+          const known = new Set(state.trails.map((t) => t.id));
+          const added = fetched.filter((t) => !known.has(t.id));
+          return { trails: added.length === 0 ? kept : [...kept, ...added] };
+        });
+      },
       upsertLog: (log) =>
         set((state) => ({
           logs: [log, ...state.logs.filter((l) => l.id !== log.id)],
@@ -59,7 +71,7 @@ export const useTrailCache = create<TrailCacheState>()(
         return {
           ...current,
           logs,
-          // Nothing saved yet (a fresh install): keep the starting list, demo trails included.
+          // Nothing saved yet (a fresh install): start from the bundled catalog.
           trails: mergeCatalog(saved.trails ?? current.trails, CATALOG_TRAILS, loggedIds(logs)),
         };
       },

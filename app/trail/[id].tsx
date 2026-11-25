@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Play } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -22,6 +22,7 @@ import { useColors } from '@/hooks/useColors';
 import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
+import { ensureTrail } from '@/lib/catalogRemote';
 import { formatDistance } from '@/lib/format';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { trailCover } from '@/lib/trailCover';
@@ -44,6 +45,19 @@ export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trailParam = id;
   const trail = useTrailCache((s) => s.getTrail(String(id)));
+  // The big catalog lives on the server: fetch a trail this phone hasn't seen.
+  const [lookup, setLookup] = useState<'loading' | 'done'>(trail ? 'done' : 'loading');
+  useEffect(() => {
+    if (trail) return;
+    let live = true;
+    setLookup('loading');
+    void ensureTrail(String(id)).finally(() => {
+      if (live) setLookup('done');
+    });
+    return () => {
+      live = false;
+    };
+  }, [id, trail]);
   const ownerLabel = useTrailOwnerLabels();
   const recorded = useTrailCache((s) => {
     let best: (typeof s.logs)[number] | null = null;
@@ -98,7 +112,7 @@ export default function TrailDetailScreen() {
   if (!trail) {
     return (
       <View className="flex-1 items-center justify-center bg-bg">
-        <Text className="font-ui text-caption text-fg-faint">Trail not found</Text>
+        <Text className="font-ui text-caption text-fg-faint">{lookup === 'loading' ? 'Loading trail' : 'Trail not found'}</Text>
       </View>
     );
   }

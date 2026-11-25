@@ -34,6 +34,7 @@ import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
+import { catalogNear } from '@/lib/catalogRemote';
 import { shouldFly } from '@/lib/flyover/plan';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
@@ -269,6 +270,15 @@ export default function LogScreen() {
       return trail ? [{ trail, startDistanceM: match.startDistanceM }] : [];
     });
   }, [assignOpen, points, trails]);
+
+  // The big catalog lives on the server: fetch trails near where this hike
+  // started so a known trail can be suggested (they join the cache, and the
+  // suggestions above recompute).
+  const startPoint = assignOpen ? points?.[0] : undefined;
+  useEffect(() => {
+    if (!startPoint) return;
+    void catalogNear(startPoint.longitude, startPoint.latitude, 600);
+  }, [startPoint]);
 
   const createRecordedTrail = async (name: string) => {
     const hike = tracker.session;
