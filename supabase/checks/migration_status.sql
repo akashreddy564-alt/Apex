@@ -80,6 +80,12 @@ from (values
                                            and to_regprocedure('public.catalog_near(double precision, double precision, integer, integer)') is not null
                                            and to_regprocedure('public.catalog_trails(uuid[])') is not null
                                            and exists (select 1 from information_schema.columns
-                                                       where table_schema = 'public' and table_name = 'trails' and column_name = 'state'))
+                                                       where table_schema = 'public' and table_name = 'trails' and column_name = 'state')),
+  (30, '024 follows, difficulty, own stats', to_regclass('public.follows') is not null
+                                           and to_regprocedure('public.sees_posts(uuid, uuid)') is not null
+                                           and to_regprocedure('public.trail_people_rankings(uuid)') is not null
+                                           and exists (select 1 from information_schema.columns
+                                                       where table_schema = 'public' and table_name = 'trail_rankings' and column_name = 'difficulty')
+                                           and position('t.distance_km' in pg_get_functiondef('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) = 0)
 ) as checks (n, step, ok)
 order by n;
