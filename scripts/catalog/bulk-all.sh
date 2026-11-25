@@ -22,7 +22,8 @@ for pair in "$@"; do
   pbf="$out/$region.osm.pbf"
   url="https://download.geofabrik.de/north-america/us/${region}-latest.osm.pbf"
   echo "$code: downloading $region"
-  if ! curl -fsSL --retry 3 -o "$pbf" "$url"; then
+  # Ride out Wi-Fi drops: retry every kind of failure for up to ~10 minutes.
+  if ! curl -fsSL --retry 20 --retry-all-errors --retry-delay 30 -o "$pbf" "$url"; then
     echo "$code: download failed"
     rm -f "$pbf"
     continue
