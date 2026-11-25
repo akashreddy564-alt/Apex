@@ -15,6 +15,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { PressScale } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
+import { useYourTrailStats } from '@/hooks/useYourTrailStats';
 import { cardTitleLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
 import { difficultyRating } from '@/lib/trailDifficulty';
@@ -74,15 +75,18 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, addedBy, o
     ],
   }));
 
+  // Your own hike's numbers; catalog distances are guesses for most trails.
+  const yours = useYourTrailStats(trail.id);
   const meta = [
     ...(addedBy ? [addedBy.toUpperCase()] : []),
     trail.region.toUpperCase(),
-    formatOptionalDistance(trail.distance_km).toUpperCase(),
-    `▲${formatOptionalElevation(trail.elevation_gain_m).toUpperCase()}`,
+    ...(yours
+      ? [formatOptionalDistance(yours.distanceKm).toUpperCase(), `▲${formatOptionalElevation(yours.elevationGainM).toUpperCase()}`]
+      : ['NOT HIKED YET']),
   ].join(' · ');
 
   // Difficulty sits on the photo in a dark pill, so it reads on any picture and in both appearances.
-  const rating = difficultyRating(trail.distance_km, trail.elevation_gain_m);
+  const rating = yours ? difficultyRating(yours.distanceKm, yours.elevationGainM) : null;
 
   // One gradient id per card: on web, duplicate ids resolve to the first.
   const shadeId = `cardShade${useId().replace(/:/g, '')}`;

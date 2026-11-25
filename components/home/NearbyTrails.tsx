@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { useYourStatsByTrail } from '@/hooks/useYourTrailStats';
 import { CATALOG_TRAILS } from '@/lib/catalog';
 import { catalogNear, knownPosition } from '@/lib/catalogRemote';
 import { formatOptionalDistance } from '@/lib/format';
@@ -48,6 +49,7 @@ function miniRoute(trail: Trail, width: number, height: number, pad = 10): strin
 export function NearbyTrails() {
   const c = useColors();
   const router = useRouter();
+  const yours = useYourStatsByTrail();
   const [trails, setTrails] = useState<Trail[]>(() => CATALOG_TRAILS.slice(0, COUNT));
 
   useEffect(() => {
@@ -100,7 +102,12 @@ export function NearbyTrails() {
                   {trail.name}
                 </Text>
                 <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 11, marginTop: 1 }} numberOfLines={1}>
-                  {trail.region.split(',')[0]} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text>
+                  {trail.region.split(',')[0]} ·{' '}
+                  {yours.get(trail.id) ? (
+                    <Text style={{ color: c.distance }}>{formatOptionalDistance(yours.get(trail.id)!.distanceKm)}</Text>
+                  ) : (
+                    'Not hiked yet'
+                  )}
                 </Text>
               </View>
             </View>

@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-nativ
 
 import { useCatalogSearch } from '@/hooks/useCatalogSearch';
 import { useColors } from '@/hooks/useColors';
+import { useYourStatsByTrail } from '@/hooks/useYourTrailStats';
 import { ensureTrail } from '@/lib/catalogRemote';
 import { formatOptionalDistance } from '@/lib/format';
 import { searchTrails } from '@/lib/trailMatch';
@@ -24,6 +25,7 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
   const c = useColors();
   const [text, setText] = useState('');
   const name = cleanTrailName(text);
+  const yours = useYourStatsByTrail();
   const local = useMemo(() => searchTrails(trails, text, 5), [trails, text]);
   const remote = useCatalogSearch(text);
   // Trails on this phone first, then the server catalog (nearest first), no repeats.
@@ -90,7 +92,12 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
               {opening === trail.id ? <ActivityIndicator size="small" color={c.fgMuted} /> : null}
             </View>
             <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }} numberOfLines={1}>
-              {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text>
+              {trail.region} ·{' '}
+              {yours.get(trail.id) ? (
+                <Text style={{ color: c.distance }}>{formatOptionalDistance(yours.get(trail.id)!.distanceKm)}</Text>
+              ) : (
+                'Not hiked yet'
+              )}
             </Text>
           </View>
         </Pressable>

@@ -329,6 +329,7 @@ export default function LogScreen() {
     minutes: number;
     notes: string;
     distanceKm: number | null;
+    elevationGainM: number | null;
     terrain: string[];
     conditions: string[];
     difficulty: string | null;

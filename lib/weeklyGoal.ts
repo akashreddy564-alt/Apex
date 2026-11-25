@@ -84,8 +84,9 @@ export interface GoalProgress {
 }
 
 /**
- * Sum this week's hikes. A hike's own measurement wins; a hike without one
- * falls back to its trail's catalog figure, so past hikes still fill the ring.
+ * Sum this week's hikes, by each hike's own measurement only. A catalog figure
+ * is a guess for most trails, so a hike without a measurement adds nothing.
+ * `trailOf` stays in the signature for callers; it isn't read.
  */
 export function weeklyProgress(
   logs: readonly GoalLog[],
@@ -101,11 +102,7 @@ export function weeklyProgress(
     const at = Date.parse(log.created_at);
     if (!Number.isFinite(at) || at < start || at > nowMs) continue;
     hikes += 1;
-    const trail = trailOf(log.trail_id);
-    const value =
-      goal.metric === 'distance'
-        ? (log.distance_km ?? trail?.distance_km)
-        : (log.elevation_gain_m ?? trail?.elevation_gain_m);
+    const value = goal.metric === 'distance' ? log.distance_km : log.elevation_gain_m;
     if (value != null && Number.isFinite(value) && value > 0) done += value;
   }
   const fraction = goal.target > 0 ? Math.min(1, done / goal.target) : 0;

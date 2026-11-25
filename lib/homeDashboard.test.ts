@@ -50,11 +50,12 @@ test('a hike from last week does not count, but keeps the streak going', () => {
   assert.equal(card.streakWeeks, 2);
 });
 
-test('a hike without its own numbers falls back to the trail', () => {
+test('a hike without its own numbers never borrows the trail\'s (catalog numbers are guesses)', () => {
   const trailOf = () => ({ distance_km: 4.2, elevation_gain_m: 410 });
   const card = weekCard([log(day(24), null, null)], trailOf, elevationGoal, NOW);
-  assert.equal(card.done, 410);
-  assert.equal(card.distanceKm, 4.2);
+  assert.equal(card.hikes, 1);
+  assert.equal(card.done, 0);
+  assert.equal(card.distanceKm, 0);
 });
 
 test('a distance goal counts kilometres', () => {

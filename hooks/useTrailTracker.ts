@@ -129,10 +129,10 @@ export function useTrailTracker(): UseTrailTrackerResult {
 
   const logPast = useCallback(
     (draft: PastHikeDraft): HikeLog | null => {
-      const trail = useTrailCache.getState().trails.find((item) => item.id === draft.trailId);
       const log = buildPastHikeLog({
         ...draft,
-        elevationGainM: draft.elevationGainM ?? trail?.elevation_gain_m ?? null,
+        // Only what the hiker entered: a catalog climb is a guess, never borrowed.
+        elevationGainM: draft.elevationGainM ?? null,
       });
       if (!log) return null;
       upsertLog(log);

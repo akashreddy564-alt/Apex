@@ -15,7 +15,7 @@ export interface WeekCard {
   /** 0–100, rounded, capped at 100. */
   percent: number;
   hikes: number;
-  /** This week's distance whatever the goal metric (a hike's own first, else its trail's). */
+  /** This week's distance whatever the goal metric, from each hike's own measurement. */
   distanceKm: number;
   streakWeeks: number;
 }
@@ -33,7 +33,7 @@ export function weekCard(
   for (const log of logs) {
     const at = Date.parse(log.created_at);
     if (!Number.isFinite(at) || at < start || at > nowMs) continue;
-    const km = log.distance_km ?? trailOf(log.trail_id)?.distance_km;
+    const km = log.distance_km;
     if (km != null && Number.isFinite(km) && km > 0) distanceKm += km;
   }
   return {

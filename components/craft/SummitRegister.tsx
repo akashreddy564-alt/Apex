@@ -203,8 +203,9 @@ export function SummitRegister({
     transform: [{ translateY: (1 - progress.value) * -14 }],
   }));
 
-  const distanceKm = log ? (log.distance_km ?? trail?.distance_km ?? null) : null;
-  const gainM = log ? (log.elevation_gain_m ?? trail?.elevation_gain_m ?? null) : null;
+  // The hike's own numbers; a catalog figure is a guess, so it's never borrowed.
+  const distanceKm = log?.distance_km ?? null;
+  const gainM = log?.elevation_gain_m ?? null;
   const date = log ? stampDate(log.created_at) : null;
   const trace = trail ? tracePath(trail.elevation_profile) : null;
   const peak = trail?.peak_elevation_m ?? null;

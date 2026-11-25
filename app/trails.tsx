@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eyebrow, Skeleton } from '@/components/motion';
 import { useCatalogSearch } from '@/hooks/useCatalogSearch';
 import { useColors } from '@/hooks/useColors';
+import { useYourStatsByTrail } from '@/hooks/useYourTrailStats';
 import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
 import { TrailCoverCard } from '@/components/trail/TrailCoverCard';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
@@ -45,6 +46,7 @@ export default function TrailsScreen() {
   const rankings = useRankingStore((s) => s.rankings);
   const logs = useTrailCache((s) => s.logs);
   const ready = useTrailsReady();
+  const yours = useYourStatsByTrail();
   const { focus } = useLocalSearchParams<{ focus?: string }>();
   const [query, setQuery] = useState('');
   const searching = query.trim().length >= 2;
@@ -124,7 +126,12 @@ export default function TrailsScreen() {
                     {opening === trail.id ? <ActivityIndicator size="small" color={c.fgMuted} /> : null}
                   </View>
                   <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }} numberOfLines={1}>
-                    {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text>
+                    {trail.region} ·{' '}
+                    {yours.get(trail.id) ? (
+                      <Text style={{ color: c.distance }}>{formatOptionalDistance(yours.get(trail.id)!.distanceKm)}</Text>
+                    ) : (
+                      'Not hiked yet'
+                    )}
                   </Text>
                 </View>
               </Pressable>
