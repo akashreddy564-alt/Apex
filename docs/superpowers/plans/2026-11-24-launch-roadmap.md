@@ -3,6 +3,20 @@
 **Replaces the status sections of** `2026-10-16-launch-roadmap.md` and the unmerged `2026-11-23-launch-roadmap-update.md` (branch `claude/roadmap-update-1fa555`). The 2026-10-16 file's plans and "How we check" rules still apply.
 **Specs:** `docs/superpowers/specs/2026-10-16-apex-launch-design.md` (launch) and `docs/superpowers/specs/2026-10-23-apex-social-and-app-structure-design.md` (social).
 
+## Status, 2026-11-25 night
+
+Submission target: build Thursday morning, Nov 26; launch Fri Nov 27 (fallback Mon Nov 30).
+
+- **Site:** #70 merged (the screens ring stops on each screen and brings it forward). Vercel `apex-landing` is now Git-connected: Root Directory `site`, production branch `main`, so every merge to `main` deploys on its own. The domain is live: **https://www.hikeapex.com** is primary and `hikeapex.com` 308-redirects to it. `apex-landing-kappa.vercel.app` still works.
+- **Email:** Cloudflare Email Routing forwards `support@hikeapex.com` and `review@hikeapex.com` to the owner.
+- **Database:** `migration_status.sql` on the Apex project shows `001`–`020` applied (rows 24–26 true). 3 test hikers, 23 trails, 0 open reports.
+- **Reviewer account: done.** `review@hikeapex.com` exists in Supabase Auth and `app_review.sql` has run with it: `app_review` profile, terms accepted, 2 friends, 1 pending request, in Test crew. Not yet tried in the app. Put the email and password in App Review Information.
+- **Redirect URL:** `apex://**` added in Supabase Auth.
+- **EAS env:** the 3 `EXPO_PUBLIC_` keys are set in production and preview and match `.env`, so `eas env:set` isn't needed.
+- **Mapbox:** the app uses the Default public token, which can't take URL restrictions. A URL restriction would also 403 the Static Images cover photos, since native requests send no Referer. It stays unrestricted for launch; don't refresh it. See `docs/security.md`.
+- **Code fixes:** PR #71 (launch blockers) is open; the P1 fixes follow on `fix/launch-p1s`.
+- **Left:** merge the fix PRs, then `eas build -p ios --profile production` (cloud build, the first ever, so it asks for Apple sign-in and certificates) and `eas submit`. The App Store Connect app for `com.apex.trails` must exist first.
+
 ## What changed since 2026-11-23
 
 - **#57 (merged):**
@@ -29,12 +43,12 @@
 | 2 | Trail catalog and freeform hikes | Done, phone check owed | Finish → trail sheet on the phone |
 | 3 | Accounts, friends, feed, groups, safety | **Built, including the friends board and friends' hikes.** Phone check owed | Custom SMTP so others can sign in (owner). Run `016` and `018` |
 | 3b | Schools and companies | **Built** | Add the Resend secrets (owner) |
-| 3c | Terms and App Review access | **Built** | Create the reviewer, then run `app_review.sql` (owner) |
+| 3c | Terms and App Review access | **Done** (reviewer created and seeded 2026-11-25) | Credentials into App Review Information (owner) |
 | 4 | Habit loops, plus the week share card | Built, phone check owed | Phone pass (dev client rebuild: `expo-notifications`, `react-native-view-shot`) |
-| 5 | Route flyover and video share | Built, phone check owed | Allow `https://flyover.apex.app/` on the Mapbox token (owner). 60 fps, export and memory checks |
+| 5 | Route flyover and video share | Built, phone check owed | 60 fps, export and memory checks. Token stays unrestricted for launch (see `docs/security.md`) |
 | 6a | Visual pass | Done in code | Look at the signed-in social screens in the phone pass |
-| 6b | App Store submission | **Not started** | Everything under "Before submission" |
-| — | Landing site | **Done, with legal pages** | `SUPPORT_EMAIL` (`site/lib/contact.ts`) once an inbox exists. App Store link on "Download now" |
+| 6b | App Store submission | **In progress** | Fix PRs (#71 and P1s), then the first production build and submit |
+| — | Landing site | **Done, live at www.hikeapex.com**, auto-deploys from `main` | `SUPPORT_EMAIL` and hikeapex.com links (#71). App Store link on "Download now" |
 
 ## The three features the owner asked about
 
@@ -55,8 +69,8 @@ Owner actions are marked **(owner)**.
 1. **Apple Developer enrollment (owner).** It can take days, so start it first.
 2. **Domain and Resend (owner).** Custom SMTP for sign-in (add `{{ .Token }}` to the templates), plus `RESEND_API_KEY` and `ORG_EMAIL_FROM` for `org-verify`. Until then, only the owner can sign in.
 3. **Database: done 2026-11-24.** `016`–`018` applied (24/24 checks true), test hikers seeded, `org-verify` deployed. It answers "not switched on yet" until the Resend secrets in step 2 exist.
-4. **Reviewer account (owner).** Create it with a password in Supabase Auth, put its email in `app_review.sql` and run it. Add the credentials and the note from `docs/social-setup.md` to App Review Information.
-5. **Support contact (owner, then builder).** Set `SUPPORT_EMAIL` in `site/lib/contact.ts`. When the domain exists, point `SITE_URL` in `lib/legal.ts` at it and deploy the site there.
+4. **Reviewer account: done 2026-11-25** (`review@hikeapex.com`, seeded). Still to do: add the credentials and the note from `docs/social-setup.md` to App Review Information. (Original step: create it with a password in Supabase Auth, put its email in `app_review.sql` and run it. Add the credentials and the note from `docs/social-setup.md` to App Review Information.)
+5. **Support contact: inbox and domain done 2026-11-25; code in #71.** Set `SUPPORT_EMAIL` in `site/lib/contact.ts`. When the domain exists, point `SITE_URL` in `lib/legal.ts` at it and deploy the site there.
 6. **Phone pass**, with the dev client rebuilt once. It covers:
    - GPS with the screen locked, launch timing, and Finish → trail sheet.
    - Magic link, code and password sign-in.
@@ -64,7 +78,7 @@ Owner actions are marked **(owner)**.
    - Feed, friends board, friend page, week card share, and school verification end to end.
    - Flyover: 60 fps, export and memory.
    - The terms card and checkbox.
-7. **Mapbox token, bundle id `com.apex.trails`, and EAS production env vars (owner).** See `docs/RELEASING.md` and `docs/security.md`.
+7. **Mapbox token, bundle id `com.apex.trails`, and EAS production env vars: done 2026-11-25** (env vars set; token left unrestricted on purpose). See `docs/RELEASING.md` and `docs/security.md`.
 8. **Listing (owner):** paste from `docs/app-store-listing.md` (name, subtitle, description, keywords, privacy labels, age-rating answers, review notes), and add 6.9" iPhone screenshots. The privacy manifest (required-reason APIs from every native dependency) is already in `app.json`.
 9. **TestFlight**, with friends testing on their own phones, **then submit.** Run `npm run build:prod` and `npm run submit:ios`, and add `ascAppId` to `eas.json`.
 10. **Link the site:** point the three "Download now" buttons at the App Store URL.
@@ -72,6 +86,7 @@ Owner actions are marked **(owner)**.
 ### After launch
 
 - Push notifications. The in-app bell already works.
+- **Last signed in (owner asked, 2026-11-25).** When someone who already has an account comes back to sign in, the sign-in screen remembers them on this device: "Welcome back, Maya", the email they last used filled in (shown partly hidden, `m•••@gmail.com`), and a "Last used" tag on whichever sign-in method they used once Sign in with Apple exists. Small, and it saves returning hikers from guessing which email or method they signed up with. Confirm the exact behaviour with the owner before building.
 - Universal links and a hosted invite page.
 - Sign in with Apple.
 - Weekend pick using friends' rankings.
