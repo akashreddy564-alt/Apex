@@ -18,6 +18,8 @@ interface RankingState {
   setRankings: (rankings: TrailRanking[]) => void;
   /** One ranking row plus the comparisons from the finished session. */
   place: (ranking: TrailRanking, comparisons: PairwiseComparison[]) => void;
+  /** Set your difficulty rating (1–5) on a ranked trail. Returns the updated row. */
+  setDifficulty: (trailId: string, difficulty: number, hikeType?: string) => TrailRanking | null;
 }
 
 export const useRankingStore = create<RankingState>()(
@@ -46,20 +48,29 @@ export const useRankingStore = create<RankingState>()(
       },
       setRankings: (rankings) => set({ rankings: withStoredScores(rankings) }),
       place: (ranking, comparisons) => {
+        set((state) => {
+          const same = (row: TrailRanking) =>
+            row.user_id === ranking.user_id && row.trail_id === ranking.trail_id && row.hike_type === ranking.hike_type;
+          // Re-ranking keeps the difficulty you gave before, unless this ranking brings one.
+          const previous = state.rankings.find(same);
+          const placed =
+            ranking.difficulty === undefined && previous?.difficulty != null ? { ...ranking, difficulty: previous.difficulty } : ranking;
+          return {
+            rankings: withStoredScores([...state.rankings.filter((row) => !same(row)), placed]),
+            comparisons: [...state.comparisons, ...comparisons],
+          };
+        });
+      },
+      setDifficulty: (trailId, difficulty, hikeType = DEFAULT_HIKE_TYPE) => {
+        let updated: TrailRanking | null = null;
         set((state) => ({
-          rankings: withStoredScores([
-            ...state.rankings.filter(
-              (row) =>
-                !(
-                  row.user_id === ranking.user_id &&
-                  row.trail_id === ranking.trail_id &&
-                  row.hike_type === ranking.hike_type
-                ),
-            ),
-            ranking,
-          ]),
-          comparisons: [...state.comparisons, ...comparisons],
+          rankings: state.rankings.map((row) => {
+            if (row.trail_id !== trailId || row.hike_type !== hikeType) return row;
+            updated = { ...row, difficulty, updated_at: new Date().toISOString() };
+            return updated;
+          }),
         }));
+        return updated;
       },
     }),
     {

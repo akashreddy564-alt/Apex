@@ -85,6 +85,8 @@ export interface TrailRanking {
   score: number;
   comparison_count: number;
   updated_at: string;
+  /** Your difficulty rating, 1 Easy … 5 Very strenuous (lib/difficulty). */
+  difficulty?: number | null;
 }
 
 export interface PairwiseComparison {

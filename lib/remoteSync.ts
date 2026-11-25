@@ -241,6 +241,7 @@ function mapRanking(row: Record<string, unknown>): TrailRanking | null {
     comparison_count: num(row.comparison_count),
     score: num(row.score),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
+    difficulty: typeof row.difficulty === 'number' ? row.difficulty : null,
   };
 }
 
@@ -384,6 +385,7 @@ function rankingRow(ranking: TrailRanking, uid: string): Record<string, unknown>
     comparison_count: ranking.comparison_count,
     updated_at: ranking.updated_at,
   };
+  if (ranking.difficulty !== undefined) row.difficulty = ranking.difficulty;
   if (isUuid(ranking.id)) row.id = ranking.id;
   return row;
 }

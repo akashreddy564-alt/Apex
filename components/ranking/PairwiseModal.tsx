@@ -19,6 +19,9 @@ import {
 } from '@/lib/format';
 import { BUCKET_BANDS, BUCKETS, DEFAULT_HIKE_TYPE } from '@/lib/ranking';
 import { yourTrailStats } from '@/lib/yourTrailStats';
+import { useRankingStore } from '@/stores/rankingStore';
+import { pushRankings } from '@/lib/remoteSync';
+import { DIFFICULTY_LABELS } from '@/lib/difficulty';
 import { resolveRoute, routeSourceLabel } from '@/lib/routeSource';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle, type Palette } from '@/theme/tokens';
@@ -223,8 +226,19 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
     return () => clearTimeout(timer);
   }, [loading]);
 
+  // Your difficulty rating, picked above the buckets and saved with the ranking.
+  const [difficulty, setDifficulty] = useState<number | null>(null);
+  useEffect(() => {
+    if (!visible) setDifficulty(null);
+  }, [visible]);
+
   const confirmPlace = () => {
+    const trailId = preview?.insertedTrailId ?? null;
     place();
+    if (trailId && difficulty != null) {
+      const row = useRankingStore.getState().setDifficulty(trailId, difficulty);
+      if (row) void pushRankings([row]);
+    }
     reset();
     onClose();
   };
@@ -283,7 +297,41 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
             >
               How was it?
             </Text>
-            <View style={{ marginTop: 22, gap: 10 }}>
+            <Text style={{ marginTop: 18, color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 }}>
+              HOW HARD WAS IT? (OPTIONAL)
+            </Text>
+            <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {DIFFICULTY_LABELS.map((label, index) => {
+                const value = index + 1;
+                const on = difficulty === value;
+                return (
+                  <Pressable
+                    key={label}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={`Difficulty: ${label}`}
+                    onPress={() => {
+                      haptics.select();
+                      setDifficulty(on ? null : value);
+                    }}
+                  >
+                    <View
+                      style={{
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        borderColor: on ? c.fg : c.raised,
+                        backgroundColor: on ? c.fg : c.surface,
+                        paddingHorizontal: 12,
+                        paddingVertical: 7,
+                      }}
+                    >
+                      <Text style={{ color: on ? c.bg : c.fg2, fontFamily: fonts.uiMedium, fontSize: 13 }}>{label}</Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <View style={{ marginTop: 18, gap: 10 }}>
               {BUCKETS.map((item) => (
                 <Pressable
                   key={item}

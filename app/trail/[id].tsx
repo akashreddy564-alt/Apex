@@ -14,6 +14,7 @@ import { DifficultyCard } from '@/components/craft/DifficultyCard';
 import { ElevationScrubber } from '@/components/craft/ElevationScrubber';
 import { RouteTracer } from '@/components/craft/RouteTracer';
 import { Eyebrow, PressScale, SlideToStart } from '@/components/motion';
+import { TrailRankings } from '@/components/trail/TrailRankings';
 import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
@@ -260,6 +261,8 @@ export default function TrailDetailScreen() {
               </View>
             )}
           </View>
+
+          <TrailRankings trailId={trail.id} />
 
           {placement ? null : (
             <Text style={{ marginTop: 10, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 13 }}>

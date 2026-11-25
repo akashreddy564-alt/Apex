@@ -45,3 +45,36 @@ describe('rememberTrails', () => {
     expect(matches[0].name).toBe('Indian Seats Trail (updated)');
   });
 });
+
+describe('difficulty on a ranking', () => {
+  const base = {
+    id: 'r1',
+    user_id: 'me',
+    trail_id: 't1',
+    hike_type: 'hike',
+    bucket: 'loved' as const,
+    position: 'a0',
+    comparison_count: 1,
+    score: 9,
+    updated_at: '2026-11-25T00:00:00Z',
+  };
+
+  it('setDifficulty stores 1-5 on the ranked trail and returns the row', () => {
+    useRankingStore.setState({ rankings: [base], comparisons: [] });
+    const row = useRankingStore.getState().setDifficulty('t1', 4);
+    expect(row?.difficulty).toBe(4);
+    expect(useRankingStore.getState().rankings[0].difficulty).toBe(4);
+  });
+
+  it('re-ranking a trail keeps the difficulty you gave before', () => {
+    useRankingStore.setState({ rankings: [{ ...base, difficulty: 3 }], comparisons: [] });
+    useRankingStore.getState().place({ ...base, position: 'a1', score: 8 }, []);
+    expect(useRankingStore.getState().rankings[0].difficulty).toBe(3);
+  });
+
+  it('a ranking that brings its own difficulty replaces the old one', () => {
+    useRankingStore.setState({ rankings: [{ ...base, difficulty: 3 }], comparisons: [] });
+    useRankingStore.getState().place({ ...base, difficulty: 5 }, []);
+    expect(useRankingStore.getState().rankings[0].difficulty).toBe(5);
+  });
+});

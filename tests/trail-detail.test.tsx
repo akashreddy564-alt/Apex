@@ -23,6 +23,9 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 // Skia has no jest runtime; the full map is not under test here.
 jest.mock('@/components/trail/TrailMap', () => ({ TrailMap: () => null }));
 
+// Friends' rankings come from the server; covered in trail-rankings.test.tsx.
+jest.mock('@/components/trail/TrailRankings', () => ({ TrailRankings: () => null }));
+
 const mockTrails = [...CATALOG_TRAILS, ...MOCK_TRAILS];
 let mockLogs: unknown[] = [];
 jest.mock('@/stores/trailCache', () => {
