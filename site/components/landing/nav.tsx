@@ -4,6 +4,7 @@ import { motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion
 import { useState, useSyncExternalStore } from "react";
 
 import { AppleMark, Peak } from "./icons";
+import { scrollToTarget } from "./smooth";
 import { onSoundChange, setSound, sfx, soundOn } from "./sound";
 
 const LINKS = [
@@ -38,12 +39,12 @@ export function Nav() {
         animate={{
           maxWidth: scrolled ? 760 : 1240,
           paddingLeft: scrolled ? 10 : 6,
-          backgroundColor: scrolled ? "rgba(255,255,255,0.78)" : "rgba(255,255,255,0)",
+          backgroundColor: scrolled ? "rgba(245,241,232,0.94)" : "rgba(255,255,255,0)",
           borderColor: scrolled ? "rgba(221,212,194,0.9)" : "rgba(221,212,194,0)",
           boxShadow: scrolled ? "0 18px 40px -24px rgba(28,33,30,0.35)" : "0 0 0 rgba(0,0,0,0)",
         }}
         aria-label="Main"
-        className="flex w-full items-center justify-between gap-4 rounded-full border py-1.5 pr-1.5 backdrop-blur-xl"
+        className="flex w-full items-center justify-between gap-4 rounded-full border py-1.5 pr-1.5"
         transition={{ type: "spring", stiffness: 260, damping: 32 }}
       >
         <a className="flex h-11 items-center gap-2 pl-2 font-display font-extrabold text-[22px] text-ink tracking-[-0.03em]" href="#top">
@@ -63,6 +64,12 @@ export function Nav() {
               <a
                 className="relative flex h-11 items-center px-4 font-medium text-[14px] text-ink-2"
                 href={l.href}
+                onClick={(e) => {
+                  const el = document.getElementById(l.href.slice(1));
+                  if (!el) return;
+                  e.preventDefault();
+                  scrollToTarget(el);
+                }}
                 onMouseEnter={() => setHovered(l.href)}
               >
                 {l.label}

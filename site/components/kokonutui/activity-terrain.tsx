@@ -20,6 +20,7 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import { isPageScrolling } from "@/components/landing/scroll-activity";
 
 const DAYS = 7;
 const GAP = 0.18;
@@ -548,6 +549,10 @@ export default function ActivityTerrain({
     (now: number) => {
       const s = sim.current;
       s.raf = 0;
+      if (isPageScrolling()) {
+        s.raf = requestAnimationFrame(tick);
+        return;
+      }
       const dt = s.last ? Math.min((now - s.last) / 1000, 1 / 30) : 1 / 60;
       s.last = now;
       const energy = stepSprings(dt);

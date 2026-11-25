@@ -2,7 +2,7 @@
 
 import { WordsStagger } from "@/components/spell/words-stagger";
 import { motion, useInView, useReducedMotion, useScroll, useTransform } from "motion/react";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import FlowField from "@/components/kokonutui/flow-field";
 import { LineChart } from "@/components/charts/line-chart";
@@ -14,16 +14,60 @@ import { H2, Step } from "./reveal";
 import { fmt } from "./route";
 
 const TRAIL = TRAILS[0];
-/** Where the flyover footage starts inside the screen recording, in seconds. */
-const FLY_START = 13.4;
 const EMBERS = ["#94552a", "#d9925e", "#f0c08a", "#fff1dc"] as const;
 
 export function Flyover() {
   const ref = useRef<HTMLElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInView = useInView(chartRef, { once: true, margin: "-15% 0px" });
+  const [scrollSettled, setScrollSettled] = useState(true);
+  useEffect(() => {
+    let timer = 0;
+    const onScroll = () => {
+      setScrollSettled(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setScrollSettled(true), 180);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(timer);
+    };
+  }, []);
   const reduce = useReducedMotion();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (reduce) {
+      video.pause();
+      return;
+    }
+    let onScreen = false;
+    let resume = 0;
+    const tryPlay = () => {
+      if (onScreen) void video.play().catch(() => {});
+    };
+    const io = new IntersectionObserver(([entry]) => {
+      onScreen = !!entry?.isIntersecting;
+      if (!onScreen) video.pause();
+      else tryPlay();
+    }, { threshold: 0.2 });
+    io.observe(video);
+    // Decoding the flyover while the page is moving drops frames. It resumes when the flick ends.
+    const onScroll = () => {
+      if (!video.paused) video.pause();
+      window.clearTimeout(resume);
+      resume = window.setTimeout(tryPlay, 160);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      io.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      window.clearTimeout(resume);
+    };
+  }, [reduce]);
   const photoY = useTransform(scrollYProgress, [0, 1], reduce ? ["0%", "0%"] : ["-12%", "12%"]);
   const photoScale = useTransform(scrollYProgress, [0, 0.5, 1], reduce ? [1, 1, 1] : [1.25, 1.08, 1.18]);
 
@@ -81,7 +125,7 @@ export function Flyover() {
                 </p>
               </div>
               <div className="h-44">
-                {chartInView ? (
+                {chartInView && scrollSettled ? (
                   <LineChart
                     aspectRatio=""
                     className="h-full"
@@ -112,22 +156,16 @@ export function Flyover() {
           <Phone className="bg-black shadow-[0_60px_120px_-30px_rgba(0,0,0,0.9),0_0_0_1px_rgba(255,255,255,0.08)]">
             <video
               aria-label="A Mount Si flyover playing in Apex"
-              autoPlay
+              autoPlay={!reduce}
               className="absolute inset-0 size-full object-cover"
+              loop
               muted
-              // The recording opens on the app's opening and home screens; the flyover itself starts at 13.4 s.
-              onEnded={(e) => {
-                e.currentTarget.currentTime = FLY_START;
-                void e.currentTarget.play();
-              }}
-              onLoadedMetadata={(e) => {
-                e.currentTarget.currentTime = FLY_START;
-              }}
               playsInline
-              poster="/screens/dark-12-flyover-end.png"
+              poster="/screens/flyover-poster.jpg"
               preload="metadata"
+              ref={videoRef}
             >
-              <source src="/screens/1-flyover.webm" type="video/webm" />
+              <source src="/screens/flyover.mp4" type="video/mp4" />
             </video>
           </Phone>
         </div>

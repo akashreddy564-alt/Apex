@@ -12,6 +12,7 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { isPageScrolling } from "@/components/landing/scroll-activity";
 
 export interface TopoBackgroundProps {
   /**
@@ -570,6 +571,10 @@ export default function TopoBackground({
     const frame = (now: number) => {
       raf = 0;
       if (!visible) {
+        return;
+      }
+      if (isPageScrolling()) {
+        if (speed > 0) raf = requestAnimationFrame(frame);
         return;
       }
       const dt = last ? Math.min((now - last) / 1000, 0.05) : 0;
