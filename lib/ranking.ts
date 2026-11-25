@@ -210,7 +210,9 @@ export function bandScore(bucket: Bucket, index: number, count: number): number 
   const { lo, hi } = BUCKET_BANDS[bucket];
   const raw = hi - ((index + 0.5) * (hi - lo)) / count;
   // Hundredths, so a long bucket doesn't show two trails with the same score.
-  const rounded = Math.round(raw * 100) / 100;
+  // The nudge stops float error (1.995 * 100 = 199.4999…) rounding down, so this
+  // matches Postgres's exact numeric rounding in migration 021.
+  const rounded = Math.round(raw * 100 + 1e-9) / 100;
   return Math.min(hi, Math.max(lo, rounded));
 }
 

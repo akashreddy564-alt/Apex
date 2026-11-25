@@ -67,6 +67,13 @@ from (values
   (25, '019 friend trails',               exists (select 1 from pg_policies
                                            where schemaname = 'public' and tablename = 'trails'
                                              and policyname = 'trails_select_catalog_own_or_friend')),
-  (26, '020 account deletion skips storage', position('storage.objects' in pg_get_functiondef('public.delete_own_account()'::regprocedure)) = 0)
+  (26, '020 account deletion skips storage', position('storage.objects' in pg_get_functiondef('public.delete_own_account()'::regprocedure)) = 0),
+  (27, '021 hundredths, First Ascent',   exists (select 1 from information_schema.columns
+                                           where table_schema = 'public' and table_name = 'trail_rankings'
+                                             and column_name = 'score' and numeric_scale = 2)
+                                           and exists (select 1 from information_schema.columns
+                                           where table_schema = 'public' and table_name = 'profiles' and column_name = 'ascent_no')
+                                           and exists (select 1 from pg_trigger where tgname = 'profiles_first_ascent')
+                                           and not coalesce(has_table_privilege('authenticated', to_regclass('public.first_ascent_counter'), 'select'), false))
 ) as checks (n, step, ok)
 order by n;

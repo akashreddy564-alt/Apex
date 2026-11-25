@@ -268,3 +268,8 @@ test('expected comparisons follow the binary-search bound', () => {
   assert.equal(expectedComparisons(1), 1);
   assert.equal(expectedComparisons(15), 4);
 });
+
+test('rounds half-hundredths up like the database does', () => {
+  // A lone Didn't-like hike: 3.99 - 0.5 * 3.99 = 1.995, which Postgres rounds to 2.00.
+  assert.equal(bandScore('disliked', 0, 1), 2);
+});
