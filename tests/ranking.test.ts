@@ -36,7 +36,7 @@ describe('bucket placement', () => {
     expect(place([], [])).toBe(0);
   });
 
-  it('keeps scores inside each band at one decimal', () => {
+  it('keeps scores inside each band at two decimals', () => {
     for (const bucket of BUCKETS) {
       const { lo, hi } = BUCKET_BANDS[bucket];
       for (const count of [1, 2, 5, 20]) {
@@ -46,16 +46,16 @@ describe('bucket placement', () => {
         for (const score of scores) {
           expect(score).toBeGreaterThanOrEqual(lo);
           expect(score).toBeLessThanOrEqual(hi);
-          expect(score).toBe(Math.round(score * 10) / 10);
-          expect(formatRankScore(score)).toMatch(/^\d+\.\d$/);
+          expect(score).toBe(Math.round(score * 100) / 100);
+          expect(formatRankScore(score)).toMatch(/^\d+\.\d\d$/);
         }
         for (let i = 1; i < scores.length; i++) {
           expect(scores[i]).toBeLessThanOrEqual(scores[i - 1]);
         }
       }
     }
-    expect(formatRankScore(8.7)).toBe('8.7');
-    expect(formatRankScore(8)).toBe('8.0');
+    expect(formatRankScore(8.7)).toBe('8.70');
+    expect(formatRankScore(8)).toBe('8.00');
   });
 
   it('undoes a finished placement back to the previous bounds', () => {
@@ -167,7 +167,7 @@ describe('bucket placement', () => {
       for (const score of scores) {
         expect(score).toBeGreaterThanOrEqual(lo);
         expect(score).toBeLessThanOrEqual(hi);
-        expect(score).toBe(Math.round(score * 10) / 10);
+        expect(score).toBe(Math.round(score * 100) / 100);
       }
       for (let index = 1; index < scores.length; index++) {
         expect(scores[index]).toBeLessThanOrEqual(scores[index - 1]);

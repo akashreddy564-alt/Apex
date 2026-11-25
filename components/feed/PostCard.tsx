@@ -14,6 +14,7 @@ import { useSavedTrails } from '@/stores/savedTrailsStore';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
 import { PressScale, ReasonLine } from '@/components/motion';
+import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 
 function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
   const c = useColors();
@@ -140,6 +141,7 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
               {post.trailName}
             </Text>
           </Text>
+          <FirstAscentBadge userId={post.authorId} style={{ marginTop: 4 }} />
           {where ? (
             <Text numberOfLines={1} style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
               {where}

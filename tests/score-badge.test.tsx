@@ -24,7 +24,7 @@ describe.each<ScoreStyle>(['number', 'peak', 'blaze'])('%s badge', (style) => {
   });
 
   it('shows the score for a bucket of 3', () => {
-    expect(texts(style, 3, 9.43)).toContain('9.4');
+    expect(texts(style, 3, 9.43)).toContain('9.43');
   });
 });
 

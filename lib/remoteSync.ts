@@ -554,7 +554,7 @@ async function sendPost(logId: string): Promise<boolean> {
       user_id: uid,
       trail_id: log.trail_id,
       bucket: ranking.bucket,
-      score: Math.round(ranking.score * 10) / 10,
+      score: Math.round(ranking.score * 100) / 100,
       bucket_size: Math.max(1, bucketSize),
       hiked_at: log.created_at,
     },

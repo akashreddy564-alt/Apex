@@ -9,7 +9,7 @@ export const SHORT_LABELS: Record<Bucket, BucketShortLabel> = {
 };
 
 export interface ScoreBadgeContent {
-  /** One-decimal score, or null while the bucket has fewer than 3 hikes. */
+  /** Two-decimal score, or null while the bucket has fewer than 3 hikes. */
   value: string | null;
   label: BucketShortLabel;
   tone: Bucket;

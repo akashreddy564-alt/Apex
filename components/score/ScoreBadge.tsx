@@ -100,7 +100,8 @@ export function ScoreBadge({ bucket, count, score, size = 'lg', style }: ScoreBa
       style={{
         minWidth: 30 * scale,
         height: 44 * scale,
-        paddingHorizontal: value ? 0 : 4,
+        // Two-decimal scores need the same breathing room as the bucket word.
+        paddingHorizontal: 4,
         borderRadius: 3,
         backgroundColor: color,
         alignItems: 'center',
