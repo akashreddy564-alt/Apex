@@ -12,6 +12,7 @@
 
 import { type ReactNode, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { isPageScrolling } from "@/components/landing/scroll-activity";
 
 export interface FlowFieldProps {
   className?: string;
@@ -696,6 +697,10 @@ export default function FlowField({
         return;
       }
       raf = requestAnimationFrame(frame);
+      // A full-viewport particle pass during a flick is enough to miss frames.
+      if (isPageScrolling()) {
+        return;
+      }
       if (!isActive() && now - lastStep < IDLE_FRAME_MS - 4) {
         return;
       }

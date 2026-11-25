@@ -1,8 +1,8 @@
 "use client";
 
 import NumberFlow from "@number-flow/react";
-import { motion, useMotionValueEvent, useScroll, useSpring, useTransform } from "motion/react";
-import { useEffect, useState } from "react";
+import { motion, useMotionValueEvent, useScroll, useTransform } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 
 import { TRAILS } from "@/lib/trails";
 
@@ -14,7 +14,7 @@ const TRAIL = TRAILS[0]; // Mount Si
 const SUMMIT = summitMiles(TRAIL);
 const BASE_FT = feetAt(TRAIL, 0);
 
-type Tick = { label: string; at: number; el: HTMLElement };
+type Tick = { label: string; at: number; top: number; bottom: number; tone: string; el: HTMLElement };
 
 /** Altitude for a point on the page: the whole page is one climb up Mount Si. */
 function feetFor(p: number) {
@@ -27,25 +27,34 @@ function feetFor(p: number) {
  * section; click one to go there. Laptops and up only.
  */
 export function AltitudeRail() {
-  const { scrollYProgress } = useScroll();
-  const p = useSpring(scrollYProgress, { stiffness: 220, damping: 40, mass: 0.3 });
-  const markerTop = useTransform(p, (v) => `${(1 - v) * 100}%`);
-  const fill = useTransform(p, (v) => v);
+  const { scrollY, scrollYProgress } = useScroll();
+  const markerTop = useTransform(scrollYProgress, (v) => `${(1 - v) * 100}%`);
+  const fill = useTransform(scrollYProgress, (v) => v);
   const [feet, setFeet] = useState(BASE_FT);
   const [ticks, setTicks] = useState<Tick[]>([]);
   const [visible, setVisible] = useState(false);
   const [active, setActive] = useState(0);
   const [tone, setTone] = useState<"light" | "dark">("light");
+  const ticksRef = useRef<Tick[]>([]);
+  const maxRef = useRef(1);
 
   useEffect(() => {
     const measure = () => {
       const max = document.documentElement.scrollHeight - window.innerHeight;
       if (max <= 0) return;
-      const next = [...document.querySelectorAll<HTMLElement>("[data-rail]")].map((el) => ({
-        label: el.dataset.rail ?? "",
-        at: Math.min(1, (el.getBoundingClientRect().top + window.scrollY) / max),
-        el,
-      }));
+      maxRef.current = max;
+      const next = [...document.querySelectorAll<HTMLElement>("[data-rail]")].map((el) => {
+        const top = el.getBoundingClientRect().top + window.scrollY;
+        return {
+          label: el.dataset.rail ?? "",
+          at: Math.min(1, top / max),
+          top,
+          bottom: top + el.offsetHeight,
+          tone: el.dataset.tone ?? "dark",
+          el,
+        };
+      });
+      ticksRef.current = next;
       setTicks(next);
     };
     measure();
@@ -54,19 +63,26 @@ export function AltitudeRail() {
     return () => ro.disconnect();
   }, []);
 
-  useMotionValueEvent(p, "change", (v) => {
-    setFeet(feetFor(v));
-    const i = ticks.findLastIndex((t) => v >= t.at - 0.01);
+  // Cached document offsets only. Reading layout here forced a reflow on every frame.
+  useMotionValueEvent(scrollY, "change", (y) => {
+    const max = maxRef.current;
+    const v = max > 0 ? y / max : 0;
+    const nextFeet = feetFor(v);
+    setFeet((prev) => (prev === nextFeet ? prev : nextFeet));
+    const sections = ticksRef.current;
+    const mid = y + window.innerHeight / 2;
+    let i = -1;
+    let under: Tick | undefined;
+    for (let k = 0; k < sections.length; k++) {
+      if (v >= sections[k].at - 0.01) i = k;
+      const t = sections[k];
+      if (t.top <= mid && t.bottom >= mid) under = t;
+    }
     if (i !== active) setActive(i);
-    // Whatever section sits under the middle of the screen decides the ink.
-    const mid = window.innerHeight / 2;
-    const under = ticks.find((t) => {
-      const r = t.el.getBoundingClientRect();
-      return r.top <= mid && r.bottom >= mid;
-    });
-    const t = under?.el.dataset.tone ?? "dark";
-    setTone(t === "dark" ? "dark" : "light");
-    setVisible(window.scrollY > window.innerHeight * 0.4 && t !== "none");
+    const nextTone = under?.tone ?? "dark";
+    setTone(nextTone === "dark" ? "dark" : "light");
+    const show = y > window.innerHeight * 0.4 && nextTone !== "none";
+    setVisible((prev) => (prev === show ? prev : show));
   });
 
   return (

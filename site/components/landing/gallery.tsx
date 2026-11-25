@@ -9,7 +9,6 @@ import {
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
-  useSpring,
   useTransform,
 } from "motion/react";
 import { type RefObject, useEffect, useRef, useState } from "react";
@@ -219,13 +218,16 @@ export function Gallery() {
   const scale = useStageScale(stage);
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
   const turn = useTransform(scrollYProgress, KEYS, ANGLES, { clamp: true, ease: EASES });
-  const spring = useSpring(turn, { stiffness: 120, damping: 30, mass: 0.4 });
   // Under reduced motion the ring rests with the first screen square to you.
   const still = useMotionValue(0);
-  const spin = reduce ? still : spring;
+  // Directly on the scroll position. A spring lags the ring and keeps animating after the flick.
+  const spin = reduce ? still : turn;
   const bar = useTransform(scrollYProgress, [0, SPAN], [0, 1], { clamp: true });
   const [front, setFront] = useState(0);
-  useMotionValueEvent(spring, "change", (deg) => setFront(frontCard(deg)));
+  useMotionValueEvent(turn, "change", (deg) => {
+    const next = frontCard(deg);
+    setFront((prev) => (prev === next ? prev : next));
+  });
 
   const caption = CARDS[reduce ? 0 : front].screen;
 
