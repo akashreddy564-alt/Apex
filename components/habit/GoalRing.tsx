@@ -17,7 +17,7 @@ import { Circle, Path, Svg } from 'react-native-svg';
 import { haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
-import { formatAmount, formatProgress, type GoalMetric } from '@/lib/weeklyGoal';
+import { formatProgress } from '@/lib/weeklyGoal';
 import { numericStyle } from '@/theme/tokens';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -87,12 +87,9 @@ export function Ring({ fraction, size, stroke, complete, color }: RingProps) {
   );
 }
 
-function unit(metric: GoalMetric) {
-  return metric === 'elevation' ? 'ft' : 'mi';
-}
-
 /**
- * Progress toward this week's goal, beside the streak. Hidden until the
+ * Progress toward this week's goal, beside the streak, as "1,240 / 3,000 ft"
+ * so it reads as a goal, not a total. Hidden until the
  * first hike, like the streak and reminders. The first time it fills in a
  * week it pops with a haptic. Tapping it opens the goal.
  */
@@ -156,7 +153,7 @@ export function GoalRing() {
           color={goal.metric === 'elevation' ? c.climb : c.distance}
         />
         <Text style={{ ...numericStyle('semibold'), color: c.fg2, fontSize: 13 }}>
-          {formatAmount(goal.metric, progress.done)} {unit(goal.metric)}
+          {formatProgress(goal.metric, progress.done, progress.target)}
         </Text>
       </Pressable>
     </Animated.View>

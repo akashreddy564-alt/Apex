@@ -44,9 +44,11 @@ type OpeningScreenProps = {
   onReady: () => void;
   /** Called once, after the fade-out. */
   onDone: () => void;
+  /** True while the launch intro plays over it: taps and the 4.5 s wait hold off. */
+  held?: boolean;
 };
 
-export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenProps) {
+export function OpeningScreen({ place, photo, onReady, onDone, held = false }: OpeningScreenProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const reduceMotion = useReducedMotion();
@@ -74,6 +76,7 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
   const [clock] = useState(() => {
     const finish = () => latest.current.onDone();
     return createOpeningClock({
+      held,
       readyFallbackMs: READY_FALLBACK_MS,
       autoContinueMs: AUTO_CONTINUE_MS,
       onReady: () => latest.current.onReady(),
@@ -85,6 +88,9 @@ export function OpeningScreen({ place, photo, onReady, onDone }: OpeningScreenPr
     });
   });
   useEffect(() => () => clock.dispose(), [clock]);
+  useEffect(() => {
+    if (!held) clock.release();
+  }, [clock, held]);
 
   const photoStyle = useAnimatedStyle(() => ({
     transform: [
