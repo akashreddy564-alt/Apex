@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <rect width="16" height="16" rx="2" fill="#1c211e"/>
-  <path fill="#F5F1E8" d="M1 12.6 5 2.2 8 7.6 11 4.6 15 12.6Z"/>
-  <path fill="#1c211e" d="M5 2.2 6 4.4 5 5.2 4 4.4Z"/>
+  <style>
+    .m { stroke: #0072DE; }
+    @media (prefers-color-scheme: dark) {
+      .m { stroke: #8EC8FF; }
+    }
+  </style>
+  <path class="m" d="M2.15 13.35 8 2.15 13.85 13.35" fill="none" stroke-width="3.15" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
