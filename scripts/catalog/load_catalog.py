@@ -29,7 +29,8 @@ select
   left(r->>'region', 120),
   (r->>'distance_km')::numeric,
   (r->>'elevation_gain_m')::integer,
-  (r->>'peak_elevation_m')::integer,
+  -- Below sea level (Death Valley) has no peak the table allows: leave it blank.
+  case when (r->>'peak_elevation_m')::integer >= 0 then (r->>'peak_elevation_m')::integer end,
   st_setsrid(st_geomfromgeojson(jsonb_build_object('type', 'LineString', 'coordinates', r->'path')::text), 4326)::geography,
   coalesce(r->'elevation_profile', '[]'::jsonb),
   st_setsrid(st_makepoint((r->'trailhead'->>0)::float8, (r->'trailhead'->>1)::float8), 4326)::geography,
@@ -38,6 +39,8 @@ select
   'catalog',
   r->>'state'
 from jsonb_array_elements(%s::jsonb) r
+-- Higher than Denali means bad elevation data; its climb can't be trusted either.
+where coalesce((r->>'peak_elevation_m')::integer, 0) <= 6200
 on conflict (id) do update set
   name = excluded.name, region = excluded.region, distance_km = excluded.distance_km,
   elevation_gain_m = excluded.elevation_gain_m, peak_elevation_m = excluded.peak_elevation_m,
