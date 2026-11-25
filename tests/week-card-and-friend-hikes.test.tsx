@@ -32,6 +32,11 @@ jest.mock('@/hooks/useMyRankedTrails', () => ({ useMyRankedTrails: () => [] }));
 jest.mock('@/hooks/useFirstAscent', () => ({ useFirstAscent: (id: string) => (id === 'u2' ? 7 : null) }));
 jest.mock('@/components/safety/useSafetyMenu', () => ({ useSafetyMenu: () => jest.fn() }));
 jest.mock('@/components/social/RelationButton', () => ({ RelationButton: () => null }));
+let mockIFollow = false;
+jest.mock('@/hooks/useFollows', () => ({
+  useFollowCounts: () => ({ counts: { followers: 4, following: 2, iFollow: mockIFollow, followsMe: false }, loading: false }),
+  useFollowToggle: () => ({ mutate: jest.fn(), isPending: false, variables: undefined }),
+}));
 jest.mock('@/components/feed/PostCard', () => {
   const { Text: T } = jest.requireActual('react-native');
   return { PostCard: ({ post }: { post: { trailName: string } }) => <T>{`post:${post.trailName}`}</T> };
@@ -111,5 +116,17 @@ describe('friend page', () => {
     });
     expect(texts(tree)).not.toContain('post:Lake Serene');
     expect(mockPersonPosts).toHaveBeenCalledWith('u2', false);
+  });
+
+  it('shows a stranger’s hikes once you follow them, with follower counts', () => {
+    mockRelation = 'none';
+    mockIFollow = true;
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<FriendScreen />);
+    });
+    mockIFollow = false;
+    expect(mockPersonPosts).toHaveBeenCalledWith('u2', true);
+    expect(texts(tree)).toContain('followers');
   });
 });
