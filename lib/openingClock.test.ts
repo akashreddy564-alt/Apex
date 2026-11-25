@@ -3,7 +3,7 @@ import { describe, it, mock } from 'node:test';
 
 import { createOpeningClock } from './openingClock.ts';
 
-function setup() {
+function setup(held = false) {
   mock.timers.enable({ apis: ['setTimeout'] });
   const calls: string[] = [];
   const clock = createOpeningClock({
@@ -11,6 +11,7 @@ function setup() {
     autoContinueMs: 4500,
     onReady: () => calls.push('ready'),
     onLeave: () => calls.push('leave'),
+    held,
   });
   return { clock, calls };
 }
@@ -52,6 +53,29 @@ describe('createOpeningClock', () => {
     clock.dispose();
     mock.timers.tick(10_000);
     assert.deepEqual(calls, []);
+    mock.timers.reset();
+  });
+
+  it('waits for the intro: ignores taps and starts the 4.5 s on release', () => {
+    const { clock, calls } = setup(true);
+    clock.ready();
+    clock.tap();
+    mock.timers.tick(10_000);
+    assert.deepEqual(calls, ['ready']);
+    clock.release();
+    mock.timers.tick(4499);
+    assert.deepEqual(calls, ['ready']);
+    mock.timers.tick(1);
+    assert.deepEqual(calls, ['ready', 'leave']);
+    mock.timers.reset();
+  });
+
+  it('starts the 4.5 s at ready when released before the photo shows', () => {
+    const { clock, calls } = setup(true);
+    clock.release();
+    mock.timers.tick(1500);
+    mock.timers.tick(4500);
+    assert.deepEqual(calls, ['ready', 'leave']);
     mock.timers.reset();
   });
 });

@@ -18,6 +18,7 @@ import { vars } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { OpeningScreen } from '@/components/opening/OpeningScreen';
+import { PeakIntro } from '@/components/opening/PeakIntro';
 import { useAuthLinks } from '@/hooks/useAuthLinks';
 import { useColors } from '@/hooks/useColors';
 import { useOpeningPlace } from '@/hooks/useOpeningPlace';
@@ -75,8 +76,10 @@ export default function RootLayout() {
   const opening = useOpeningPlace(hikeReady);
   const [photoShown, setPhotoShown] = useState(false);
   const [openingDone, setOpeningDone] = useState(false);
+  const [introDone, setIntroDone] = useState(false);
   const onPhotoShown = useCallback(() => setPhotoShown(true), []);
   const onOpeningDone = useCallback(() => setOpeningDone(true), []);
+  const onIntroDone = useCallback(() => setIntroDone(true), []);
 
   useEffect(() => {
     void hikeReady.then((hike) => {
@@ -168,7 +171,12 @@ export default function RootLayout() {
                 photo={opening.photo}
                 onReady={onPhotoShown}
                 onDone={onOpeningDone}
+                held={!introDone}
               />
+            ) : null}
+            {/* Takes over from the splash once it hides, then opens onto the photo above. */}
+            {opening.status === 'show' && !introDone ? (
+              <PeakIntro play={fontsSettled && openingSettled} onDone={onIntroDone} />
             ) : null}
           </BottomSheetModalProvider>
         </PersistQueryClientProvider>
