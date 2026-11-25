@@ -49,21 +49,21 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => <TabIcon Icon={House} color={color} focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={House} symbol="house" filledSymbol="house.fill" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="social"
         options={{
           title: 'Social',
-          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Users} color={color} focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Users} symbol="person.2" filledSymbol="person.2.fill" color={color} focused={focused} />,
         }}
       />
       <Tabs.Screen
         name="log"
         options={{
           title: 'Log',
-          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Footprints} color={color} focused={focused} />,
+          tabBarIcon: ({ color, focused }) => <TabIcon Icon={Footprints} symbol="figure.hiking" color={color} focused={focused} />,
         }}
       />
     </Tabs>

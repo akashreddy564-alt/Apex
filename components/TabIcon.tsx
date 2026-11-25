@@ -10,6 +10,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import type { SFSymbol } from 'sf-symbols-typescript';
+
+import { SymbolIcon } from '@/components/SymbolIcon';
 import { useColors } from '@/hooks/useColors';
 
 /**
@@ -17,7 +20,20 @@ import { useColors } from '@/hooks/useColors';
  * active, and a Bone dot above it while it stays active. Reduced motion
  * gets the dot without the spring.
  */
-export function TabIcon({ Icon, color, focused }: { Icon: LucideIcon; color: ColorValue; focused: boolean }) {
+export function TabIcon({
+  Icon,
+  symbol,
+  filledSymbol,
+  color,
+  focused,
+}: {
+  Icon: LucideIcon;
+  /** SF Symbol on iOS; filled when the tab is active. */
+  symbol: SFSymbol;
+  filledSymbol?: SFSymbol;
+  color: ColorValue;
+  focused: boolean;
+}) {
   const c = useColors();
   const reduceMotion = useReducedMotion();
   const lift = useSharedValue(0);
@@ -37,7 +53,7 @@ export function TabIcon({ Icon, color, focused }: { Icon: LucideIcon; color: Col
 
   return (
     <Animated.View style={[{ alignItems: 'center' }, iconStyle]}>
-      <Icon size={20} strokeWidth={focused ? 2 : 1.6} color={color} />
+      <SymbolIcon name={symbol} filledName={filledSymbol} fallback={Icon} size={22} color={color} focused={focused} />
       <Animated.View
         style={[
           { position: 'absolute', top: -8, width: 4, height: 4, borderRadius: 2, backgroundColor: c.accent },
