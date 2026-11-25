@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
-  <rect width="16" height="16" rx="2" fill="#1c211e"/>
-  <path fill="#F5F1E8" d="M1 12.6 5 2.2 8 7.6 11 4.6 15 12.6Z"/>
-  <path fill="#1c211e" d="M5 2.2 6 4.4 5 5.2 4 4.4Z"/>
+  <style>
+    .m { fill: #1c211e; }
+    @media (prefers-color-scheme: dark) {
+      .m { fill: #F5F1E8; }
+    }
+  </style>
+  <path class="m" fill-rule="evenodd" d="M0.45 13.01 4.76 1.79 8 7.62 11.24 4.38 15.55 13.01Z M4.76 1.79 5.84 4.16 4.76 5.03 3.69 4.16Z"/>
 </svg>
