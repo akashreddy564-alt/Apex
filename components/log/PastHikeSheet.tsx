@@ -33,7 +33,6 @@ import { fonts, numericStyle, type Palette } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
 const CHIPS = ['Dry', 'Muddy', 'Snow', 'Rocky', 'Rain', 'Fog', 'Hot', 'Windy'] as const;
 const TERRAIN = new Set(['Snow', 'Rocky']);
-const EFFORT = ['Easy', 'Moderate', 'Hard', 'Very hard'] as const;
 
 interface PastHikeSheetProps {
   visible: boolean;
@@ -117,7 +116,6 @@ export function PastHikeSheet({
   const [typeTouched, setTypeTouched] = useState(false);
   const [hikeType, setHikeType] = useState<string>(DEFAULT_HIKE_TYPE);
   const [selectedChips, setSelectedChips] = useState<string[]>([]);
-  const [difficulty, setDifficulty] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -526,22 +524,7 @@ export function PastHikeSheet({
                   </View>
                 </View>
 
-                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                    How hard did it feel?
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                    {EFFORT.map((item) => (
-                      <Chip
-                        key={item}
-                        label={item}
-                        on={difficulty === item}
-                        onPress={() => setDifficulty((current) => (current === item ? null : item))}
-                      />
-                    ))}
-                  </View>
-                </View>
-
+                {/* Difficulty is asked once, in the ranking sheet that follows (Easy to Very strenuous). */}
                 <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
                   <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Notes</Text>
                   <TextInput
@@ -629,7 +612,7 @@ export function PastHikeSheet({
                   elevationGainM: climbM != null && Number.isFinite(climbM) ? climbM : null,
                   terrain,
                   conditions,
-                  difficulty,
+                  difficulty: null,
                   hikeType: HIKE_TYPES.length === 1 ? HIKE_TYPES[0] : hikeType,
                   photos,
                 });
