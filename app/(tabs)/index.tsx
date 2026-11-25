@@ -20,6 +20,7 @@ import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { useFeed, useLike } from '@/hooks/useFeed';
 import { useFriendships } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
+import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
 import { useUnreadCount } from '@/hooks/useNotifications';
 import { useMyProfile } from '@/hooks/useProfile';
 import { caughtUpIndex, fetchComments, type FeedPost } from '@/lib/feed';
@@ -84,10 +85,22 @@ function Header() {
   );
 }
 
-/** This week at a glance: the streak and the goal ring. Each hides until the first hike. */
+/**
+ * This week at a glance: the streak and the goal ring, under a label so the
+ * feet read as this week's goal, not a lifetime total. Hides until the first hike.
+ */
 function ThisWeek() {
+  const c = useColors();
+  const { hasHiked } = useWeeklyGoal();
+  if (!hasHiked) return null;
   return (
-    <View className="mt-2 flex-row flex-wrap items-center gap-2 px-4">
+    <View className="mt-2 flex-row flex-wrap items-center px-4" style={{ columnGap: 16, rowGap: 8 }}>
+      <Text
+        style={{ color: c.fgMuted, fontFamily: fonts.uiSemibold, fontSize: 11, letterSpacing: 1.2 }}
+        accessibilityRole="header"
+      >
+        THIS WEEK
+      </Text>
       <StreakChip />
       <GoalRing />
     </View>
