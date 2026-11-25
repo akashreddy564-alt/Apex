@@ -367,9 +367,76 @@ export default function LogScreen() {
     };
   }, [logs, rankings, trails]);
 
+  // The Finish sheet, the naming sheet and ranking stay mounted whichever layout
+  // shows. Finishing swaps the recording layout for the idle one, and on iOS a
+  // sheet that unmounts mid-dismiss leaves an invisible layer that eats every touch.
+  const overlays = (
+    <>
+      <Modal visible={finishOpen} transparent animationType="fade" onRequestClose={() => setFinishOpen(false)}>
+        <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}>
+          <View
+            style={{
+              backgroundColor: c.bg,
+              borderTopWidth: 1,
+              borderTopColor: c.border,
+              borderTopLeftRadius: 24,
+              borderTopRightRadius: 24,
+              padding: 20,
+              paddingBottom: 28,
+              gap: 16,
+            }}
+          >
+            <Text style={{ color: c.fg, fontFamily: fonts.display, fontWeight: 'normal', fontSize: 22 }}>
+              Finish this hike?
+            </Text>
+            <Text style={{ color: c.fg, fontSize: 16, ...numericStyle() }}>
+              {formatDistance(tracker.distanceM / 1000)} · {hikeClock(tracker.elapsedSeconds)}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Finish"
+              onPress={finish}
+              style={{ backgroundColor: c.accent, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+            >
+              <Text style={{ color: c.onAccent, fontSize: 16, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
+                Finish
+              </Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Keep recording"
+              onPress={() => setFinishOpen(false)}
+              style={{ backgroundColor: c.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
+            >
+              <Text style={{ color: c.fg, fontSize: 16, fontFamily: fonts.uiMedium, fontWeight: 'normal' }}>
+                Keep recording
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+      <TrailAssignSheet
+        visible={assignOpen}
+        suggestions={suggestions}
+        trails={trails}
+        onPick={(trailId) => completeWith(trailId)}
+        onCreate={(name) => {
+          void createRecordedTrail(name);
+        }}
+        onClose={() => setAssignOpen(false)}
+      />
+      <PairwiseModal
+        visible={modalOpen}
+        comparison={comparison}
+        onClose={() => setModalOpen(false)}
+      />
+    </>
+  );
+
   if (tracker.isTracking) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg }}>
+      <>
+        <View style={{ flex: 1, backgroundColor: c.bg }}>
         <RecordSession
           trailName={activeTrail?.name ?? 'New hike'}
           trailPath={activeTrail?.path ?? null}
@@ -403,65 +470,9 @@ export default function LogScreen() {
             setFinishOpen(true);
           }}
         />
-        <Modal visible={finishOpen} transparent animationType="fade" onRequestClose={() => setFinishOpen(false)}>
-          <View style={{ flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.66)' }}>
-            <View
-              style={{
-                backgroundColor: c.bg,
-                borderTopWidth: 1,
-                borderTopColor: c.border,
-                borderTopLeftRadius: 24,
-                borderTopRightRadius: 24,
-                padding: 20,
-                paddingBottom: 28,
-                gap: 16,
-              }}
-            >
-              <Text style={{ color: c.fg, fontFamily: fonts.display, fontWeight: 'normal', fontSize: 22 }}>
-                Finish this hike?
-              </Text>
-              <Text style={{ color: c.fg, fontSize: 16, ...numericStyle() }}>
-                {formatDistance(tracker.distanceM / 1000)} · {hikeClock(tracker.elapsedSeconds)}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Finish"
-                onPress={finish}
-                style={{ backgroundColor: c.accent, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
-              >
-                <Text style={{ color: c.onAccent, fontSize: 16, fontFamily: fonts.uiSemibold, fontWeight: 'normal' }}>
-                  Finish
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Keep recording"
-                onPress={() => setFinishOpen(false)}
-                style={{ backgroundColor: c.raised, borderRadius: 12, alignItems: 'center', paddingVertical: 14 }}
-              >
-                <Text style={{ color: c.fg, fontSize: 16, fontFamily: fonts.uiMedium, fontWeight: 'normal' }}>
-                  Keep recording
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
-        <TrailAssignSheet
-          visible={assignOpen}
-          suggestions={suggestions}
-          trails={trails}
-          onPick={(trailId) => completeWith(trailId)}
-          onCreate={(name) => {
-            void createRecordedTrail(name);
-          }}
-          onClose={() => setAssignOpen(false)}
-        />
-        <PairwiseModal
-          visible={modalOpen}
-          comparison={comparison}
-          onClose={() => setModalOpen(false)}
-        />
-      </View>
+        </View>
+        {overlays}
+      </>
     );
   }
 
@@ -471,6 +482,7 @@ export default function LogScreen() {
   const card = cardStyle(c);
 
   return (
+    <>
     <View className="flex-1 bg-bg" style={{ paddingTop: insets.top + 12 }}>
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CONTOUR_H }}>
         <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} color={withAlpha(c.climb, 0.28)} />
@@ -632,11 +644,6 @@ export default function LogScreen() {
         onClose={() => setPastOpen(false)}
         onContinue={savePast}
       />
-      <PairwiseModal
-        visible={modalOpen}
-        comparison={comparison}
-        onClose={() => setModalOpen(false)}
-      />
       {locationDenied ? (
         <View className="absolute inset-0">
           <LocationDenied
@@ -659,5 +666,7 @@ export default function LogScreen() {
         </View>
       ) : null}
     </View>
+    {overlays}
+    </>
   );
 }
