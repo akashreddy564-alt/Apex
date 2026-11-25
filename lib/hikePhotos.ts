@@ -51,3 +51,22 @@ export async function resolvePhotoUri(stored: string): Promise<string> {
   if (error || !data?.signedUrl) return '';
   return data.signedUrl;
 }
+
+/**
+ * Delete every photo in the signed-in hiker's folder, through the Storage API
+ * (Supabase refuses deletes on storage tables from SQL). Runs before the
+ * account is deleted, so no file is left behind. Throws on failure.
+ */
+export async function deleteMyPhotos(userId: string): Promise<void> {
+  if (!supabase) return;
+  const bucket = supabase.storage.from(BUCKET);
+  // Each pass removes what it listed, so the next list starts over at the top.
+  for (;;) {
+    const { data, error } = await bucket.list(userId, { limit: 100 });
+    if (error) throw error;
+    const paths = (data ?? []).filter((item) => item.id).map((item) => `${userId}/${item.name}`);
+    if (paths.length === 0) return;
+    const removed = await bucket.remove(paths);
+    if (removed.error) throw removed.error;
+  }
+}

@@ -19,6 +19,7 @@ import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
 import { trailNotes } from '@/data/trailNotes';
 import { useColors } from '@/hooks/useColors';
+import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
 import { formatDistance } from '@/lib/format';
@@ -43,6 +44,7 @@ export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trailParam = id;
   const trail = useTrailCache((s) => s.getTrail(String(id)));
+  const ownerLabel = useTrailOwnerLabels();
   const recorded = useTrailCache((s) => {
     let best: (typeof s.logs)[number] | null = null;
     let bestTime = Number.NEGATIVE_INFINITY;
@@ -206,6 +208,11 @@ export default function TrailDetailScreen() {
           {isCatalogTrail(trail) ? (
             <Text style={{ marginTop: -4, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>
               {CATALOG_CREDIT}
+            </Text>
+          ) : null}
+          {ownerLabel(trail) ? (
+            <Text style={{ marginTop: -4, color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 }}>
+              {ownerLabel(trail)}
             </Text>
           ) : null}
 

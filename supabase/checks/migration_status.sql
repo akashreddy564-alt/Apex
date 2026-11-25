@@ -63,6 +63,10 @@ from (values
                                            and not coalesce(has_function_privilege('authenticated', to_regprocedure('public.issue_org_code(uuid, text)'), 'execute'), false)),
   (24, '018 terms',                       exists (select 1 from information_schema.columns
                                            where table_schema = 'public' and table_name = 'profiles' and column_name = 'terms_accepted_at')
-                                           and exists (select 1 from pg_trigger where tgname = 'post_comments_require_terms'))
+                                           and exists (select 1 from pg_trigger where tgname = 'post_comments_require_terms')),
+  (25, '019 friend trails',               exists (select 1 from pg_policies
+                                           where schemaname = 'public' and tablename = 'trails'
+                                             and policyname = 'trails_select_catalog_own_or_friend')),
+  (26, '020 account deletion skips storage', position('storage.objects' in pg_get_functiondef('public.delete_own_account()'::regprocedure)) = 0)
 ) as checks (n, step, ok)
 order by n;

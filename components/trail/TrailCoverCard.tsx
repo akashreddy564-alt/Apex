@@ -36,10 +36,12 @@ interface TrailCoverCardProps {
   top?: boolean;
   /** Offsets each card's drift so they don't move in step. */
   index?: number;
+  /** "Added by Sam" on a friend's trail. */
+  addedBy?: string | null;
   onPress?: () => void;
 }
 
-export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }: TrailCoverCardProps) {
+export function TrailCoverCard({ trail, cover, score, top, index = 0, addedBy, onPress }: TrailCoverCardProps) {
   const styles = useStyles();
   const c = useColors();
   const reduceMotion = useReducedMotion();
@@ -73,6 +75,7 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, onPress }:
   }));
 
   const meta = [
+    ...(addedBy ? [addedBy.toUpperCase()] : []),
     trail.region.toUpperCase(),
     formatOptionalDistance(trail.distance_km).toUpperCase(),
     `▲${formatOptionalElevation(trail.elevation_gain_m).toUpperCase()}`,

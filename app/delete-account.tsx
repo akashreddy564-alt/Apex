@@ -16,6 +16,7 @@ import { Eyebrow } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/hooks/useAuth';
 import { hikesToCsv, hikesToGpx, photoLines } from '@/lib/exportData';
+import { deleteMyPhotos } from '@/lib/hikePhotos';
 import { supabase } from '@/lib/supabase';
 import { useComparisonStore } from '@/stores/comparisonStore';
 import { useRankingStore } from '@/stores/rankingStore';
@@ -102,6 +103,13 @@ export default function DeleteAccountScreen() {
     setBusy(true);
     setStatus(null);
     try {
+      // Photos first: the database can't delete storage files itself.
+      try {
+        await deleteMyPhotos(session.user.id);
+      } catch (photoError) {
+        setStatus(`Couldn’t delete your photos: ${photoError instanceof Error ? photoError.message : 'try again'}`);
+        return;
+      }
       const { error } = await supabase.rpc('delete_own_account');
       if (error) {
         setStatus(error.message);

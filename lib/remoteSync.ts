@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { dropUnreadableFriendTrails, isFriendTrail } from '@/lib/friendTrails';
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
 import { shouldPost } from '@/lib/postRules';
 import { DEFAULT_HIKE_TYPE, withStoredScores } from '@/lib/ranking';
@@ -121,14 +122,19 @@ export async function pullRemote(): Promise<SyncResult> {
   await loadOutbox();
   const dirty = new Set(outbox.map((entry) => `${entry.kind}:${entry.id}`));
   const local = useTrailCache.getState();
+  const dirtyTrails = dirtyIds(dirty, 'trail');
+  const logs = mergeById(local.logs, remoteLogs, dirtyIds(dirty, 'log'));
+  // A friend's trail goes once they unfriend or block you, unless you hiked it.
   const trails =
     remoteTrails.length === 0
       ? local.trails
-      : mergeById(local.trails, remoteTrails, dirtyIds(dirty, 'trail'));
-  useTrailCache.setState({
-    trails,
-    logs: mergeById(local.logs, remoteLogs, dirtyIds(dirty, 'log')),
-  });
+      : dropUnreadableFriendTrails(
+          mergeById(local.trails, remoteTrails, dirtyTrails),
+          new Set(remoteTrails.map((trail) => trail.id)),
+          uid,
+          new Set([...dirtyTrails, ...logs.map((log) => log.trail_id)]),
+        );
+  useTrailCache.setState({ trails, logs });
   useRankingStore.setState({
     rankings: withStoredScores(
       mergeById(
@@ -288,6 +294,8 @@ async function sendTrail(trail: Trail): Promise<boolean> {
   if (!supabase || trail.source !== 'user' || !isUuid(trail.id)) return true;
   const uid = await userId();
   if (!uid) return false;
+  // A friend's trail is theirs to write; it's already on the server.
+  if (isFriendTrail(trail, uid)) return true;
   const { error } = await supabase.from('trails').upsert({
     id: trail.id,
     name: trail.name,
@@ -481,7 +489,7 @@ export async function uploadLocalOnce(): Promise<void> {
   const { rankings, comparisons } = useRankingStore.getState();
   // Trails first: logs and rankings point at them.
   const queued: [OutboxKind, string[]][] = [
-    ['trail', trails.filter((trail) => trail.source === 'user').map((trail) => trail.id)],
+    ['trail', trails.filter((trail) => trail.source === 'user' && !isFriendTrail(trail, uid)).map((trail) => trail.id)],
     ['log', logs.map((log) => log.id)],
     ['ranking', rankings.map((ranking) => ranking.id)],
     ['comparison', comparisons.map((comparison) => comparison.id)],

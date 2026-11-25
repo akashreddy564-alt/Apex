@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Eyebrow, Skeleton } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
 import { TrailCoverCard } from '@/components/trail/TrailCoverCard';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
@@ -35,6 +36,7 @@ export default function TrailsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const trails = useTrailCache((s) => s.trails);
+  const ownerLabel = useTrailOwnerLabels();
   const rankings = useRankingStore((s) => s.rankings);
   const logs = useTrailCache((s) => s.logs);
   const ready = useTrailsReady();
@@ -59,6 +61,7 @@ export default function TrailsScreen() {
                 key={trail.id}
                 trail={trail}
                 index={index}
+                addedBy={ownerLabel(trail)}
                 cover={trailCover(trail.id, trail.path, logs, MAPBOX_TOKEN)}
                 top={placement?.ordinal === 1 && placement.ranking.bucket === 'loved'}
                 score={
