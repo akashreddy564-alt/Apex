@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { cardTitleLayout, posterLayout, posterLineEm, posterLineStyle } from './posterFit.ts';
+import { cardTitleLayout, displayLineHeight, posterLayout, posterLineEm, posterLineStyle } from './posterFit.ts';
 
 const SE_WIDTH = 327;
 
@@ -85,5 +85,20 @@ describe('posterLineStyle', () => {
     const bottom = posterLineStyle(80, 1, 0.92, true);
     const total = top.lineHeight + top.marginTop + top.marginBottom + bottom.lineHeight + bottom.marginTop + bottom.marginBottom;
     assert.equal(total, Math.round(80 * 1.12) + Math.round(80 * 0.92));
+  });
+});
+
+describe('displayLineHeight', () => {
+  // Bricolage Grotesque: descent 0.27 em, capitals 0.66 em tall. iOS keeps the
+  // descent and trims the top of a short line box, so the box needs room above
+  // the baseline for a capital plus its overshoot.
+  it('always leaves room above the baseline for a capital', () => {
+    for (const size of [22, 26, 30, 34, 40, 48]) {
+      assert.ok(displayLineHeight(size) - size * 0.27 >= size * 0.72, `size ${size}`);
+    }
+  });
+
+  it('stays tight: no more than 1.05 em', () => {
+    for (const size of [22, 34, 48]) assert.ok(displayLineHeight(size) <= Math.ceil(size * 1.05));
   });
 });

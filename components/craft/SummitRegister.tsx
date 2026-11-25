@@ -16,6 +16,7 @@ import { formatDistance, formatDuration, formatElevation } from '@/lib/format';
 import type { RegisterRank, RegisterReasons } from '@/lib/logRegister';
 import { useColors } from '@/hooks/useColors';
 import { useSettings } from '@/stores/settingsStore';
+import { displayLineHeight } from '@/lib/posterFit';
 import { fonts, ink, minTypeSize, paper, stamp as STAMP } from '@/theme/tokens';
 import type { HikeLog, Trail } from '@/types/trail';
 import { withAlpha } from '@/theme/color';
@@ -226,7 +227,7 @@ export function SummitRegister({
             fontFamily: fonts.displayExtraBold,
             fontWeight: 'normal',
             fontSize: 26,
-            lineHeight: Math.round(26 * 0.88) + 2,
+            lineHeight: displayLineHeight(26),
             letterSpacing: -0.025 * 26,
             textTransform: 'uppercase',
             color: ink,
@@ -328,7 +329,7 @@ export function SummitRegister({
           fontFamily: fonts.displayExtraBold,
           fontWeight: 'normal',
           fontSize: 26,
-          lineHeight: Math.round(26 * 0.88) + 2,
+          lineHeight: displayLineHeight(26),
           letterSpacing: -0.025 * 26,
           textTransform: 'uppercase',
           color: ink,

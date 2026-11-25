@@ -18,6 +18,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { ContourTexture } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import type { TrailCover } from '@/lib/trailCover';
+import { displayLineHeight } from '@/lib/posterFit';
 import { fonts, type Palette } from '@/theme/tokens';
 import type { TrailShape } from '@/types/trail';
 import { withAlpha } from '@/theme/color';
@@ -156,7 +157,7 @@ export function TrailHero({
           accessibilityRole="header"
           style={[
             styles.name,
-            { fontSize: size, lineHeight: Math.round(size * 0.88), letterSpacing: -0.025 * size },
+            { fontSize: size, lineHeight: displayLineHeight(size), letterSpacing: -0.025 * size },
           ]}
         >
           {name}

@@ -92,3 +92,13 @@ export function posterLineStyle(
   const marginTop = index === 0 ? -trimTop : Math.round(fontSize * visual) - lineHeight;
   return { lineHeight, marginTop, marginBottom: last ? -trimBottom : 0 };
 }
+
+/**
+ * Line height for a tight Bricolage Grotesque title (descent 0.27 em, capitals
+ * 0.66 em). On iOS a line box shorter than the font keeps the descent and trims
+ * the top, so 0.88 em cut the tops off capitals. 1.0 em is as tight as it can
+ * go and still leave room above the baseline for a capital and its overshoot.
+ */
+export function displayLineHeight(fontSize: number): number {
+  return Math.ceil(fontSize * 1.0);
+}
