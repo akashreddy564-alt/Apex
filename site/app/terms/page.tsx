@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalPage, Section } from "@/components/landing/legal";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Terms · Apex",
@@ -60,6 +61,16 @@ export default function TermsPage() {
           Apex is provided as is. We work to keep it running and your data safe, but can’t promise it will
           always be available or free of errors. We may change these terms; if a change matters, we’ll ask
           you to agree again in the app.
+        </p>
+      </Section>
+
+      <Section title="Contact">
+        <p>
+          Questions about these terms? Email{" "}
+          <a className="link-draw font-medium" href={`mailto:${SUPPORT_EMAIL}`}>
+            {SUPPORT_EMAIL}
+          </a>
+          .
         </p>
       </Section>
     </LegalPage>

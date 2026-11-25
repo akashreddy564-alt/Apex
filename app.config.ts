@@ -6,7 +6,30 @@ import type { ConfigContext, ExpoConfig } from 'expo/config';
  * app.json never needs a local edit. EAS and CI don't see .env and get the
  * committed com.apex.trails.
  */
+/** Public keys a store build can't work without. */
+export const REQUIRED_PRODUCTION_ENV = [
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  'EXPO_PUBLIC_MAPBOX_TOKEN',
+] as const;
+
+/**
+ * EAS sets EAS_BUILD_PROFILE while it resolves this config. A production
+ * build without these keys would ship a local-only app with no maps, so fail
+ * the build instead.
+ */
+export function assertProductionEnv(env: NodeJS.ProcessEnv = process.env): void {
+  if (env.EAS_BUILD_PROFILE !== 'production') return;
+  const missing = REQUIRED_PRODUCTION_ENV.filter((name) => !env[name]?.trim());
+  if (missing.length > 0) {
+    throw new Error(
+      `Production build is missing ${missing.join(', ')}. Set them with \`eas env:create --environment production\` (or eas env:set) and rebuild.`,
+    );
+  }
+}
+
 export default ({ config }: ConfigContext): ExpoConfig => {
+  assertProductionEnv();
   const bundleIdentifier = process.env.APP_BUNDLE_ID?.trim();
   return {
     ...(config as ExpoConfig),

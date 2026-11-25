@@ -54,6 +54,23 @@ export interface UseTrailComparisonResult {
   reset: () => void;
 }
 
+/** True when the probe's opponent can't be shown (its trail isn't cached). */
+function probeMissing(session: PlacementSession, known: Set<string>): boolean {
+  if (session.done != null) return false;
+  const id = session.order[currentProbe(session)];
+  return !id || !known.has(id);
+}
+
+/** Skip past opponents with no cached trail, so a round never waits on one. */
+function skipMissing(session: PlacementSession): PlacementSession {
+  const known = new Set(useTrailCache.getState().trails.map((trail) => trail.id));
+  let next = session;
+  for (let i = 0; i <= session.order.length && probeMissing(next, known); i++) {
+    next = answer(next, 'skip');
+  }
+  return next;
+}
+
 const CHOICE_TO_ANSWER: Record<ComparisonChoice, PlacementAnswer> = {
   challenger: 'new',
   opponent: 'opponent',
@@ -160,6 +177,8 @@ export function useTrailComparison(): UseTrailComparisonResult {
   const pickBucket = useCallback(
     (selected: Bucket) => {
       if (!trailId) return;
+      // A ranking whose trail isn't cached (e.g. a dropped friend trail) can't be shown.
+      const known = new Set(useTrailCache.getState().trails.map((trail) => trail.id));
       const snapshot = sortByPosition(
         useRankingStore
           .getState()
@@ -167,7 +186,8 @@ export function useTrailComparison(): UseTrailComparisonResult {
             (row) =>
               row.bucket === selected &&
               row.hike_type === DEFAULT_HIKE_TYPE &&
-              row.trail_id !== trailId,
+              row.trail_id !== trailId &&
+              known.has(row.trail_id),
           ),
       );
       orderRef.current = snapshot.map((row) => ({
@@ -175,7 +195,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
         position: row.position,
       }));
       pendingRef.current = [];
-      const session = startSession(orderRef.current.map((row) => row.id));
+      const session = skipMissing(startSession(orderRef.current.map((row) => row.id)));
       sessionRef.current = session;
       setBucket(selected);
       if (session.done != null) {
@@ -196,7 +216,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
       if (!session || !bucket || !trailId || session.done != null) return;
       const probe = currentProbe(session);
       const opponentId = session.order[probe];
-      const next = answer(session, CHOICE_TO_ANSWER[choice]);
+      const next = skipMissing(answer(session, CHOICE_TO_ANSWER[choice]));
       sessionRef.current = next;
       if (opponentId && sessionIdRef.current) {
         pendingRef.current = [
@@ -234,7 +254,19 @@ export function useTrailComparison(): UseTrailComparisonResult {
       setTick((value) => value + 1);
       return;
     }
-    const next = undoSession(session);
+    // Undo the user's last answer and any auto-skips that followed it.
+    const known = new Set(useTrailCache.getState().trails.map((trail) => trail.id));
+    let next = undoSession(session);
+    while (next.history.length > 0 && probeMissing(next, known)) next = undoSession(next);
+    if (probeMissing(next, known)) {
+      sessionRef.current = null;
+      pendingRef.current = [];
+      setPreview(null);
+      setBucket(null);
+      setPhase('bucket');
+      setTick((value) => value + 1);
+      return;
+    }
     sessionRef.current = next;
     pendingRef.current = pendingRef.current.slice(0, -1);
     if (next.done != null && bucket) {

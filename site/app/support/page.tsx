@@ -15,20 +15,17 @@ export default function SupportPage() {
       title="Support"
     >
       <Section title="Contact">
-        {SUPPORT_EMAIL ? (
-          <p>
-            Email{" "}
-            <a className="link-draw font-medium" href={`mailto:${SUPPORT_EMAIL}`}>
-              {SUPPORT_EMAIL}
-            </a>
-            . We answer within two working days, and reports of harmful content within 24 hours.
-          </p>
-        ) : (
-          <p>
-            Report a post, comment or person from the app (the ••• menu), and we review it within 24 hours.
-            An email address for everything else is coming with launch.
-          </p>
-        )}
+        <p>
+          Email{" "}
+          <a className="link-draw font-medium" href={`mailto:${SUPPORT_EMAIL}`}>
+            {SUPPORT_EMAIL}
+          </a>
+          . We answer within two working days, and reports of harmful content within 24 hours.
+        </p>
+        <p>
+          You can also report a post, comment or person from the app (the ••• menu), and we review it within
+          24 hours.
+        </p>
       </Section>
 
       <Section title="Signing in">
