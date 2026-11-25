@@ -46,11 +46,8 @@ export function dailyTotals(
   for (const log of logs) {
     const at = Date.parse(log.created_at);
     if (!Number.isFinite(at) || at < start || at > nowMs) continue;
-    const trail = trailOf(log.trail_id);
-    const value =
-      metric === 'distance'
-        ? (log.distance_km ?? trail?.distance_km)
-        : (log.elevation_gain_m ?? trail?.elevation_gain_m);
+    // The hike's own numbers only, like the ring (weeklyProgress).
+    const value = metric === 'distance' ? log.distance_km : log.elevation_gain_m;
     if (value == null || !Number.isFinite(value) || value <= 0) continue;
     totals[(new Date(at).getDay() + 6) % 7] += value;
   }

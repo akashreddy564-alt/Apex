@@ -86,6 +86,11 @@ from (values
                                            and to_regprocedure('public.trail_people_rankings(uuid)') is not null
                                            and exists (select 1 from information_schema.columns
                                                        where table_schema = 'public' and table_name = 'trail_rankings' and column_name = 'difficulty')
-                                           and position('t.distance_km' in pg_get_functiondef('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) = 0)
+                                           and position('t.distance_km' in pg_get_functiondef('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) = 0),
+  (31, '025 follow privacy fixes',        position('auth.uid() in (viewer, person)' in pg_get_functiondef('public.follows_person(uuid, uuid)'::regprocedure)) > 0),
+  (32, '026 companions, gear, conditions', exists (select 1 from information_schema.columns
+                                                       where table_schema = 'public' and table_name = 'hike_logs' and column_name = 'gear')
+                                           and to_regprocedure('public.trail_conditions(uuid)') is not null
+                                           and position('auth.uid() in (a, b)' in pg_get_functiondef('public.are_friends(uuid, uuid)'::regprocedure)) > 0)
 ) as checks (n, step, ok)
 order by n;

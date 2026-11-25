@@ -19,8 +19,6 @@ import {
 } from '@/lib/format';
 import { BUCKET_BANDS, BUCKETS, DEFAULT_HIKE_TYPE } from '@/lib/ranking';
 import { yourTrailStats } from '@/lib/yourTrailStats';
-import { useRankingStore } from '@/stores/rankingStore';
-import { pushRankings } from '@/lib/remoteSync';
 import { DIFFICULTY_LABELS } from '@/lib/difficulty';
 import { resolveRoute, routeSourceLabel } from '@/lib/routeSource';
 import { useTrailCache } from '@/stores/trailCache';
@@ -233,12 +231,8 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
   }, [visible]);
 
   const confirmPlace = () => {
-    const trailId = preview?.insertedTrailId ?? null;
-    place();
-    if (trailId && difficulty != null) {
-      const row = useRankingStore.getState().setDifficulty(trailId, difficulty);
-      if (row) void pushRankings([row]);
-    }
+    // The difficulty travels in the ranking's own save (no second request to race it).
+    place(difficulty);
     reset();
     onClose();
   };

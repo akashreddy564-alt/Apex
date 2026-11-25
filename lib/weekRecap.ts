@@ -69,8 +69,9 @@ export function weekRecap(
     const at = Date.parse(log.created_at);
     if (!Number.isFinite(at) || at < start || at > nowMs) continue;
     const trail = trailOf(log.trail_id);
-    const gain = positive(log.elevation_gain_m) ?? positive(trail?.elevation_gain_m) ?? 0;
-    const dist = positive(log.distance_km) ?? positive(trail?.distance_km) ?? 0;
+    // The hike's own numbers only: catalog figures are guesses for most trails.
+    const gain = positive(log.elevation_gain_m) ?? 0;
+    const dist = positive(log.distance_km) ?? 0;
     hikes += 1;
     gainM += gain;
     km += dist;
