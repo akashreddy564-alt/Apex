@@ -23,7 +23,8 @@ for pair in "$@"; do
   url="https://download.geofabrik.de/north-america/us/${region}-latest.osm.pbf"
   echo "$code: downloading $region"
   # Ride out Wi-Fi drops: retry every kind of failure for up to ~10 minutes.
-  if ! curl -fsSL --retry 20 --retry-all-errors --retry-delay 30 -o "$pbf" "$url"; then
+  # A transfer under 50 KB/s for 2 minutes counts as a failure (Geofabrik throttling).
+  if ! curl -fsSL --retry 20 --retry-all-errors --retry-delay 30 --speed-limit 50000 --speed-time 120 -o "$pbf" "$url"; then
     echo "$code: download failed"
     rm -f "$pbf"
     continue
