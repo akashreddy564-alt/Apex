@@ -22,6 +22,7 @@ import { ContourTexture, Eyebrow, haptics, SlideToStart } from '@/components/mot
 import { useColors } from '@/hooks/useColors';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
+import { LocationDenied } from '@/components/log/LocationDenied';
 import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
@@ -108,6 +109,7 @@ export default function LogScreen() {
     if (params.view === 'rankings' || params.view === 'hikes') setView(params.view);
   }, [params.view]);
   const [explainer, setExplainer] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
   const addTrail = useTrailCache((s) => s.addTrail);
@@ -143,7 +145,10 @@ export default function LogScreen() {
     await AsyncStorage.setItem(LOCATION_EXPLAINER_KEY, '1');
     const permission = await Location.requestForegroundPermissionsAsync();
     setExplainer(false);
-    if (!permission.granted) return;
+    if (!permission.granted) {
+      setLocationDenied(true);
+      return;
+    }
     if (shouldRequestNotificationPermission(Platform.OS, Platform.Version, permission.granted)) {
       try {
         await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
@@ -158,9 +163,18 @@ export default function LogScreen() {
   const beginTracking = useCallback(
     (trailId: string) => {
       pendingTrailId.current = trailId;
-      void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then((seen) => {
-        if (seen === '1') tracker.start(trailId);
-        else setExplainer(true);
+      void AsyncStorage.getItem(LOCATION_EXPLAINER_KEY).then(async (seen) => {
+        if (seen !== '1') {
+          setExplainer(true);
+          return;
+        }
+        // Seen the explainer before: ask again if iOS still can, else offer Settings.
+        let permission = await Location.getForegroundPermissionsAsync().catch(() => null);
+        if (permission && !permission.granted && permission.canAskAgain) {
+          permission = await Location.requestForegroundPermissionsAsync().catch(() => null);
+        }
+        if (permission && !permission.granted) setLocationDenied(true);
+        else tracker.start(trailId);
       });
     },
     [tracker.start],
@@ -451,7 +465,7 @@ export default function LogScreen() {
     );
   }
 
-  const showSlider = tracker.hydrated && !recording && !explainer;
+  const showSlider = tracker.hydrated && !recording && !explainer && !locationDenied;
   // The glass tab bar floats over the screen. (Recording returns its own screen above.)
   const tabInset = barInset;
   const card = cardStyle(c);
@@ -623,6 +637,17 @@ export default function LogScreen() {
         comparison={comparison}
         onClose={() => setModalOpen(false)}
       />
+      {locationDenied ? (
+        <View className="absolute inset-0">
+          <LocationDenied
+            onTimeOnly={() => {
+              setLocationDenied(false);
+              tracker.start(pendingTrailId.current);
+            }}
+            onDismiss={() => setLocationDenied(false)}
+          />
+        </View>
+      ) : null}
       {explainer ? (
         <View className="absolute inset-0">
           <LocationExplainer

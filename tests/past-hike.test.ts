@@ -1,4 +1,5 @@
 import { buildPastHikeLog, durationFromParts, formatHikeDay, hikeTimestamp, suggestHikeType } from '@/lib/pastHike';
+import { weeklyProgress } from '@/lib/weeklyGoal';
 
 describe('buildPastHikeLog', () => {
   const now = new Date(2026, 9, 2, 15, 0, 0);
@@ -120,5 +121,45 @@ describe('buildPastHikeLog', () => {
     expect(suggestHikeType(12, 1060)).toBe('hike');
     expect(suggestHikeType(3, 80)).toBe('hike');
     expect(formatHikeDay(new Date(2026, 8, 27))).toBe('Sun, Sep 27, 2026');
+  });
+});
+
+describe('a past hike logged for today', () => {
+  // 00:30 on a Wednesday: noon today is still in the future.
+  const now = new Date(2026, 10, 25, 0, 30, 0);
+
+  it('counts toward this week right away, not from noon', () => {
+    const log = buildPastHikeLog({
+      trailId: 'trail-tam',
+      hikedOn: now,
+      hours: 2,
+      minutes: 0,
+      elevationGainM: 640.4,
+      now,
+    })!;
+    const stamp = new Date(log.created_at);
+    expect(stamp.getTime()).toBeLessThanOrEqual(now.getTime());
+    // Still today, even though the hike would have started yesterday.
+    expect(stamp.getDate()).toBe(25);
+    expect(log.elevation_gain_m).toBe(640);
+
+    const progress = weeklyProgress([log], () => undefined, { metric: 'elevation', target: 1000 }, now);
+    expect(progress.hikes).toBe(1);
+    expect(progress.done).toBe(640);
+  });
+
+  it('uses noon unless the hike must have started earlier', () => {
+    const evening = new Date(2026, 10, 25, 20, 0, 0);
+    const log = buildPastHikeLog({ trailId: 't', hikedOn: evening, hours: 1, now: evening })!;
+    expect(new Date(log.created_at).getHours()).toBe(12);
+    // Logged at 13:00 for three hours: it began by 10:00.
+    const early = new Date(2026, 10, 25, 13, 0, 0);
+    const long = buildPastHikeLog({ trailId: 't', hikedOn: early, hours: 3, now: early })!;
+    expect(new Date(long.created_at).getHours()).toBe(10);
+  });
+
+  it('falls back to the trail climb only when the draft has one', () => {
+    const log = buildPastHikeLog({ trailId: 't', hikedOn: new Date(2026, 9, 1), now })!;
+    expect(log.elevation_gain_m).toBeNull();
   });
 });

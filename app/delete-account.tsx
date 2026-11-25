@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Eyebrow } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/hooks/useAuth';
+import { deleteErrorMessage } from '@/lib/apiError';
 import { hikesToCsv, hikesToGpx, photoLines } from '@/lib/exportData';
 import { deleteMyPhotos } from '@/lib/hikePhotos';
 import { supabase } from '@/lib/supabase';
@@ -107,18 +108,20 @@ export default function DeleteAccountScreen() {
       try {
         await deleteMyPhotos(session.user.id);
       } catch (photoError) {
-        setStatus(`Couldn’t delete your photos: ${photoError instanceof Error ? photoError.message : 'try again'}`);
+        setStatus(deleteErrorMessage(photoError, 'Couldn’t delete your photos'));
         return;
       }
       const { error } = await supabase.rpc('delete_own_account');
       if (error) {
-        setStatus(error.message);
+        setStatus(deleteErrorMessage(error));
         return;
       }
       wipeLocal();
       await supabase.auth.signOut();
       setConfirming(false);
       router.replace('/account');
+    } catch (error) {
+      setStatus(deleteErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -195,6 +198,7 @@ export default function DeleteAccountScreen() {
           accessibilityLabel="Delete account"
           onPress={() => {
             setPhrase('');
+            setStatus(null);
             setConfirming(true);
           }}
           className="items-center py-4"
@@ -245,8 +249,17 @@ export default function DeleteAccountScreen() {
               className="mt-2 border border-border px-3 py-3 text-fg"
               style={{ borderRadius: 14, fontFamily: fonts.uiMedium, fontSize: 16 }}
             />
+            {status ? (
+              <Text
+                accessibilityLiveRegion="polite"
+                style={{ color: c.fg2, fontFamily: fonts.ui, fontSize: 14, marginTop: 10 }}
+              >
+                {status}
+              </Text>
+            ) : null}
             <Pressable
               accessibilityLabel="Confirm delete account"
+              accessibilityState={{ busy, disabled: !confirmed || busy }}
               disabled={!confirmed || busy}
               onPress={() => void confirmDelete()}
               className="mt-3 items-center py-4"
@@ -262,7 +275,7 @@ export default function DeleteAccountScreen() {
                   fontSize: 16,
                 }}
               >
-                Delete account
+                {busy ? 'Deleting…' : 'Delete account'}
               </Text>
             </Pressable>
             <Pressable

@@ -16,6 +16,8 @@ export interface PastHikeDraft {
   difficulty?: string | null;
   hikeType?: string | null;
   photos?: string[];
+  /** The trail's climb, copied so the week's elevation counts it. Metres. */
+  elevationGainM?: number | null;
   userId?: string;
   id?: string;
   /** Clock used to reject a future day. Defaults to now. */
@@ -49,10 +51,20 @@ export function durationFromParts(hours: number, minutes: number): number {
   return h * 3600 + m * 60;
 }
 
-/** Noon local time so the stored day does not shift across UTC. */
-export function hikeTimestamp(date: Date): string {
+/**
+ * Noon local time so the stored day does not shift across UTC. A hike logged
+ * for today must not land in the future (weekly totals skip future logs), so
+ * today's stamp is the earlier of noon and when the hike would have started.
+ */
+export function hikeTimestamp(date: Date, now: Date = new Date(), durationSeconds = 0): string {
   const day = localDay(date);
   day.setHours(12, 0, 0, 0);
+  if (localDay(date).getTime() === localDay(now).getTime()) {
+    const started = now.getTime() - Math.max(0, durationSeconds) * 1000;
+    // Never earlier than midnight, so the hike stays on the chosen day.
+    const stamp = Math.max(localDay(now).getTime(), Math.min(day.getTime(), started));
+    return new Date(stamp).toISOString();
+  }
   return day.toISOString();
 }
 
@@ -61,19 +73,22 @@ export function buildPastHikeLog(draft: PastHikeDraft): HikeLog | null {
   if (isFutureDay(draft.hikedOn, draft.now ?? new Date())) return null;
   const notes = sanitizeOptional(draft.notes, LIMITS.notes) ?? '';
   const distance = draft.distanceKm;
+  const duration = durationFromParts(draft.hours ?? 0, draft.minutes ?? 0);
+  const gain = draft.elevationGainM;
   return {
     id: draft.id ?? `log-${Date.now()}`,
     user_id: draft.userId ?? MOCK_USER_ID,
     trail_id: draft.trailId,
-    duration_seconds: durationFromParts(draft.hours ?? 0, draft.minutes ?? 0),
+    duration_seconds: duration,
     photos: draft.photos ?? [],
     notes: notes.length > 0 ? notes : null,
     recorded_path: null,
-    created_at: hikeTimestamp(draft.hikedOn),
+    created_at: hikeTimestamp(draft.hikedOn, draft.now ?? new Date(), duration),
     distance_km: distance == null || !Number.isFinite(distance) ? null : distance,
     terrain: draft.terrain ?? [],
     conditions: draft.conditions ?? [],
     difficulty: draft.difficulty ?? null,
     hike_type: draft.hikeType ?? null,
+    elevation_gain_m: gain == null || !Number.isFinite(gain) ? null : Math.round(gain),
   };
 }
