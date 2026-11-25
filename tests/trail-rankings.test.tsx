@@ -69,4 +69,6 @@ it('puts your own ranking and rating first', () => {
   const shown = text(draw(<TrailRankings trailId="t1" />));
   expect(shown.indexOf('You')).toBeLessThan(shown.indexOf('@sam_test'));
   expect(shown).toContain('Loved · Moderate');
+  // Your own rating leads the line, even though sam rated it Strenuous.
+  expect(shown).toContain('You rated it Moderate');
 });

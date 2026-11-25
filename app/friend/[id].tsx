@@ -96,7 +96,9 @@ function PersonPage({ id }: { id: string }) {
       : relation === 'outgoing'
         ? 'Request sent. You’ll see their hikes once they accept.'
         : relation === 'none'
-          ? 'Follow to see their hikes. Friends also share boards and groups.'
+          ? counts?.iFollow
+            ? 'You see their hikes. Friends also share boards and groups.'
+            : 'Follow to see their hikes. Friends also share boards and groups.'
           : null;
 
   return (

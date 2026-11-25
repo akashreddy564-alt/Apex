@@ -77,7 +77,15 @@ export function TrailRankings({ trailId }: { trailId: string }) {
   );
   const inBucket = (bucket: string) => all.filter((row) => row.bucket === bucket && row.hike_type === DEFAULT_HIKE_TYPE).length;
 
-  const consensus = mostCommonDifficulty(people.map((p) => p.difficulty));
+  // Your own rating first; otherwise the one most of them gave.
+  const raters = people.filter((p) => difficultyLabel(p.difficulty) != null);
+  const mineRated = difficultyLabel(mine?.difficulty ?? null) != null;
+  const consensus = mineRated ? (mine!.difficulty as number) : mostCommonDifficulty(raters.map((p) => p.difficulty));
+  const consensusLine = mineRated
+    ? `You rated it ${difficultyLabel(consensus)}`
+    : raters.length === 1
+      ? `${raters[0].displayName || `@${raters[0].username}`} rated it ${difficultyLabel(consensus)}`
+      : `Most rate it ${difficultyLabel(consensus)}`;
   if (!mine && people.length === 0) return null;
 
   return (
@@ -87,7 +95,7 @@ export function TrailRankings({ trailId }: { trailId: string }) {
       </Text>
       {consensus != null ? (
         <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
-          {people.length === 1 ? 'Rated' : 'Most rate it'} {difficultyLabel(consensus)}
+          {consensusLine}
         </Text>
       ) : null}
       <View style={{ marginTop: 8 }}>

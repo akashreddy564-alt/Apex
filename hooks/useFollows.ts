@@ -116,12 +116,14 @@ export function useFollowToggle() {
       const { error } = await supabase.rpc(follow ? 'follow_person' : 'unfollow_person', { person: personId });
       if (error) throw error;
     },
-    onSettled: () => {
-      void queryClient.invalidateQueries({ queryKey: ['followCounts'] });
-      void queryClient.invalidateQueries({ queryKey: ['followList'] });
-      void queryClient.invalidateQueries({ queryKey: ['feed'] });
-      void queryClient.invalidateQueries({ queryKey: ['trailPeopleRankings'] });
-    },
+    // Returned, so the button stays on its new state until the counts have refreshed.
+    onSettled: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['followCounts'] }),
+        queryClient.invalidateQueries({ queryKey: ['followList'] }),
+        queryClient.invalidateQueries({ queryKey: ['feed'] }),
+        queryClient.invalidateQueries({ queryKey: ['trailPeopleRankings'] }),
+      ]),
     onError: (error) => Alert.alert('Couldn’t update', apiError(error).message),
   });
 }
