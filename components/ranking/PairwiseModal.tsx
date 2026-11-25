@@ -1,5 +1,5 @@
 import { Undo2, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -216,6 +216,18 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
     onClose();
   };
 
+  // The loader should only flash between phases. If it lingers (no round can be built),
+  // close instead of hanging: App Review treats an endless spinner as a broken app.
+  const loading =
+    visible && phase !== 'bucket' && !(phase === 'preview' && preview) && !round;
+  const discardRef = useRef(discard);
+  discardRef.current = discard;
+  useEffect(() => {
+    if (!loading) return;
+    const timer = setTimeout(() => discardRef.current(), LOADER_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [loading]);
+
   const confirmPlace = () => {
     place();
     reset();
@@ -409,12 +421,22 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
         ) : (
           <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <ContourLoader size="screen" label="Preparing comparison" />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Cancel"
+              onPress={discard}
+              style={[actionStyle(c), { flex: 0, marginTop: 24, paddingHorizontal: 28 }]}
+            >
+              <Text style={{ fontSize: 14, color: c.fg2, fontFamily: fonts.uiMedium }}>Cancel</Text>
+            </Pressable>
           </View>
         )}
       </View>
     </Modal>
   );
 }
+
+export const LOADER_TIMEOUT_MS = 3000;
 
 const actionStyle = (c: Palette) => ({
   flex: 1,

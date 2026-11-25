@@ -93,9 +93,9 @@ export default function AccountScreen() {
     return (
       <ScrollView className="flex-1 bg-bg" contentContainerClassName="px-4 pt-6 pb-10">
         <DisplaySettings />
-        <Section eyebrow="Account" title="Local mode">
+        <Section eyebrow="Account" title="On this phone">
           <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20, marginTop: 6 }}>
-            No Supabase env. Trails, logs and rankings stay on this device.
+            Your hikes and rankings are saved on this phone.
           </Text>
         </Section>
         <PhotoCreditsLink />

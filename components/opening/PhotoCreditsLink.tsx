@@ -1,20 +1,21 @@
 import { useRouter } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Linking, Pressable, Text, View } from 'react-native';
 
 import { Eyebrow } from '@/components/motion';
 import { openLegal } from '@/components/social/TermsAgreement';
-import { PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
+import { PRIVACY_URL, SUPPORT_EMAIL, SUPPORT_MAILTO, SUPPORT_URL, TERMS_URL } from '@/lib/legal';
 import { useColors } from '@/hooks/useColors';
 import { cardStyle, fonts } from '@/theme/tokens';
 
 const LEGAL = [
-  { label: 'Support', detail: 'Questions, bugs and account help', url: SUPPORT_URL },
-  { label: 'Privacy Policy', detail: 'What Apex keeps and who sees it', url: PRIVACY_URL },
-  { label: 'Terms', detail: 'The rules for what you share', url: TERMS_URL },
+  { label: 'Support', detail: 'Questions, bugs and account help', open: () => openLegal(SUPPORT_URL) },
+  { label: 'Email support', detail: SUPPORT_EMAIL, open: () => void Linking.openURL(SUPPORT_MAILTO).catch(() => {}) },
+  { label: 'Privacy Policy', detail: 'What Apex keeps and who sees it', open: () => openLegal(PRIVACY_URL) },
+  { label: 'Terms', detail: 'The rules for what you share', open: () => openLegal(TERMS_URL) },
 ];
 
-/** Settings' last card: support, the legal pages, and credits. */
+/** Settings' last card: support (site and email), the legal pages, and credits. */
 export function PhotoCreditsLink() {
   const router = useRouter();
   const c = useColors();
@@ -40,7 +41,7 @@ export function PhotoCreditsLink() {
           key={item.label}
           accessibilityRole="link"
           accessibilityLabel={item.label}
-          onPress={() => openLegal(item.url)}
+          onPress={item.open}
           className="flex-row items-center justify-between border-t border-raised py-3 active:opacity-70"
         >
           <View className="flex-1">

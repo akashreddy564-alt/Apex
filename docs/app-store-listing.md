@@ -13,9 +13,9 @@ Everything App Store Connect asks for, ready to paste. Character limits are Appl
 | Primary category | Health & Fitness |
 | Secondary category | Navigation |
 | Content rights | Does not contain third-party content you need rights for (trail data is OpenStreetMap, credited in the app) |
-| Privacy Policy URL | https://apex-landing-kappa.vercel.app/privacy (change to the real domain) |
-| Support URL | https://apex-landing-kappa.vercel.app/support |
-| Marketing URL | https://apex-landing-kappa.vercel.app |
+| Privacy Policy URL | https://hikeapex.com/privacy |
+| Support URL | https://hikeapex.com/support |
+| Marketing URL | https://hikeapex.com |
 | Copyright | 2026 Akash Reddy |
 
 ## Version 1.0
@@ -47,9 +47,9 @@ Your location is used only while you're recording. Friends never see where a rou
 
 **Keywords (100)**
 
-hiking,trail,hike tracker,gps,elevation,trails,mountain,backpacking,leaderboard,strava,alltrails
+hiking,gps,elevation,outdoors,backpacking,mountain,summit,leaderboard,fitness,friends,flyover,peak
 
-Note: Apple may reject competitor names in keywords. If so, swap `strava,alltrails` for `outdoors,summit`.
+No competitor names (guideline 2.3.7).
 
 **What's New**: leave empty for 1.0.
 

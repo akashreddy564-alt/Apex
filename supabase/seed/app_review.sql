@@ -3,14 +3,14 @@
 --
 -- Before running:
 --   1. Supabase → Authentication → Users → Add user → "Create new user":
---      an email you control (e.g. appreview@yourdomain.com), a strong password,
+--      an email you control (review@hikeapex.com), a strong password,
 --      and "Auto Confirm User" ticked.
 --   2. Change the email on the next line to that address.
 -- Put the email and password in App Store Connect → App Review Information.
 -- The app signs in with them from Settings → "Have a password? Sign in with it".
 
 with reviewer as (
-  select id from auth.users where email = 'appreview@example.com'
+  select id from auth.users where email = 'review@hikeapex.com'
 )
 insert into public.profiles (id, username, display_name)
 select id, 'app_review', 'App Review' from reviewer

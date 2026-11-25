@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalPage, Section } from "@/components/landing/legal";
+import { SUPPORT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Privacy Policy · Apex",
@@ -92,7 +93,11 @@ export default function PrivacyPage() {
       <Section title="Changes">
         <p>
           If this policy changes in a way that matters, we’ll update the date above and tell you in the app.
-          Questions? See the <a className="link-draw font-medium" href="/support">support page</a>.
+          Questions? Email{" "}
+          <a className="link-draw font-medium" href={`mailto:${SUPPORT_EMAIL}`}>
+            {SUPPORT_EMAIL}
+          </a>{" "}
+          or see the <a className="link-draw font-medium" href="/support">support page</a>.
         </p>
       </Section>
     </LegalPage>

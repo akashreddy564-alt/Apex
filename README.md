@@ -20,7 +20,7 @@ Feature-complete for the iPhone launch; waiting on owner setup, one phone pass a
 | Notifications, report and block | Built |
 | Habit loops: streak, weekly goal, weekend pick, week share card | Built |
 | Route flyover and video share | Built, phone check owed |
-| Landing site (`site/`) with privacy, terms and support | Live at https://apex-landing-kappa.vercel.app |
+| Landing site (`site/`) with privacy, terms and support | Live at https://hikeapex.com |
 | App Store submission | Not started (needs Apple Developer) |
 
 ## Stack
