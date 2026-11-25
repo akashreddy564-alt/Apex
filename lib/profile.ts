@@ -9,22 +9,31 @@ export interface Profile {
   username: string;
   display_name: string;
   created_at: string;
-  /** Agreed to the content terms (migration 018). True where 018 hasn't run. */
+  /**
+   * Agreed to the content terms (migration 018). Where 018 hasn't run, dev
+   * builds treat it as agreed; release builds don't, so the gate stays shut.
+   */
   terms_accepted: boolean;
 }
 
 // `*`, not a column list, so the app keeps working before 018 adds the terms columns.
 const COLUMNS = '*';
 
-export function mapProfile(row: Record<string, unknown> | null | undefined): Profile | null {
+/** Dev builds may run against a database without 018; release builds must not. */
+const ALLOW_MISSING_TERMS = typeof __DEV__ !== 'undefined' && __DEV__;
+
+export function mapProfile(
+  row: Record<string, unknown> | null | undefined,
+  allowMissingTerms: boolean = ALLOW_MISSING_TERMS,
+): Profile | null {
   if (!row || typeof row.id !== 'string' || typeof row.username !== 'string') return null;
   return {
     id: row.id,
     username: row.username,
     display_name: typeof row.display_name === 'string' ? row.display_name : row.username,
     created_at: String(row.created_at ?? ''),
-    // Before 018 there's no column and nothing to agree to on the server.
-    terms_accepted: !('terms_accepted_at' in row) || row.terms_accepted_at != null,
+    // Before 018 there's no column. Only dev builds let that through.
+    terms_accepted: 'terms_accepted_at' in row ? row.terms_accepted_at != null : allowMissingTerms,
   };
 }
 
@@ -56,8 +65,8 @@ export async function saveProfile(
   const upsert = (values: Record<string, unknown>) =>
     supabase!.from('profiles').upsert(values).select(COLUMNS).single();
   let { data, error } = await upsert(acceptTerms ? { ...row, ...termsFields() } : row);
-  // PGRST204: the terms columns don't exist yet (018 not run). Save without them.
-  if (error?.code === 'PGRST204' && acceptTerms) ({ data, error } = await upsert(row));
+  // PGRST204: the terms columns don't exist yet (018 not run). Dev builds save without them.
+  if (error?.code === 'PGRST204' && acceptTerms && ALLOW_MISSING_TERMS) ({ data, error } = await upsert(row));
   if (error) {
     // 23505: unique violation on username.
     if (error.code === '23505') return { ok: false, message: 'That username is taken.' };

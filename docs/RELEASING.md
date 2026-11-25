@@ -44,7 +44,7 @@ eas env:set --name EXPO_PUBLIC_SUPABASE_URL --value https://YOUR_PROJECT.supabas
 eas env:set --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value your-anon-key --environment production --visibility sensitive
 ```
 
-Run the same commands with `--environment preview` and `--environment development`. The dashboard can attach one variable to all three environments at once. Each build profile sets `environment` to the matching name, so EAS injects those values during the build. Omit them and the binary keeps using local mock trails.
+Run the same commands with `--environment preview` and `--environment development`. The dashboard can attach one variable to all three environments at once. Each build profile sets `environment` to the matching name, so EAS injects those values during the build. `EXPO_PUBLIC_MAPBOX_TOKEN` needs the same treatment. A `production` build fails at config time if any of the three is empty (`app.config.ts`); other profiles fall back to local mode.
 
 ## Versioning
 
@@ -72,3 +72,14 @@ To build and hand the artifact to submit in one step:
 eas build --platform ios --profile production --auto-submit
 eas build --platform android --profile production --auto-submit
 ```
+
+## Every day after launch: open reports
+
+Reports (Report on a post, comment or person) land in `public.reports` and send no alert. Apple expects them handled within 24 hours, so once a day:
+
+1. Supabase → SQL editor → run `supabase/checks/open_reports.sql`.
+2. For each row, remove the post, comment or account, or dismiss it, with the statements at the top of that file, then close the report.
+3. Zero rows means nothing is waiting.
+
+Check before any App Review submission too, since reviewers sometimes file a test report.
+

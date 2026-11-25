@@ -51,3 +51,10 @@ export function isOffline(error: unknown): boolean {
   const message = String((error as ErrorLike | null)?.message ?? '');
   return /network request failed|failed to fetch|load failed|networkerror|fetch failed/i.test(message);
 }
+
+/** A failed account delete, in words. Nothing is queued offline, so say to retry. */
+export function deleteErrorMessage(error: unknown, prefix = 'Couldn’t delete your account'): string {
+  const mapped = apiError(error);
+  if (mapped.kind === 'offline') return 'You’re offline. Connect to the internet and try again.';
+  return `${prefix}: ${mapped.message}`;
+}
