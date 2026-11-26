@@ -13,6 +13,8 @@ export interface PastHikeDraft {
   distanceKm?: number | null;
   terrain?: string[];
   conditions?: string[];
+  gear?: string[];
+  companions?: string[];
   difficulty?: string | null;
   hikeType?: string | null;
   photos?: string[];
@@ -87,6 +89,8 @@ export function buildPastHikeLog(draft: PastHikeDraft): HikeLog | null {
     distance_km: distance == null || !Number.isFinite(distance) ? null : distance,
     terrain: draft.terrain ?? [],
     conditions: draft.conditions ?? [],
+    gear: draft.gear ?? [],
+    companions: draft.companions ?? [],
     difficulty: draft.difficulty ?? null,
     hike_type: draft.hikeType ?? null,
     elevation_gain_m: gain == null || !Number.isFinite(gain) ? null : Math.round(gain),

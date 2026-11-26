@@ -66,6 +66,10 @@ export interface HikeLog {
   distance_km?: number | null;
   terrain?: string[];
   conditions?: string[];
+  /** Gear you used (lib/hikeDetails cleanGear). */
+  gear?: string[];
+  /** Profile ids of people you hiked with (friends or people you follow). */
+  companions?: string[];
   difficulty?: string | null;
   hike_type?: string | null;
   /** Climb the phone measured on a recorded hike. Leaderboards use it. */

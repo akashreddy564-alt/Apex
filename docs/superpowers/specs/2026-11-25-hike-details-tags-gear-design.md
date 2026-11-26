@@ -5,17 +5,17 @@ Owner asked for all three for the launch build. Choices made by the owner: tag +
 ## Data (migration 026)
 
 - `hike_logs.companions uuid[]` (max 10) and `hike_logs.gear text[]` (max 12 items, 60 characters each). `terrain` and `conditions` already exist.
-- A trigger cleans both before saving: companions must be people the hiker is friends with or follows, never themselves, never across a block (others are dropped silently); gear items are trimmed and empty ones dropped.
+- A trigger cleans both before saving: companions must be friends, or people you follow who follow you back (027: following needs no approval, so one-way follows could ping strangers), never yourself, never across a block (others are dropped silently); gear items are trimmed and empty ones dropped.
 - Notification kind `tagged`: when a post exists for the hike (or companions are added later), each tagged person gets "<name> tagged you on a hike", which opens the post. Once per person per post.
 - `feed_posts` / `person_posts` also return terrain, conditions, gear and companions (id, username, display name), minus anyone blocked by the viewer.
-- `trail_conditions(trail)`: the terrain and condition chips hikers reported on a trail in the last 12 months, with how many hikers reported each. Counts only, never who.
+- `trail_conditions(trail)`: the terrain and condition chips hikers reported on a trail in the last 12 months, with how many hikers reported each. Counts only, never who; only the app's chip words; nobody across a block (027).
 
 ## App
 
 - **After Finish** (recorded hikes): once ranking closes, a "Hike details" sheet asks for terrain and conditions chips, who you hiked with, and gear. Everything is optional, and Skip is one tap. It opens a moment after ranking closes (never in the same instant, so iOS can't leave an invisible layer).
 - **Past hikes:** the form gains "Hiked with" and "Gear" next to the existing terrain chips.
 - **Gear list:** an item you type is saved on the phone and becomes a one-tap chip on later hikes. You can remove an item from the list.
-- **Who you hiked with:** pick from your friends and the people you follow.
+- **Who you hiked with:** pick from your friends and people you follow who follow you back.
 - **Posts** (feed card and hike page): "with Maya and Jordan" (each name opens their page), terrain and condition chips, and a Gear section.
 - **Trail page:** "What hikers report" chips with counts, under Rankings.
 

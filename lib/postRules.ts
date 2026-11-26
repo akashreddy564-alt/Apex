@@ -35,6 +35,23 @@ export interface FeedPost {
   commentCount: number;
   liked: boolean;
   isMine: boolean;
+  terrain: string[];
+  conditions: string[];
+  gear: string[];
+  /** Who they hiked with (friends or people they follow), minus anyone you've blocked. */
+  companions: { id: string; username: string; displayName: string }[];
+}
+
+const strings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : [];
+
+function companionsOf(value: unknown): FeedPost['companions'] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const row = item as Record<string, unknown> | null;
+    if (!row || typeof row.id !== 'string' || typeof row.username !== 'string') return [];
+    return [{ id: row.id, username: row.username, displayName: typeof row.display_name === 'string' ? row.display_name : row.username }];
+  });
 }
 
 function num(value: unknown): number | null {
@@ -83,6 +100,10 @@ export function mapFeedPost(row: Record<string, unknown>): FeedPost | null {
     commentCount: num(row.comment_count) ?? 0,
     liked: row.liked === true,
     isMine: row.is_mine === true,
+    terrain: strings(row.terrain),
+    conditions: strings(row.conditions),
+    gear: strings(row.gear),
+    companions: companionsOf(row.companions),
   };
 }
 
