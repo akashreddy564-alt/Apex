@@ -14,7 +14,7 @@ export function useMyRankedTrails(): MyRankedTrail[] {
     return rankings.flatMap((row) => {
       const name = names.get(row.trail_id);
       if (row.hike_type !== DEFAULT_HIKE_TYPE || !name) return [];
-      return [{ trailId: row.trail_id, name, bucket: row.bucket, score: row.score }];
+      return [{ trailId: row.trail_id, name, bucket: row.bucket, score: row.score, position: row.position }];
     });
   }, [rankings, trails]);
 }

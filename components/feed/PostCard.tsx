@@ -8,6 +8,7 @@ import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { Avatar } from '@/components/social/Avatar';
 import { useColors } from '@/hooks/useColors';
 import { formatCompactDuration, formatDistance, formatElevation } from '@/lib/format';
+import { myRankOf, placementLine } from '@/lib/listPlace';
 import { comparisonTag, hikeDayLabel, type FeedPost, type MyRankedTrail } from '@/lib/postRules';
 import { postReasons } from '@/lib/reasons';
 import { useSavedTrails } from '@/stores/savedTrailsStore';
@@ -17,18 +18,6 @@ import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
 import { PressScale, ReasonLine } from '@/components/motion';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: string }) {
-  const c = useColors();
-  return (
-    <View>
-      <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' }}>
-        {label}
-      </Text>
-      <Text style={{ ...numericStyle('semibold'), color: tone ?? c.fg, fontSize: 16, marginTop: 2 }}>{value}</Text>
-    </View>
-  );
-}
 
 function ActionButton({
   label,
@@ -90,13 +79,17 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
   const saved = useSavedTrails((s) => s.saved.some((row) => row.trailId === post.trailId));
   const toggleSaved = useSavedTrails((s) => s.toggle);
 
-  const tag = comparisonTag(post, mine);
+  const firstName = post.displayName.split(/\s+/)[0] || post.displayName;
+  const placement = placementLine({ ...post, firstName, isMine: post.isMine });
+  const myRank = post.isMine ? null : myRankOf(mine, post.trailId);
+  // Your own rank for the same trail says more than "ranked above your X"; show one or the other.
+  const tag = myRank == null ? comparisonTag(post, mine) : null;
   const where = [post.region, hikeDayLabel(post.hikedAt)].filter(Boolean).join(' · ');
   const stats = [
-    post.distanceKm != null ? { label: 'Distance', value: formatDistance(post.distanceKm), tone: c.distance } : null,
-    post.elevationGainM != null ? { label: 'Elev gain', value: formatElevation(post.elevationGainM), tone: c.climb } : null,
-    post.durationSeconds != null ? { label: 'Time', value: formatCompactDuration(post.durationSeconds) } : null,
-  ].filter((stat): stat is { label: string; value: string; tone?: string } => stat !== null);
+    post.distanceKm != null ? formatDistance(post.distanceKm) : null,
+    post.elevationGainM != null ? formatElevation(post.elevationGainM) : null,
+    post.durationSeconds != null ? formatCompactDuration(post.durationSeconds) : null,
+  ].filter((stat): stat is string => stat !== null);
   const reasons = useMemo(() => {
     if (!feed) return [];
     const name = post.displayName.split(/\s+/)[0] || post.displayName;
@@ -150,10 +143,18 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
               {post.trailName}
             </Text>
           </Text>
+          {placement ? (
+            <Text style={{ ...numericStyle('semibold'), color: c.accent, fontSize: 15, marginTop: 3 }}>{placement}</Text>
+          ) : null}
           <FirstAscentBadge userId={post.authorId} style={{ marginTop: 4 }} />
           {where ? (
             <Text numberOfLines={1} style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
               {where}
+            </Text>
+          ) : null}
+          {myRank != null ? (
+            <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 13, marginTop: 4 }}>
+              You have it at <Text style={{ ...numericStyle('semibold'), color: c.fg }}>#{myRank}</Text>
             </Text>
           ) : null}
         </View>
@@ -161,11 +162,9 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
       </View>
 
       {stats.length > 0 ? (
-        <View className="mt-4 flex-row gap-7">
-          {stats.map((stat) => (
-            <Stat key={stat.label} label={stat.label} value={stat.value} tone={stat.tone} />
-          ))}
-        </View>
+        <Text style={{ ...numericStyle('medium'), color: c.fgMuted, fontSize: 13, marginTop: 12 }}>
+          {stats.join(' · ')}
+        </Text>
       ) : null}
 
       {reasons.length > 0 ? (
