@@ -62,7 +62,8 @@ function Row({
 }
 
 /**
- * Who ranked this trail: you first, then friends and people you follow, each
+ * Who ranked this trail: you first, then friends (mutual follows or accepted
+ * requests; migration 028), each
  * with their score, bucket and difficulty rating, and the rating most of them
  * gave. Nothing shows until someone (you included) has ranked it.
  */
@@ -106,7 +107,7 @@ export function TrailRankings({ trailId }: { trailId: string }) {
           <Row
             key={person.personId}
             name={person.displayName || `@${person.username}`}
-            tag={person.isFriend ? 'Friend' : 'Following'}
+            tag="Friend"
             bucket={person.bucket}
             score={person.score}
             count={3}

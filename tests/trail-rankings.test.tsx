@@ -30,7 +30,7 @@ const text = (t: ReactTestRenderer) =>
     .join(' | ');
 
 const maya = { personId: 'maya', username: 'maya_test', displayName: 'Maya', bucket: 'loved', score: 9.4, difficulty: 4, isFriend: true };
-const sam = { personId: 'sam', username: 'sam_test', displayName: null, bucket: 'fine', score: 6.1, difficulty: 4, isFriend: false };
+const sam = { personId: 'sam', username: 'sam_test', displayName: null, bucket: 'fine', score: 6.1, difficulty: 4, isFriend: true };
 
 beforeEach(() => {
   mockPeople = [];
@@ -50,7 +50,6 @@ it('lists friends and people you follow with bucket and difficulty, and the comm
   expect(shown).toContain('Maya');
   expect(shown).toContain('  Friend');
   expect(shown).toContain('@sam_test');
-  expect(shown).toContain('  Following');
   expect(shown).toContain('SA');
   expect(shown).toContain('Loved · Strenuous');
   const row = t.root.findAll((n) => typeof n.props.onPress === 'function' && n.props.accessibilityLabel?.startsWith('Maya'))[0]!;

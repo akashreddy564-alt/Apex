@@ -17,7 +17,7 @@ Three changes the owner asked for after the phone pass, all for the launch build
 
 ## B. Friends' rankings and difficulty on a trail
 
-**Decided (owner).** After a hike you rate its **difficulty** on five steps: Easy, Moderate, Moderately strenuous, Strenuous, Very strenuous. A trail's page lists **friends and people you follow who ranked it**, each with score, bucket (Loved / Fine / Didn't like) and difficulty.
+**Decided (owner).** After a hike you rate its **difficulty** on five steps: Easy, Moderate, Moderately strenuous, Strenuous, Very strenuous. A trail's page lists **friends who ranked it** (owner, 2026-11-26: friends only; a friend is someone you follow who follows you back, or an accepted request; migration 028), each with score, bucket (Loved / Fine / Didn't like) and difficulty.
 
 **Builder's calls.**
 - `trail_rankings.difficulty smallint` (1–5, nullable), set in the ranking sheet ("How hard was it?" chips, optional, on the same step as the bucket) and synced like the rest of the ranking.
