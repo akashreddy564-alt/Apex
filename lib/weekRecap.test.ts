@@ -23,7 +23,7 @@ describe('weekRecap', () => {
     const recap = weekRecap(
       [
         { trail_id: 'si', created_at: new Date(2026, 10, 17, 9).toISOString(), elevation_gain_m: 980, distance_km: 12.4, duration_seconds: 14_400 },
-        { trail_id: 'serene', created_at: new Date(2026, 10, 21, 10).toISOString(), duration_seconds: 10_800 },
+        { trail_id: 'serene', created_at: new Date(2026, 10, 21, 10).toISOString(), elevation_gain_m: 700, distance_km: 10.5, duration_seconds: 10_800 },
         // Last week and the future don't count.
         { trail_id: 'si', created_at: new Date(2026, 10, 14, 10).toISOString(), elevation_gain_m: 1000 },
         { trail_id: 'si', created_at: new Date(2026, 10, 23, 10).toISOString(), elevation_gain_m: 1000 },
@@ -39,6 +39,13 @@ describe('weekRecap', () => {
     assert.deepEqual(recap.trails, ['Mount Si', 'Lake Serene']);
     assert.deepEqual(recap.days, [0, 980, 0, 0, 0, 700, 0]);
     assert.equal(recap.streakWeeks, 2);
+  });
+
+  it('never borrows a trail\'s catalog numbers for a hike without its own', () => {
+    const recap = weekRecap([{ trail_id: 'si', created_at: new Date(2026, 10, 17, 9).toISOString() }], trailOf, now);
+    assert.equal(recap.hikes, 1);
+    assert.equal(recap.gainM, 0);
+    assert.equal(recap.km, 0);
   });
 
   it('handles an empty week', () => {

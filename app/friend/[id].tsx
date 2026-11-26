@@ -1,19 +1,26 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { PostCard } from '@/components/feed/PostCard';
 import { Skeleton } from '@/components/motion';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { Avatar } from '@/components/social/Avatar';
+import { FollowButton } from '@/components/social/FollowButton';
 import { RelationButton } from '@/components/social/RelationButton';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useLike, usePersonPosts } from '@/hooks/useFeed';
+import { useFollowCounts } from '@/hooks/useFollows';
 import { useFriendships, usePerson } from '@/hooks/useFriends';
 import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
 import type { FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
+import { RankedList } from '@/components/profile/RankedList';
+import { TasteLine } from '@/components/profile/TasteLine';
+import { Segmented } from '@/components/social/Segmented';
+import { usePersonRankings, useTasteMatch } from '@/hooks/useRankLists';
 
 /** Their ranked hikes, newest first. Friends and yourself only. */
 function TheirHikes({ id, name, posts, loading, error, onMore }: {
@@ -30,8 +37,7 @@ function TheirHikes({ id, name, posts, loading, error, onMore }: {
   const mine = useMyRankedTrails();
   const first = name.split(/\s+/)[0];
   return (
-    <View className="mt-10 self-stretch" accessibilityLabel={`${first}’s hikes`}>
-      <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Hikes</Text>
+    <View className="mt-5 self-stretch" accessibilityLabel={`${first}’s hikes`}>
       {loading ? (
         <View className="mt-3">
           <Skeleton shape="row" count={3} />
@@ -67,8 +73,13 @@ function PersonPage({ id }: { id: string }) {
   const { relationTo } = useFriendships();
   const router = useRouter();
   const safety = useSafetyMenu(() => (router.canGoBack() ? router.back() : router.replace('/social')));
-  const canSee = person ? ['friend', 'self'].includes(relationTo(person.id)) : false;
+  const { counts } = useFollowCounts(id);
+  // Friends and followers both see someone's hikes.
+  const canSee = person ? ['friend', 'self'].includes(relationTo(person.id)) || counts?.iFollow === true : false;
   const hikes = usePersonPosts(id, canSee);
+  const list = usePersonRankings(id, canSee);
+  const taste = useTasteMatch(id, canSee);
+  const [tab, setTab] = useState<'list' | 'hikes'>('list');
 
   if (loading) {
     return (
@@ -92,8 +103,11 @@ function PersonPage({ id }: { id: string }) {
       : relation === 'outgoing'
         ? 'Request sent. You’ll see their hikes once they accept.'
         : relation === 'none'
-          ? 'Friends see each other’s hikes, routes and rankings.'
+          ? counts?.iFollow
+            ? 'You see their list and hikes. Friends also share boards and groups.'
+            : 'Follow to see their ranked list and hikes. Friends also share boards and groups.'
           : null;
+  const first = person.display_name.split(/\s+/)[0] || person.display_name;
 
   return (
     <View className="items-center pt-6">
@@ -107,12 +121,45 @@ function PersonPage({ id }: { id: string }) {
         @{person.username}
       </Text>
       <FirstAscentBadge userId={person.id} size="lg" style={{ marginTop: 12 }} />
-      {friendCount !== null ? (
-        <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14, marginTop: 10 }}>
-          {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
-        </Text>
-      ) : null}
-      <View className="mt-6">
+      {relation !== 'self' ? <TasteLine match={taste.data} firstName={first} /> : null}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
+        {friendCount !== null ? (
+          <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
+            {friendCount} {friendCount === 1 ? 'friend' : 'friends'}
+          </Text>
+        ) : null}
+        {counts ? (
+          <>
+            <Text style={{ color: c.fgFaint, fontSize: 14 }}>·</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${counts.followers} followers`}
+              onPress={() => router.push({ pathname: '/follows/[id]', params: { id: person.id, kind: 'followers' } })}
+              hitSlop={8}
+            >
+              <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
+                <Text style={{ fontFamily: fonts.uiSemibold, color: c.fg }}>{counts.followers}</Text>{' '}
+                {counts.followers === 1 ? 'follower' : 'followers'}
+              </Text>
+            </Pressable>
+            <Text style={{ color: c.fgFaint, fontSize: 14 }}>·</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${counts.following} following`}
+              onPress={() => router.push({ pathname: '/follows/[id]', params: { id: person.id, kind: 'following' } })}
+              hitSlop={8}
+            >
+              <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
+                <Text style={{ fontFamily: fonts.uiSemibold, color: c.fg }}>{counts.following}</Text> following
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </View>
+      <View className="mt-6" style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+        {relation !== 'self' ? (
+          <FollowButton personId={person.id} name={person.display_name} following={counts?.iFollow === true} />
+        ) : null}
         <RelationButton personId={person.id} name={person.display_name} username={person.username} relation={relation} compact={false} />
       </View>
       {note ? (
@@ -133,6 +180,34 @@ function PersonPage({ id }: { id: string }) {
         </Pressable>
       ) : null}
       {canSee ? (
+        <View className="mt-8 self-stretch">
+          <Segmented
+            options={[
+              { value: 'list', label: list.data.length > 0 ? `List · ${list.data.length}` : 'List' },
+              { value: 'hikes', label: 'Hikes' },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+        </View>
+      ) : null}
+      {canSee && tab === 'list' ? (
+        <View className="mt-5 self-stretch">
+          {list.loading ? <Skeleton shape="row" count={4} /> : null}
+          {list.error ? (
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{list.error}</Text>
+          ) : null}
+          {!list.loading && !list.error && list.data.length === 0 ? (
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 }}>
+              {relation === 'self' ? 'You haven’t ranked a trail yet. Log a hike and it lands here.' : `${first} hasn’t ranked a trail yet.`}
+            </Text>
+          ) : null}
+          {list.data.length > 0 ? (
+            <RankedList rows={list.data} firstName={first} self={relation === 'self'} />
+          ) : null}
+        </View>
+      ) : null}
+      {canSee && tab === 'hikes' ? (
         <TheirHikes
           id={person.id}
           name={person.display_name}
@@ -142,7 +217,7 @@ function PersonPage({ id }: { id: string }) {
           onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
         />
       ) : null}
-      {canSee && hikes.hasMore ? (
+      {canSee && tab === 'hikes' && hikes.hasMore ? (
         <Pressable accessibilityRole="button" onPress={hikes.loadMore} hitSlop={10} className="mt-6 active:opacity-60">
           <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 14 }}>
             {hikes.loadingMore ? 'Loading…' : 'Show older hikes'}

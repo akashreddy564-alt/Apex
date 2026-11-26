@@ -27,13 +27,16 @@ import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
 import { TrailAssignSheet } from '@/components/log/TrailAssignSheet';
+import { HikeDetailsSheet } from '@/components/log/HikeDetailsSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { RankingsList } from '@/components/ranking/RankingsList';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
+import { useMyProfile } from '@/hooks/useProfile';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
+import { catalogNear } from '@/lib/catalogRemote';
 import { shouldFly } from '@/lib/flyover/plan';
 import { formatDistance, formatDuration } from '@/lib/format';
 import { newId } from '@/lib/geo';
@@ -89,6 +92,7 @@ function hikeClock(totalSeconds: number): string {
 
 export default function LogScreen() {
   const c = useColors();
+  const { profile: myProfile } = useMyProfile();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
     setOptions: (options: Record<string, unknown>) => void;
@@ -112,6 +116,16 @@ export default function LogScreen() {
   const [locationDenied, setLocationDenied] = useState(false);
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
+  // A recorded hike gets a details step (terrain, who with, gear) once ranking closes.
+  const detailsPending = useRef<string | null>(null);
+  const [detailsLogId, setDetailsLogId] = useState<string | null>(null);
+  const closeRanking = useCallback(() => {
+    setModalOpen(false);
+    const pending = detailsPending.current;
+    detailsPending.current = null;
+    // Never in the same instant as ranking's dismiss: iOS can leave an invisible layer.
+    if (pending) setTimeout(() => setDetailsLogId(pending), 450);
+  }, []);
   const addTrail = useTrailCache((s) => s.addTrail);
   const [selectedTrailId, setSelectedTrailId] = useState(FREEFORM);
   const [pastTrailId, setPastTrailId] = useState(trails[0]?.id ?? '');
@@ -233,6 +247,7 @@ export default function LogScreen() {
     setRecording(false);
     if (!log) return;
     haptics.success();
+    detailsPending.current = log.id;
     comparison.start(log.trail_id, log.id);
     const fly = shouldFly({
       coords: log.recorded_path?.coordinates,
@@ -269,6 +284,15 @@ export default function LogScreen() {
       return trail ? [{ trail, startDistanceM: match.startDistanceM }] : [];
     });
   }, [assignOpen, points, trails]);
+
+  // The big catalog lives on the server: fetch trails near where this hike
+  // started so a known trail can be suggested (they join the cache, and the
+  // suggestions above recompute).
+  const startPoint = assignOpen ? points?.[0] : undefined;
+  useEffect(() => {
+    if (!startPoint) return;
+    void catalogNear(startPoint.longitude, startPoint.latitude, 600);
+  }, [startPoint]);
 
   const createRecordedTrail = async (name: string) => {
     const hike = tracker.session;
@@ -319,8 +343,11 @@ export default function LogScreen() {
     minutes: number;
     notes: string;
     distanceKm: number | null;
+    elevationGainM: number | null;
     terrain: string[];
     conditions: string[];
+    gear: string[];
+    companions: string[];
     difficulty: string | null;
     hikeType: string | null;
     photos: string[];
@@ -428,8 +455,9 @@ export default function LogScreen() {
       <PairwiseModal
         visible={modalOpen}
         comparison={comparison}
-        onClose={() => setModalOpen(false)}
+        onClose={closeRanking}
       />
+      <HikeDetailsSheet logId={detailsLogId} onClose={() => setDetailsLogId(null)} />
     </>
   );
 
@@ -504,7 +532,21 @@ export default function LogScreen() {
         />
 
         {view === 'rankings' ? (
-          <RankingsList onOpenTrail={(id) => router.push(`/trail/${id}`)} />
+          <>
+            {myProfile ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push({ pathname: '/friend/[id]', params: { id: myProfile.id } })}
+                hitSlop={8}
+                className="mx-4 mb-2 self-start active:opacity-60"
+              >
+                <Text style={{ color: c.accent, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
+                  See your list as friends see it
+                </Text>
+              </Pressable>
+            ) : null}
+            <RankingsList onOpenTrail={(id) => router.push(`/trail/${id}`)} />
+          </>
         ) : (
         <View style={{ paddingHorizontal: 16 }}>
 

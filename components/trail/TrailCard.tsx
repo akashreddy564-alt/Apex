@@ -5,6 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
 import { fonts } from '@/theme/tokens';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
+import { useYourTrailStats } from '@/hooks/useYourTrailStats';
 import type { Trail } from '@/types/trail';
 
 interface TrailCardProps {
@@ -23,6 +24,7 @@ interface TrailCardProps {
 
 export function TrailCard({ trail, rank, rankColor, score, trailing, reason, onPress }: TrailCardProps) {
   const c = useColors();
+  const yours = useYourTrailStats(trail.id);
   return (
     <Pressable
       onPress={onPress}
@@ -39,8 +41,15 @@ export function TrailCard({ trail, rank, rankColor, score, trailing, reason, onP
       <View className="flex-1 gap-0.5">
         <Text className="text-[15px] font-medium text-fg">{trail.name}</Text>
         <Text className="font-mono text-[11px] text-fg-faint">
-          {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text> ·{' '}
-          <Text style={{ color: c.climb }}>↑{formatOptionalElevation(trail.elevation_gain_m)}</Text>
+          {trail.region} ·{' '}
+          {yours ? (
+            <>
+              <Text style={{ color: c.distance }}>{formatOptionalDistance(yours.distanceKm)}</Text> ·{' '}
+              <Text style={{ color: c.climb }}>↑{formatOptionalElevation(yours.elevationGainM)}</Text>
+            </>
+          ) : (
+            'Not hiked yet'
+          )}
         </Text>
         {reason ? (
           <Text numberOfLines={1} style={{ marginTop: 4, fontFamily: fonts.ui, fontSize: 13, lineHeight: 18, color: c.fg2 }}>

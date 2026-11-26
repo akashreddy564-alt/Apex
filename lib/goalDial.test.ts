@@ -30,7 +30,7 @@ test('dailyTotals puts hikes in Monday-Sunday slots', () => {
   const now = new Date(2026, 10, 22, 20, 0); // Sunday
   const logs = [
     { trail_id: 'a', created_at: new Date(2026, 10, 21, 9).toISOString(), elevation_gain_m: toStored('elevation', 1100) },
-    { trail_id: 'b', created_at: new Date(2026, 10, 22, 9).toISOString() },
+    { trail_id: 'b', created_at: new Date(2026, 10, 22, 9).toISOString(), elevation_gain_m: toStored('elevation', 842) },
     { trail_id: 'c', created_at: new Date(2026, 10, 22, 23).toISOString(), elevation_gain_m: 500 },
     { trail_id: 'd', created_at: new Date(2026, 10, 15, 9).toISOString(), elevation_gain_m: 500 },
   ];
@@ -58,4 +58,11 @@ test('paceLine', () => {
   const sun = new Date(2026, 10, 22, 10);
   assert.equal(paceLine('elevation', 0, target, sun).text, '3,000 ft to go, with 1 day left this week.');
   assert.match(paceLine('distance', 0, toStored('distance', 10), fri).text, /^10 mi to go/);
+});
+
+test('dailyTotals never borrows a trail\'s catalog figure', () => {
+  const now = new Date(2026, 10, 25, 12);
+  const logs = [{ trail_id: 't', created_at: new Date(2026, 10, 24, 9).toISOString() }];
+  const totals = dailyTotals(logs, () => ({ distance_km: 5, elevation_gain_m: 400 }), 'elevation', now);
+  assert.deepEqual(totals, [0, 0, 0, 0, 0, 0, 0]);
 });

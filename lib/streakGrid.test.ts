@@ -14,6 +14,9 @@ const trails: Record<string, GoalTrail> = {
   none: { distance_km: null, elevation_gain_m: null },
 };
 const trailOf = (id: string) => trails[id];
+// Each hike carries its own numbers (copied from its trail here); the grid never borrows them.
+const own = <T extends { trail_id: string }>(logs: T[]) =>
+  logs.map((log) => ({ ...trails[log.trail_id], ...log }));
 
 describe('streakGrid', () => {
   it('is 12 weeks of 7 days, all zero when empty', () => {
@@ -25,12 +28,12 @@ describe('streakGrid', () => {
 
   it('levels by climb or distance, newest week last, Monday first', () => {
     const grid = streakGrid(
-      [
+      own([
         { trail_id: 'big', created_at: '2026-11-02T09:00:00' },
         { trail_id: 'long', created_at: '2026-11-03T09:00:00' },
         { trail_id: 'short', created_at: '2026-11-04T09:00:00' },
         { trail_id: 'none', created_at: '2026-10-28T09:00:00' },
-      ],
+      ]),
       trailOf,
       WED,
     );
@@ -52,11 +55,17 @@ describe('streakGrid', () => {
     assert.deepEqual(grid[11].slice(0, 3), [2, 2, 1]);
   });
 
+  it('never fills a dot from a trail\'s catalog figures', () => {
+    // A hike with no numbers of its own on a catalog-big trail is a normal day, not a full one.
+    const grid = streakGrid([{ trail_id: 'big', created_at: '2026-11-04T09:00:00' }], trailOf, WED);
+    assert.equal(grid[11][2], 1);
+  });
+
   it('keeps the higher level when two hikes share a day', () => {
-    const logs = [
+    const logs = own([
       { trail_id: 'big', created_at: '2026-11-03T07:00:00' },
       { trail_id: 'short', created_at: '2026-11-03T18:00:00' },
-    ];
+    ]);
     assert.equal(streakGrid(logs, trailOf, WED)[11][1], 2);
     assert.equal(streakGrid([...logs].reverse(), trailOf, WED)[11][1], 2);
   });
@@ -69,12 +78,12 @@ describe('streakGrid', () => {
 
   it('ignores future, unparseable and older-than-12-weeks logs', () => {
     const grid = streakGrid(
-      [
+      own([
         { trail_id: 'big', created_at: '2026-11-05T10:00:00' },
         { trail_id: 'big', created_at: 'nope' },
         { trail_id: 'big', created_at: '2026-08-16T10:00:00' }, // week before the oldest
         { trail_id: 'big', created_at: '2026-08-17T10:00:00' }, // oldest week, Monday
-      ],
+      ]),
       trailOf,
       WED,
     );

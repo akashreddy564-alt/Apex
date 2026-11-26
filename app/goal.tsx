@@ -11,6 +11,7 @@ import { dailyTotals, DIAL_RANGE, paceLine } from '@/lib/goalDial';
 import { formatAmount, toDisplay, toStored, type GoalMetric } from '@/lib/weeklyGoal';
 import { useGoal } from '@/stores/goalStore';
 import { useTrailCache } from '@/stores/trailCache';
+import { displayLineHeight } from '@/lib/posterFit';
 import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
 import { withAlpha } from '@/theme/color';
 
@@ -69,7 +70,7 @@ export default function GoalScreen() {
             fontFamily: fonts.displayExtraBold,
             fontWeight: 'normal',
             fontSize: TITLE,
-            lineHeight: Math.round(TITLE * 0.88),
+            lineHeight: displayLineHeight(TITLE),
             letterSpacing: -0.025 * TITLE,
             textTransform: 'uppercase',
             paddingTop: 4,

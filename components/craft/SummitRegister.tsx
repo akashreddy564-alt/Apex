@@ -16,6 +16,7 @@ import { formatDistance, formatDuration, formatElevation } from '@/lib/format';
 import type { RegisterRank, RegisterReasons } from '@/lib/logRegister';
 import { useColors } from '@/hooks/useColors';
 import { useSettings } from '@/stores/settingsStore';
+import { displayLineHeight } from '@/lib/posterFit';
 import { fonts, ink, minTypeSize, paper, stamp as STAMP } from '@/theme/tokens';
 import type { HikeLog, Trail } from '@/types/trail';
 import { withAlpha } from '@/theme/color';
@@ -202,8 +203,9 @@ export function SummitRegister({
     transform: [{ translateY: (1 - progress.value) * -14 }],
   }));
 
-  const distanceKm = log ? (log.distance_km ?? trail?.distance_km ?? null) : null;
-  const gainM = log ? (log.elevation_gain_m ?? trail?.elevation_gain_m ?? null) : null;
+  // The hike's own numbers; a catalog figure is a guess, so it's never borrowed.
+  const distanceKm = log?.distance_km ?? null;
+  const gainM = log?.elevation_gain_m ?? null;
   const date = log ? stampDate(log.created_at) : null;
   const trace = trail ? tracePath(trail.elevation_profile) : null;
   const peak = trail?.peak_elevation_m ?? null;
@@ -226,7 +228,7 @@ export function SummitRegister({
             fontFamily: fonts.displayExtraBold,
             fontWeight: 'normal',
             fontSize: 26,
-            lineHeight: Math.round(26 * 0.88) + 2,
+            lineHeight: displayLineHeight(26),
             letterSpacing: -0.025 * 26,
             textTransform: 'uppercase',
             color: ink,
@@ -328,7 +330,7 @@ export function SummitRegister({
           fontFamily: fonts.displayExtraBold,
           fontWeight: 'normal',
           fontSize: 26,
-          lineHeight: Math.round(26 * 0.88) + 2,
+          lineHeight: displayLineHeight(26),
           letterSpacing: -0.025 * 26,
           textTransform: 'uppercase',
           color: ink,

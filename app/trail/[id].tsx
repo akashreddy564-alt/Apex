@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Play } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
@@ -14,14 +14,19 @@ import { DifficultyCard } from '@/components/craft/DifficultyCard';
 import { ElevationScrubber } from '@/components/craft/ElevationScrubber';
 import { RouteTracer } from '@/components/craft/RouteTracer';
 import { Eyebrow, PressScale, SlideToStart } from '@/components/motion';
+import { TrailConditions } from '@/components/trail/TrailConditions';
+import { TrailTasteLine } from '@/components/home/TastePicks';
+import { TrailRankings } from '@/components/trail/TrailRankings';
 import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
 import { TrailMap } from '@/components/trail/TrailMap';
 import { trailNotes } from '@/data/trailNotes';
 import { useColors } from '@/hooks/useColors';
 import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
+import { useYourTrailStats } from '@/hooks/useYourTrailStats';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { CATALOG_CREDIT, isCatalogTrail } from '@/lib/catalog';
+import { ensureTrail } from '@/lib/catalogRemote';
 import { formatDistance } from '@/lib/format';
 import { describePlacement, placementScoreLabel } from '@/lib/ranking';
 import { trailCover } from '@/lib/trailCover';
@@ -44,6 +49,21 @@ export default function TrailDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const trailParam = id;
   const trail = useTrailCache((s) => s.getTrail(String(id)));
+  // Distance and climb come from your own hike, never the catalog (most catalog numbers are guesses).
+  const yours = useYourTrailStats(String(id));
+  // The big catalog lives on the server: fetch a trail this phone hasn't seen.
+  const [lookup, setLookup] = useState<'loading' | 'done'>(trail ? 'done' : 'loading');
+  useEffect(() => {
+    if (trail) return;
+    let live = true;
+    setLookup('loading');
+    void ensureTrail(String(id)).finally(() => {
+      if (live) setLookup('done');
+    });
+    return () => {
+      live = false;
+    };
+  }, [id, trail]);
   const ownerLabel = useTrailOwnerLabels();
   const recorded = useTrailCache((s) => {
     let best: (typeof s.logs)[number] | null = null;
@@ -98,7 +118,7 @@ export default function TrailDetailScreen() {
   if (!trail) {
     return (
       <View className="flex-1 items-center justify-center bg-bg">
-        <Text className="font-ui text-caption text-fg-faint">Trail not found</Text>
+        <Text className="font-ui text-caption text-fg-faint">{lookup === 'loading' ? 'Loading trail' : 'Trail not found'}</Text>
       </View>
     );
   }
@@ -110,10 +130,7 @@ export default function TrailDetailScreen() {
   });
   const sliderBottom = insets.bottom + SLIDER_GAP;
   const showSlider = tracker.hydrated && !tracker.isTracking;
-  const routeHeading =
-    trail.distance_km != null
-      ? `${formatDistance(trail.distance_km)}${trail.shape === 'out-and-back' ? ' round trip' : ''}`
-      : null;
+  const routeHeading = yours?.distanceKm != null ? `${formatDistance(yours.distanceKm)} on your last hike` : 'Not hiked yet';
   const hasRoute = (trail.path?.coordinates?.length ?? 0) >= 2;
   const card = cardStyle(c);
 
@@ -216,20 +233,40 @@ export default function TrailDetailScreen() {
             </Text>
           ) : null}
 
-          <DifficultyCard trail={trail} />
+          {yours?.distanceKm != null && yours.elevationGainM != null ? (
+            <DifficultyCard trail={{ ...trail, distance_km: yours.distanceKm, elevation_gain_m: yours.elevationGainM }} />
+          ) : null}
 
           <View style={{ marginTop: 10 }}>
-            <TrailStats
-              trailId={trail.id}
-              showDifficulty={false}
-              telemetry={{
-                peak_elevation_m: trail.peak_elevation_m,
-                elevation_gain_m: trail.elevation_gain_m,
-                distance_km: trail.distance_km,
-                avg_moving_time_seconds: trail.avg_moving_time_seconds,
-              }}
-            />
+            {yours ? (
+              <>
+                <Text style={{ marginBottom: 6, color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 }}>
+                  {yours.hikes > 1 ? `YOUR LAST HIKE · HIKED ${yours.hikes} TIMES` : 'YOUR HIKE'}
+                </Text>
+                <TrailStats
+                  trailId={trail.id}
+                  showDifficulty={false}
+                  telemetry={{
+                    peak_elevation_m: trail.peak_elevation_m,
+                    elevation_gain_m: yours.elevationGainM,
+                    distance_km: yours.distanceKm,
+                    avg_moving_time_seconds: yours.durationSeconds,
+                  }}
+                />
+              </>
+            ) : (
+              <View style={[card, { gap: 4 }]}>
+                <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 16 }}>Not hiked yet</Text>
+                <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 }}>
+                  Record or log this trail to see your distance, climb and time here.
+                </Text>
+              </View>
+            )}
           </View>
+
+          <TrailTasteLine trailId={trail.id} />
+          <TrailRankings trailId={trail.id} />
+          <TrailConditions trailId={trail.id} />
 
           {placement ? null : (
             <Text style={{ marginTop: 10, color: c.fgFaint, fontFamily: fonts.ui, fontSize: 13 }}>

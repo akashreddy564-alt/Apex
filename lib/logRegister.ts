@@ -58,15 +58,13 @@ export function registerReasons<L extends RegisterLog>(
   logs: readonly L[],
   trailOf: (id: string) => RegisterTrail | undefined,
 ): RegisterReasons {
-  const input = (l: L) => {
-    const trail = trailOf(l.trail_id);
-    return {
-      id: l.id,
-      distance_km: l.distance_km ?? trail?.distance_km ?? null,
-      elevation_gain_m: l.elevation_gain_m ?? trail?.elevation_gain_m ?? null,
-      duration_seconds: l.duration_seconds,
-    };
-  };
+  // Records compare hikes by their own numbers; a catalog figure is a guess.
+  const input = (l: L) => ({
+    id: l.id,
+    distance_km: l.distance_km ?? null,
+    elevation_gain_m: l.elevation_gain_m ?? null,
+    duration_seconds: l.duration_seconds,
+  });
   // hikeReasons leaves the hike itself out of the comparison by id.
   return hikeReasons(input(log), logs.map(input));
 }

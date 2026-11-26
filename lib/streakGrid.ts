@@ -15,8 +15,10 @@ export const FULL_HIKE = { gainM: 305, distanceKm: 8.05 };
 const WEEK_MS = 7 * 86_400_000;
 
 function levelOf(log: GoalLog, trail: GoalTrail | undefined): DayLevel {
-  const gain = log.elevation_gain_m ?? trail?.elevation_gain_m;
-  const distance = log.distance_km ?? trail?.distance_km;
+  // The hike's own numbers only; `trail` is unused now that catalog figures aren't borrowed.
+  void trail;
+  const gain = log.elevation_gain_m;
+  const distance = log.distance_km;
   if (gain != null && Number.isFinite(gain) && gain >= FULL_HIKE.gainM) return 2;
   if (distance != null && Number.isFinite(distance) && distance >= FULL_HIKE.distanceKm) return 2;
   return 1;

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { dropUnreadableFriendTrails, isFriendTrail } from '@/lib/friendTrails';
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
+import { isMissingNeighbour, listPlacement, serverListRows } from '@/lib/listPlace';
 import { shouldPost } from '@/lib/postRules';
 import { DEFAULT_HIKE_TYPE, withStoredScores } from '@/lib/ranking';
 import { supabase } from '@/lib/supabase';
@@ -49,7 +50,7 @@ function point(value: unknown): [number, number] | null {
 
 const SHAPES = new Set(['loop', 'out-and-back', 'point-to-point']);
 
-function mapTrail(row: Record<string, unknown>): Trail | null {
+export function mapTrail(row: Record<string, unknown>): Trail | null {
   if (typeof row.id !== 'string' || typeof row.name !== 'string') return null;
   const source = row.source === 'user' ? 'user' : 'catalog';
   const path = asLineString(row.path);
@@ -99,7 +100,8 @@ export async function pullRemote(): Promise<SyncResult> {
   if (!uid) return { ok: true, message: 'Signed out' };
 
   const [trailsRes, logsRes, ranksRes, pairsRes] = await Promise.all([
-    supabase.from('trails_api').select('*'),
+    // Your trails and friends' trails. Catalog rows are fetched as needed (023).
+    supabase.from('trails_api').select('*').eq('source', 'user'),
     supabase.from('hike_logs_api').select('*').eq('user_id', uid),
     supabase.from('trail_rankings').select('*').eq('user_id', uid),
     supabase.from('pairwise_comparisons').select('*').eq('user_id', uid),
@@ -151,11 +153,32 @@ export async function pullRemote(): Promise<SyncResult> {
   });
 
   void flushOutbox();
+  await fetchReferencedCatalog();
 
   return {
     ok: true,
     message: trails.length === 0 ? 'No remote trails yet' : `${trails.length} trails`,
   };
+}
+
+/** Catalog trails a hike or ranking points at but this phone hasn't seen yet. */
+async function fetchReferencedCatalog(): Promise<void> {
+  if (!supabase) return;
+  const cache = useTrailCache.getState();
+  const ids = new Set([
+    ...cache.logs.map((log) => log.trail_id),
+    ...useRankingStore.getState().rankings.map((row) => row.trail_id),
+  ]);
+  const missing = [...ids].filter((id) => isUuid(id) && !cache.getTrail(id));
+  for (let i = 0; i < missing.length; i += 200) {
+    const { data, error } = await supabase.rpc('catalog_trails', { ids: missing.slice(i, i + 200) });
+    if (error || !Array.isArray(data)) return;
+    useTrailCache
+      .getState()
+      .rememberTrails(
+        data.map((row) => mapTrail(row as Record<string, unknown>)).filter((t): t is Trail => t !== null),
+      );
+  }
 }
 
 /** Remote rows fill in; local rows that are missing remotely or still unsent stay. */
@@ -199,6 +222,8 @@ function mapLog(row: Record<string, unknown>): HikeLog {
     distance_km: optionalNum(row.distance_km),
     terrain: Array.isArray(row.terrain) ? row.terrain.map(String) : [],
     conditions: Array.isArray(row.conditions) ? row.conditions.map(String) : [],
+    gear: Array.isArray(row.gear) ? row.gear.map(String) : [],
+    companions: Array.isArray(row.companions) ? row.companions.map(String) : [],
     difficulty: row.difficulty == null ? null : String(row.difficulty),
     hike_type: row.hike_type == null ? null : String(row.hike_type),
     elevation_gain_m: optionalNum(row.elevation_gain_m),
@@ -219,6 +244,7 @@ function mapRanking(row: Record<string, unknown>): TrailRanking | null {
     comparison_count: num(row.comparison_count),
     score: num(row.score),
     updated_at: String(row.updated_at ?? new Date().toISOString()),
+    difficulty: typeof row.difficulty === 'number' ? row.difficulty : null,
   };
 }
 
@@ -337,6 +363,8 @@ async function sendLog(log: HikeLog): Promise<boolean> {
     distance_km: log.distance_km ?? null,
     terrain: log.terrain ?? [],
     conditions: log.conditions ?? [],
+    gear: log.gear ?? [],
+    companions: (log.companions ?? []).filter(isUuid),
     difficulty: log.difficulty ?? null,
     hike_type: log.hike_type ?? null,
     elevation_gain_m: log.elevation_gain_m ?? null,
@@ -362,6 +390,7 @@ function rankingRow(ranking: TrailRanking, uid: string): Record<string, unknown>
     comparison_count: ranking.comparison_count,
     updated_at: ranking.updated_at,
   };
+  if (ranking.difficulty !== undefined) row.difficulty = ranking.difficulty;
   if (isUuid(ranking.id)) row.id = ranking.id;
   return row;
 }
@@ -548,19 +577,28 @@ async function sendPost(logId: string): Promise<boolean> {
   const bucketSize = rankings.filter(
     (row) => row.bucket === ranking.bucket && row.hike_type === ranking.hike_type,
   ).length;
-  const { error } = await supabase.from('posts').upsert(
-    {
-      id: log.id,
-      user_id: uid,
-      trail_id: log.trail_id,
-      bucket: ranking.bucket,
-      score: Math.round(ranking.score * 100) / 100,
-      bucket_size: Math.max(1, bucketSize),
-      hiked_at: log.created_at,
-    },
-    // Re-ranking later never rewrites what friends already saw.
-    { onConflict: 'id', ignoreDuplicates: true },
-  );
+  // Where it landed on the whole list right now: "#2 of 14, just above Angels Landing".
+  // Counted over the list the server holds, so it matches what friends see on your page.
+  const placement = listPlacement(serverListRows(rankings), ranking.trail_id);
+  const row = {
+    id: log.id,
+    user_id: uid,
+    trail_id: log.trail_id,
+    bucket: ranking.bucket,
+    score: Math.round(ranking.score * 100) / 100,
+    bucket_size: Math.max(1, bucketSize),
+    hiked_at: log.created_at,
+    list_rank: placement?.rank ?? null,
+    list_size: placement?.size ?? null,
+    above_trail_id: placement?.aboveTrailId ?? null,
+    below_trail_id: placement?.belowTrailId ?? null,
+  };
+  // Re-ranking later never rewrites what friends already saw.
+  const send = (body: typeof row) => supabase!.from('posts').upsert(body, { onConflict: 'id', ignoreDuplicates: true });
+  let { error } = await send(row);
+  // A neighbour trail the server doesn't have (deleted, or never uploaded) must
+  // not hold the post back forever: keep the rank, drop the neighbours.
+  if (isMissingNeighbour(error)) ({ error } = await send({ ...row, above_trail_id: null, below_trail_id: null }));
   // Without a profile yet (no username), this fails and retries until there is one.
   return !error;
 }

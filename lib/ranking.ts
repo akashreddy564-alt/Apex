@@ -305,7 +305,9 @@ export function positionForInsert(sortedPositions: string[], index: number): str
  * Rows whose score, bucket, or position changed. A move between buckets
  * includes the old bucket so those server scores are not left stale.
  */
-export function rankingsToSync<T extends { user_id: string; hike_type: string; trail_id: string; score: number; bucket: string; position: string }>(
+export function rankingsToSync<
+  T extends { user_id: string; hike_type: string; trail_id: string; score: number; bucket: string; position: string; difficulty?: number | null },
+>(
   before: T[],
   after: T[],
 ): T[] {
@@ -313,7 +315,12 @@ export function rankingsToSync<T extends { user_id: string; hike_type: string; t
   return after.filter((row) => {
     const old = previous.get(rankingKey(row));
     if (!old) return true;
-    return old.score !== row.score || old.bucket !== row.bucket || old.position !== row.position;
+    return (
+      old.score !== row.score ||
+      old.bucket !== row.bucket ||
+      old.position !== row.position ||
+      (old.difficulty ?? null) !== (row.difficulty ?? null)
+    );
   });
 }
 

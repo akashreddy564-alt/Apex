@@ -48,8 +48,8 @@ export default function FlyoverScreen() {
   const stats = useMemo(
     () => ({
       name: trail?.name ?? 'My hike',
-      distanceKm: log?.distance_km ?? trail?.distance_km ?? 0,
-      gainM: log?.elevation_gain_m ?? trail?.elevation_gain_m ?? 0,
+      distanceKm: log?.distance_km ?? 0,
+      gainM: log?.elevation_gain_m ?? 0,
       durationSeconds: log?.duration_seconds ?? 0,
     }),
     [log, trail],

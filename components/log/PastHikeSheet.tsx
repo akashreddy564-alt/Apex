@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Check, ChevronRight, X } from 'lucide-react-native';
+import { ChevronRight, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -14,25 +14,25 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Path, Svg } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { useYourTrailStats } from '@/hooks/useYourTrailStats';
+import { HikeDetailsFields, type HikeDetails } from '@/components/log/HikeDetailsFields';
+import { splitChips } from '@/lib/hikeDetails';
 import { Glass } from '@/components/motion';
 import { HikeDateField } from '@/components/log/HikeDateField';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import {
   DISTANCE_UNIT,
+  ELEVATION_UNIT,
   formatElevation,
   formatOptionalDistance,
   milesToKm,
   MISSING_METRIC,
-  toMiles,
 } from '@/lib/format';
 import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
-import { formatHikeDay, suggestHikeType } from '@/lib/pastHike';
+import { formatHikeDay } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
 import { fonts, numericStyle, type Palette } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
-const CHIPS = ['Dry', 'Muddy', 'Snow', 'Rocky', 'Rain', 'Fog', 'Hot', 'Windy'] as const;
-const TERRAIN = new Set(['Snow', 'Rocky']);
-const EFFORT = ['Easy', 'Moderate', 'Hard', 'Very hard'] as const;
 
 interface PastHikeSheetProps {
   visible: boolean;
@@ -50,8 +50,12 @@ interface PastHikeSheetProps {
     minutes: number;
     notes: string;
     distanceKm: number | null;
+    /** Metres, from the optional Climb field. */
+    elevationGainM: number | null;
     terrain: string[];
     conditions: string[];
+    gear: string[];
+    companions: string[];
     difficulty: string | null;
     hikeType: string | null;
     photos: string[];
@@ -113,8 +117,11 @@ export function PastHikeSheet({
   const [editingDistance, setEditingDistance] = useState(false);
   const [typeTouched, setTypeTouched] = useState(false);
   const [hikeType, setHikeType] = useState<string>(DEFAULT_HIKE_TYPE);
-  const [selectedChips, setSelectedChips] = useState<string[]>([]);
-  const [difficulty, setDifficulty] = useState<string | null>(null);
+  // Terrain and conditions, who you hiked with, and gear (shared with the after-Finish sheet).
+  const [details, setDetails] = useState<HikeDetails>({ chips: [], gear: [], companions: [] });
+  useEffect(() => {
+    if (!visible) setDetails({ chips: [], gear: [], companions: [] });
+  }, [visible]);
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -129,21 +136,18 @@ export function PastHikeSheet({
     if (newTrailName && !distanceTouched) setDistanceText('');
   }, [distanceTouched, newTrailName]);
 
+  // Distance and climb are yours to enter: catalog numbers are guesses for most
+  // trails, so nothing is pre-filled from the trail.
+  const [climbText, setClimbText] = useState('');
   useEffect(() => {
-    if (!trail || distanceTouched) return;
-    setDistanceText(trail.distance_km == null ? '' : toMiles(trail.distance_km).toFixed(1));
-  }, [distanceTouched, trail]);
+    if (!visible) setClimbText('');
+  }, [visible]);
+  const yours = useYourTrailStats(trail?.id ?? '');
 
-  useEffect(() => {
-    if (!trail || typeTouched) return;
-    if (trail.distance_km == null || trail.elevation_gain_m == null) return;
-    setHikeType(suggestHikeType(trail.distance_km, trail.elevation_gain_m));
-  }, [trail, typeTouched]);
-
-  // The field is in miles; storage stays in kilometres.
+  // The fields are in miles and feet; storage stays in kilometres and metres.
   const distanceKm = distanceText.trim() === '' ? null : milesToKm(Number(distanceText));
-  const terrain = selectedChips.filter((chip) => TERRAIN.has(chip));
-  const conditions = selectedChips.filter((chip) => !TERRAIN.has(chip));
+  const climbM = climbText.trim() === '' ? null : Math.round(Number(climbText) / 3.28084);
+  const { terrain, conditions } = splitChips(details.chips);
 
   const addPhoto = () => {
     void ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 }).then(
@@ -299,10 +303,17 @@ export function PastHikeSheet({
                     ) : null}
                     {trail ? (
                       <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                        {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text> ·{' '}
-                        <Text style={{ color: trail.elevation_gain_m == null ? c.fgMuted : c.climb }}>
-                          {trail.elevation_gain_m == null ? MISSING_METRIC : `${formatElevation(trail.elevation_gain_m)} gain`}
-                        </Text>
+                        {trail.region} ·{' '}
+                        {yours ? (
+                          <>
+                            <Text style={{ color: c.distance }}>{formatOptionalDistance(yours.distanceKm)}</Text> ·{' '}
+                            <Text style={{ color: yours.elevationGainM == null ? c.fgMuted : c.climb }}>
+                              {yours.elevationGainM == null ? MISSING_METRIC : `${formatElevation(yours.elevationGainM)} gain`}
+                            </Text>
+                          </>
+                        ) : (
+                          'Not hiked yet'
+                        )}
                       </Text>
                     ) : null}
                   </View>
@@ -385,7 +396,7 @@ export function PastHikeSheet({
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                       <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Distance</Text>
                       <Text style={{ fontSize: 12, color: c.fgFaint, fontFamily: fonts.ui }}>
-                        {distanceTouched ? 'Edited' : 'From trail'}
+                        {distanceText ? 'Yours' : 'Optional'}
                       </Text>
                     </View>
                     <View style={{ marginTop: 6, height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -415,6 +426,26 @@ export function PastHikeSheet({
                         <Text style={{ fontSize: 13, color: c.fg2, fontFamily: fonts.ui }}>Edit</Text>
                       </Pressable>
                     </View>
+                  </View>
+                </View>
+
+                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Climb</Text>
+                    <Text style={{ fontSize: 12, color: c.fgFaint, fontFamily: fonts.ui }}>{climbText ? 'Yours' : 'Optional'}</Text>
+                  </View>
+                  <View style={{ marginTop: 6, height: 34, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TextInput
+                      value={climbText}
+                      maxLength={5}
+                      onChangeText={(value) => setClimbText(value.replace(/[^0-9]/g, ''))}
+                      keyboardType="number-pad"
+                      placeholder={MISSING_METRIC}
+                      placeholderTextColor={c.fgFaint}
+                      accessibilityLabel="Climb in feet"
+                      style={{ flex: 1, fontSize: 20, color: c.climb, ...numericStyle('semibold') }}
+                    />
+                    <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.uiMedium }}>{ELEVATION_UNIT}</Text>
                   </View>
                 </View>
 
@@ -476,44 +507,9 @@ export function PastHikeSheet({
                   </View>
                 ) : null}
 
-                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                    Terrain and conditions
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                    {CHIPS.map((chip) => (
-                      <Chip
-                        key={chip}
-                        label={chip}
-                        on={selectedChips.includes(chip)}
-                        onPress={() =>
-                          setSelectedChips((current) =>
-                            current.includes(chip)
-                              ? current.filter((item) => item !== chip)
-                              : [...current, chip],
-                          )
-                        }
-                      />
-                    ))}
-                  </View>
-                </View>
+                <HikeDetailsFields value={details} onChange={setDetails} />
 
-                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                    How hard did it feel?
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                    {EFFORT.map((item) => (
-                      <Chip
-                        key={item}
-                        label={item}
-                        on={difficulty === item}
-                        onPress={() => setDifficulty((current) => (current === item ? null : item))}
-                      />
-                    ))}
-                  </View>
-                </View>
-
+                {/* Difficulty is asked once, in the ranking sheet that follows (Easy to Very strenuous). */}
                 <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
                   <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Notes</Text>
                   <TextInput
@@ -598,9 +594,12 @@ export function PastHikeSheet({
                   minutes,
                   notes,
                   distanceKm: distanceKm != null && Number.isFinite(distanceKm) ? distanceKm : null,
+                  elevationGainM: climbM != null && Number.isFinite(climbM) ? climbM : null,
                   terrain,
                   conditions,
-                  difficulty,
+                  gear: details.gear,
+                  companions: details.companions,
+                  difficulty: null,
                   hikeType: HIKE_TYPES.length === 1 ? HIKE_TYPES[0] : hikeType,
                   photos,
                 });
@@ -665,37 +664,5 @@ function PastPhoto({ stored }: { stored: string }) {
       accessibilityLabel="Hike photo"
       style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.raised }}
     />
-  );
-}
-
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  const c = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        height: 32,
-        paddingHorizontal: 13,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: on ? c.fg : c.border,
-        backgroundColor: on ? c.fg : 'transparent',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-      }}
-    >
-      {on ? <Check size={13} strokeWidth={3} color={c.onAccent} /> : null}
-      <Text
-        style={{
-          fontSize: 14,
-          color: on ? c.onAccent : c.fg2,
-          fontFamily: on ? fonts.uiSemibold : fonts.ui,
-          fontWeight: 'normal',
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }

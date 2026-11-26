@@ -64,20 +64,41 @@ export function cardTitleLayout(
   return best;
 }
 
-/** iOS clips Anton glyphs when a line box is shorter than about 1.1 em. */
-const SAFE_LINE = 1.12;
+/**
+ * Anton's ascent + descent is 1.505 em. React Native on iOS only centres text
+ * in a line box at least that tall; a shorter box keeps the descent and trims
+ * the top, which cut the tops off the capitals. So every line gets a full box.
+ */
+const ANTON_BOX = 1.51;
+/** How much room a poster line took on screen before, kept so nothing moves. */
+const SLOT = 1.12;
 
 /**
- * Line height and top margin for line `index` of a stacked poster name:
- * each line keeps a box iOS won't clip, and later lines are pulled up so the
- * lines still sit `visual` em apart.
+ * Style for line `index` of a stacked poster name. Each line's box is as tall
+ * as the font, so iOS can't clip a glyph; negative margins pull the boxes
+ * together so lines still sit `visual` em apart and the block takes the same
+ * space as before. Pass `last` on the final line.
  */
 export function posterLineStyle(
   fontSize: number,
   index: number,
   visual = 0.92,
-): { lineHeight: number; marginTop: number } {
-  const lineHeight = Math.round(fontSize * SAFE_LINE);
-  const marginTop = index === 0 ? 0 : Math.round(fontSize * visual) - lineHeight;
-  return { lineHeight, marginTop };
+  last = false,
+): { lineHeight: number; marginTop: number; marginBottom: number } {
+  const lineHeight = Math.ceil(fontSize * ANTON_BOX);
+  const slot = Math.round(fontSize * SLOT);
+  const trimTop = Math.floor((lineHeight - slot) / 2);
+  const trimBottom = lineHeight - slot - trimTop;
+  const marginTop = index === 0 ? -trimTop : Math.round(fontSize * visual) - lineHeight;
+  return { lineHeight, marginTop, marginBottom: last ? -trimBottom : 0 };
+}
+
+/**
+ * Line height for a tight Bricolage Grotesque title (descent 0.27 em, capitals
+ * 0.66 em). On iOS a line box shorter than the font keeps the descent and trims
+ * the top, so 0.88 em cut the tops off capitals. 1.0 em is as tight as it can
+ * go and still leave room above the baseline for a capital and its overshoot.
+ */
+export function displayLineHeight(fontSize: number): number {
+  return Math.ceil(fontSize * 1.0);
 }

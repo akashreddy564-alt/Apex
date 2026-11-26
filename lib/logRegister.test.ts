@@ -28,10 +28,10 @@ describe('newestLog', () => {
 });
 
 describe('registerReasons', () => {
-  it("falls back to the trail's figures when the log has none", () => {
-    // Log 1 has no numbers of its own; Angels' 450 m beats the others' trail figures.
-    const logs = [log('1', 'a', 'x'), log('2', 'b', 'x'), log('3', 'c', 'x')];
-    assert.equal(registerReasons(logs[0], logs, trailOf).climb, 'Your biggest climb yet');
+  it("never borrows the trail's catalog figures when the log has none", () => {
+    // Log 1 has no numbers of its own, so it can't claim a record from Angels' catalog 450 m.
+    const logs = [log('1', 'a', 'x'), log('2', 'b', 'x', { elevation_gain_m: 100 }), log('3', 'c', 'x', { elevation_gain_m: 90 })];
+    assert.equal(registerReasons(logs[0], logs, trailOf).climb, null);
   });
 
   it("prefers the log's own numbers over its trail's", () => {

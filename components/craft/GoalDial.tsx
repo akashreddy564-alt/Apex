@@ -10,6 +10,7 @@ import { webNoScrollStyle } from '@/components/motion/webDrag';
 import { useColors } from '@/hooks/useColors';
 import { angleToDisplay, DIAL_RANGE, DIAL_START_DEG, DIAL_SWEEP_DEG, displayToFraction } from '@/lib/goalDial';
 import type { GoalMetric } from '@/lib/weeklyGoal';
+import { displayLineHeight } from '@/lib/posterFit';
 import { fonts } from '@/theme/tokens';
 
 const SIZE = 280;
@@ -297,7 +298,7 @@ export function GoalDial({
                 fontFamily: fonts.displayExtraBold,
                 fontWeight: 'normal',
                 fontSize: DISPLAY_SIZE,
-                lineHeight: Math.round(DISPLAY_SIZE * 0.88) + 4,
+                lineHeight: displayLineHeight(DISPLAY_SIZE) + 4,
                 letterSpacing: -0.025 * DISPLAY_SIZE,
                 textTransform: 'uppercase',
                 fontVariant: ['tabular-nums'],

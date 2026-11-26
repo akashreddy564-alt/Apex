@@ -49,8 +49,12 @@ export interface UseTrailComparisonResult {
   pickBucket: (bucket: Bucket) => void;
   choose: (choice: ComparisonChoice) => void;
   undo: () => void;
-  /** Persist the single ranking row and the session's comparisons. */
-  place: () => void;
+  /**
+   * Persist the single ranking row and the session's comparisons. `difficulty`
+   * (1-5) rides in the same row, so one save carries it; without one, the
+   * rating you gave before is kept.
+   */
+  place: (difficulty?: number | null) => void;
   reset: () => void;
 }
 
@@ -279,7 +283,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
     setTick((value) => value + 1);
   }, [bucket, buildPreview]);
 
-  const place = useCallback(() => {
+  const place = useCallback((difficulty?: number | null) => {
     const session = sessionRef.current;
     if (placedRef.current || !trailId || !bucket || session?.done == null) return;
     placedRef.current = true;
@@ -297,6 +301,8 @@ export function useTrailComparison(): UseTrailComparisonResult {
       comparison_count: (existing?.comparison_count ?? 0) + pendingRef.current.length,
       updated_at: new Date().toISOString(),
       score: 0,
+      // Always explicit, so this save can never send it as null by omission.
+      difficulty: difficulty ?? existing?.difficulty ?? null,
     };
     const comparisons = pendingRef.current;
     const before = useRankingStore.getState().rankings;

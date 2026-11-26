@@ -1,4 +1,4 @@
-import { Alert } from 'react-native';
+import { Alert, Text } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { GroupsSection } from '@/components/groups/GroupsSection';
@@ -67,11 +67,30 @@ it('lists groups with place and movement, and opens one', () => {
   expect(mockPush).toHaveBeenCalledWith({ pathname: '/group/[id]', params: { id: 'g1' } });
 });
 
+/** The group page opens on Top trails; the climb board is one tap away. */
+function showClimb(tree: ReactTestRenderer) {
+  const tab = tree.root.find(
+    (n) => n.props.accessibilityRole === 'tab' && n.findAll((t) => t.type === Text && t.props.children === 'Climb').length > 0,
+  );
+  act(() => tab.props.onPress());
+}
+
+it('opens on the group’s top trails', () => {
+  let tree!: ReactTestRenderer;
+  act(() => {
+    tree = create(<GroupScreen />);
+  });
+  expect(texts(tree)).toContain('Desk hikers’ top trails');
+  expect(texts(tree)).toContain('three other members');
+  expect(texts(tree)).not.toContain('Together this week');
+});
+
 it('shows the together number, cards, board and code', () => {
   let tree!: ReactTestRenderer;
   act(() => {
     tree = create(<GroupScreen />);
   });
+  showClimb(tree);
   const all = texts(tree);
   expect(all).toContain('Together this week');
   expect(all).toContain('7,874 ft');
@@ -88,6 +107,7 @@ it('lets the owner remove someone after confirming, but not themselves', () => {
   act(() => {
     tree = create(<GroupScreen />);
   });
+  showClimb(tree);
   const mine = tree.root.find((n) => n.props.accessibilityLabel === '2. You, 1,969 ft' && n.props.onLongPress);
   act(() => mine.props.onLongPress());
   expect(alert).not.toHaveBeenCalled();

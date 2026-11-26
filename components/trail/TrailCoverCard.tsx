@@ -15,7 +15,8 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { PressScale } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { formatOptionalDistance, formatOptionalElevation } from '@/lib/format';
-import { cardTitleLayout } from '@/lib/posterFit';
+import { useYourTrailStats } from '@/hooks/useYourTrailStats';
+import { cardTitleLayout, posterLineStyle } from '@/lib/posterFit';
 import type { TrailCover } from '@/lib/trailCover';
 import { difficultyRating } from '@/lib/trailDifficulty';
 import { difficultyRamp, fonts, type Palette, photoPill } from '@/theme/tokens';
@@ -74,15 +75,18 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, addedBy, o
     ],
   }));
 
+  // Your own hike's numbers; catalog distances are guesses for most trails.
+  const yours = useYourTrailStats(trail.id);
   const meta = [
     ...(addedBy ? [addedBy.toUpperCase()] : []),
     trail.region.toUpperCase(),
-    formatOptionalDistance(trail.distance_km).toUpperCase(),
-    `▲${formatOptionalElevation(trail.elevation_gain_m).toUpperCase()}`,
+    ...(yours
+      ? [formatOptionalDistance(yours.distanceKm).toUpperCase(), `▲${formatOptionalElevation(yours.elevationGainM).toUpperCase()}`]
+      : ['NOT HIKED YET']),
   ].join(' · ');
 
   // Difficulty sits on the photo in a dark pill, so it reads on any picture and in both appearances.
-  const rating = difficultyRating(trail.distance_km, trail.elevation_gain_m);
+  const rating = yours ? difficultyRating(yours.distanceKm, yours.elevationGainM) : null;
 
   // One gradient id per card: on web, duplicate ids resolve to the first.
   const shadeId = `cardShade${useId().replace(/:/g, '')}`;
@@ -128,10 +132,14 @@ export function TrailCoverCard({ trail, cover, score, top, index = 0, addedBy, o
 
         <View style={styles.info} pointerEvents="none">
           <View style={styles.text}>
-            {title.lines.map((line) => (
+            {title.lines.map((line, index) => (
               <Text
                 key={line}
-                style={[styles.name, { fontSize: title.fontSize, lineHeight: Math.round(title.fontSize * 1.08) }]}
+                style={[
+                  styles.name,
+                  { fontSize: title.fontSize },
+                  posterLineStyle(title.fontSize, index, 1.04, index === title.lines.length - 1),
+                ]}
                 numberOfLines={1}
               >
                 {line}

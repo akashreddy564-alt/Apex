@@ -23,6 +23,10 @@ jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({
 // Skia has no jest runtime; the full map is not under test here.
 jest.mock('@/components/trail/TrailMap', () => ({ TrailMap: () => null }));
 
+// Friends' rankings come from the server; covered in trail-rankings.test.tsx.
+jest.mock('@/components/trail/TrailRankings', () => ({ TrailRankings: () => null }));
+jest.mock('@/components/trail/TrailConditions', () => ({ TrailConditions: () => null }));
+
 const mockTrails = [...CATALOG_TRAILS, ...MOCK_TRAILS];
 let mockLogs: unknown[] = [];
 jest.mock('@/stores/trailCache', () => {
@@ -103,7 +107,9 @@ describe('Trail detail', () => {
   });
 
   it('keeps each difficulty reason reachable by screen readers', () => {
+    mockLogs = [{ id: 'h1', user_id: 'me', trail_id: ANGELS, created_at: '2026-11-20T15:00:00Z', duration_seconds: 14000, distance_km: 8.95, elevation_gain_m: 592, photos: [] }];
     const t = render(ANGELS);
+    mockLogs = [];
     const reasons = t.root.findAllByType(Text).filter((n) => {
       const kids = n.props.children;
       return typeof kids === 'string' && /^(of climbing|feet of climb per mile|at the summit)/.test(kids);
@@ -121,10 +127,28 @@ describe('Trail detail', () => {
   });
 
   it('shows difficulty once: the card, not TrailStats', () => {
+    mockLogs = [{ id: 'h1', user_id: 'me', trail_id: ANGELS, created_at: '2026-11-20T15:00:00Z', duration_seconds: 14000, distance_km: 8.95, elevation_gain_m: 592, photos: [] }];
     const all = texts(render(ANGELS));
+    mockLogs = [];
     expect(all.filter((s) => s.endsWith(' on the NPS scale'))).toHaveLength(1);
     expect(all).not.toContain('DIFFICULTY');
     expect(all.some((s) => s.startsWith('NPS Shenandoah rating'))).toBe(false);
+  });
+
+  it('before you hike it: "Not hiked yet", no catalog numbers and no difficulty', () => {
+    mockLogs = [];
+    const all = texts(render(ANGELS));
+    expect(all).toContain('Not hiked yet');
+    expect(all.filter((s) => s.endsWith(' on the NPS scale'))).toHaveLength(0);
+  });
+
+  it('after you hike it: your own distance and climb, not the catalog\'s', () => {
+    mockLogs = [{ id: 'h2', user_id: 'me', trail_id: ANGELS, created_at: '2026-11-21T15:00:00Z', duration_seconds: 5400, distance_km: 3.22, elevation_gain_m: 120, photos: [] }];
+    const all = texts(render(ANGELS));
+    mockLogs = [];
+    expect(all).toContain('YOUR HIKE');
+    expect(all.some((s) => s.includes('2.0 mi on your last hike'))).toBe(true);
+    expect(all).not.toContain('Not hiked yet');
   });
 
   it('hides the slider while a hike is recording', () => {

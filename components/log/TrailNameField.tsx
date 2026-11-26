@@ -1,8 +1,11 @@
 import { Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
 
+import { useCatalogSearch } from '@/hooks/useCatalogSearch';
 import { useColors } from '@/hooks/useColors';
+import { useYourStatsByTrail } from '@/hooks/useYourTrailStats';
+import { ensureTrail } from '@/lib/catalogRemote';
 import { formatOptionalDistance } from '@/lib/format';
 import { searchTrails } from '@/lib/trailMatch';
 import { cleanTrailName, TRAIL_NAME_MAX } from '@/lib/userTrail';
@@ -22,8 +25,28 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
   const c = useColors();
   const [text, setText] = useState('');
   const name = cleanTrailName(text);
-  const matches = useMemo(() => searchTrails(trails, text, 5), [trails, text]);
+  const yours = useYourStatsByTrail();
+  const local = useMemo(() => searchTrails(trails, text, 5), [trails, text]);
+  const remote = useCatalogSearch(text);
+  // Trails on this phone first, then the server catalog (nearest first), no repeats.
+  const matches = useMemo(() => {
+    const seen = new Set(local.map((t) => t.id));
+    const more = remote.hits.filter((hit) => !seen.has(hit.id)).slice(0, Math.max(0, 8 - local.length));
+    return [...local, ...more];
+  }, [local, remote.hits]);
+  const [opening, setOpening] = useState<string | null>(null);
   const exact = name != null && matches.some((t) => t.name.toLowerCase() === name.toLowerCase());
+  const pick = (id: string) => {
+    if (trails.some((t) => t.id === id)) {
+      onPick(id);
+      return;
+    }
+    setOpening(id);
+    void ensureTrail(id).then((trail) => {
+      setOpening(null);
+      if (trail) onPick(trail.id);
+    });
+  };
 
   return (
     <View>
@@ -57,19 +80,31 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
           key={trail.id}
           accessibilityRole="button"
           accessibilityLabel={`${trail.name}, ${trail.region}`}
-          onPress={() => onPick(trail.id)}
+          onPress={() => pick(trail.id)}
+          disabled={opening !== null}
           style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
         >
           <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: c.raised }}>
-            <Text style={{ fontSize: 16, color: c.fg, fontFamily: fonts.uiSemibold }} numberOfLines={1}>
-              {trail.name}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ flex: 1, fontSize: 16, color: c.fg, fontFamily: fonts.uiSemibold }} numberOfLines={1}>
+                {trail.name}
+              </Text>
+              {opening === trail.id ? <ActivityIndicator size="small" color={c.fgMuted} /> : null}
+            </View>
             <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }} numberOfLines={1}>
-              {trail.region} · <Text style={{ color: c.distance }}>{formatOptionalDistance(trail.distance_km)}</Text>
+              {trail.region} ·{' '}
+              {yours.get(trail.id) ? (
+                <Text style={{ color: c.distance }}>{formatOptionalDistance(yours.get(trail.id)!.distanceKm)}</Text>
+              ) : (
+                'Not hiked yet'
+              )}
             </Text>
           </View>
         </Pressable>
       ))}
+      {remote.loading && matches.length === 0 ? (
+        <Text style={{ paddingVertical: 12, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Searching trails</Text>
+      ) : null}
       {name && !exact ? (
         <Pressable
           accessibilityRole="button"

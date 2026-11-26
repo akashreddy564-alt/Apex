@@ -71,11 +71,13 @@ describe('weeklyProgress', () => {
     assert.equal(progress.complete, false);
   });
 
-  it('falls back to the trail when the hike has no measurement', () => {
+  it('never borrows the trail\'s catalog figure when the hike has no measurement', () => {
     const logs: GoalLog[] = [{ trail_id: 'si', created_at: at(17) }];
-    assert.equal(weeklyProgress(logs, trailOf, elevation, NOW).done, 960);
+    const progress = weeklyProgress(logs, trailOf, elevation, NOW);
+    assert.equal(progress.done, 0);
+    assert.equal(progress.hikes, 1);
     const distance = weeklyProgress(logs, trailOf, { metric: 'distance', target: 20 }, NOW);
-    assert.equal(distance.done, 12);
+    assert.equal(distance.done, 0);
   });
 
   it('prefers the hike’s own figure, even a smaller one', () => {

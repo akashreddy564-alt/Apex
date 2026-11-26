@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
+import { useYourTrailStats } from '@/hooks/useYourTrailStats';
 import { useTrailOwnerLabels } from '@/hooks/useTrailOwnerLabel';
 import { Glass } from '@/components/motion';
 import { TrailNameField } from '@/components/log/TrailNameField';
@@ -56,10 +57,13 @@ function SuggestionCard({ suggestion, onPress }: { suggestion: TrailSuggestion; 
   const { trail, startDistanceM } = suggestion;
   const addedBy = useTrailOwnerLabels()(trail);
   const cover = mapCoverUrl(trail.path, MAPBOX_TOKEN, { width: 600, height: 260 });
+  // A suggestion near your start: where it is, and your own numbers if you've hiked it.
+  const yours = useYourTrailStats(trail.id);
   const meta = [
     startLabel(startDistanceM),
-    formatOptionalDistance(trail.distance_km).toUpperCase(),
-    `▲${formatOptionalElevation(trail.elevation_gain_m).toUpperCase()}`,
+    ...(yours
+      ? [formatOptionalDistance(yours.distanceKm).toUpperCase(), `▲${formatOptionalElevation(yours.elevationGainM).toUpperCase()}`]
+      : ['NOT HIKED YET']),
   ].join(' · ');
 
   return (

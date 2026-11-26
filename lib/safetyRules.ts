@@ -1,6 +1,6 @@
 /** Pure rules for notifications, reports and blocks. Matches 013_notifications_and_safety.sql. */
 
-export type NotificationKind = 'friend_request' | 'friend_accepted' | 'group_join' | 'like' | 'comment' | 'passed';
+export type NotificationKind = 'friend_request' | 'friend_accepted' | 'group_join' | 'like' | 'comment' | 'passed' | 'follow' | 'tagged';
 
 export interface AppNotification {
   id: string;
@@ -29,7 +29,7 @@ export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
 
 export const REPORT_DETAILS_MAX = 1000;
 
-const KINDS = new Set<string>(['friend_request', 'friend_accepted', 'group_join', 'like', 'comment', 'passed']);
+const KINDS = new Set<string>(['friend_request', 'friend_accepted', 'group_join', 'like', 'comment', 'passed', 'follow', 'tagged']);
 const str = (value: unknown): string | null => (typeof value === 'string' && value.length > 0 ? value : null);
 
 export function mapNotification(row: Record<string, unknown>): AppNotification | null {
@@ -72,6 +72,10 @@ export function notificationText(n: AppNotification): string {
           : 'commented on your hike';
     case 'passed':
       return n.groupName ? `passed you in ${n.groupName} this week` : 'passed you this week';
+    case 'follow':
+      return 'followed you';
+    case 'tagged':
+      return n.trailName ? `tagged you on a ${n.trailName} hike` : 'tagged you on a hike';
   }
 }
 
@@ -83,7 +87,7 @@ export type NotificationTarget =
 
 /** Where tapping a notification goes. */
 export function notificationTarget(n: AppNotification): NotificationTarget {
-  if ((n.kind === 'like' || n.kind === 'comment') && n.postId) {
+  if ((n.kind === 'like' || n.kind === 'comment' || n.kind === 'tagged') && n.postId) {
     return { pathname: '/post/[id]', params: n.kind === 'comment' ? { id: n.postId, comment: '0' } : { id: n.postId } };
   }
   if ((n.kind === 'group_join' || n.kind === 'passed') && n.groupId) {
