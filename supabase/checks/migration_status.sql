@@ -91,6 +91,12 @@ from (values
   (32, '026 companions, gear, conditions', exists (select 1 from information_schema.columns
                                                        where table_schema = 'public' and table_name = 'hike_logs' and column_name = 'gear')
                                            and to_regprocedure('public.trail_conditions(uuid)') is not null
-                                           and position('auth.uid() in (a, b)' in pg_get_functiondef('public.are_friends(uuid, uuid)'::regprocedure)) > 0)
+                                           and position('auth.uid() in (a, b)' in pg_get_functiondef('public.are_friends(uuid, uuid)'::regprocedure)) > 0),
+  (33, '028 ranking-first social',        exists (select 1 from information_schema.columns
+                                                       where table_schema = 'public' and table_name = 'posts' and column_name = 'list_rank')
+                                           and to_regprocedure('public.person_rankings(uuid)') is not null
+                                           and to_regprocedure('public.group_trail_board(uuid)') is not null
+                                           and to_regprocedure('public.taste_picks(integer)') is not null
+                                           and position('list_rank' in pg_get_function_result('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) > 0)
 ) as checks (n, step, ok)
 order by n;
