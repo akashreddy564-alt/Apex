@@ -10,10 +10,10 @@ import {
   useMotionValueEvent,
   useReducedMotion,
   useScroll,
-  useSpring,
   useTransform,
+  type MotionValue,
 } from "motion/react";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { memo, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { LiveLine } from "@/components/charts/live-line";
 import { LiveLineChart, type LiveLinePoint } from "@/components/charts/live-line-chart";
@@ -32,6 +32,11 @@ const HIKE_HOURS = 4.6;
 const SUMMIT_MI = summitMiles(TRAIL);
 /** Where the summit falls in the round trip, as a fraction of the whole hike. */
 const SUMMIT_T = SUMMIT_MI / TRAIL.miles;
+/**
+ * Share of the pinned scroll at which the dot arrives. The rest of the pin
+ * holds that frame, so the section cannot release while the dot is still climbing.
+ */
+const SUMMIT_AT = 0.75;
 
 /** Laptops with a mouse or trackpad scroll the hike; phones and reduced motion keep the self-playing card. */
 const SCROLL_QUERY = "(min-width: 1024px) and (pointer: fine) and (prefers-reduced-motion: no-preference)";
@@ -86,6 +91,12 @@ export function Record() {
 
   const route = useMemo(() => routePath(TRAIL, 400, 34), []);
   const at = useMemo(() => walker(route.points), [route]);
+  const routeLen = useMemo(() => {
+    let n = 0;
+    const pts = route.points;
+    for (let i = 1; i < pts.length; i++) n += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    return n;
+  }, [route]);
 
   // One clock drives the line, the dot and the readouts, so they can't drift apart.
   const progress = useMotionValue(reduce ? 0.3 : 0.16);
@@ -99,31 +110,134 @@ export function Record() {
     data: [],
   });
 
-  // Scroll mode: the section pins for one screen of scrolling, which walks the
-  // trailhead to the summit. The spring keeps a flick smooth without lagging.
+  // Scroll mode: the section stays pinned for the whole climb. Progress is the
+  // scroll position itself — a spring here lags a flick or a space-bar jump,
+  // so the pin ends while the dot is still mid-trail. The summit arrives at
+  // SUMMIT_AT; the rest of the pin holds that frame.
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const climb = useSpring(scrollYProgress, { stiffness: 260, damping: 40, mass: 0.25 });
-  const scrolled = useTransform(climb, [0.04, 0.9], [0, SUMMIT_T], { clamp: true });
+  const scrolled = useTransform(scrollYProgress, [0, SUMMIT_AT], [0, SUMMIT_T], { clamp: true });
+  // Both inputs are read on every pass so the dot follows whichever clock is live,
+  // including the flip onto scroll mode after hydration.
+  const mode = useMotionValue(scrollMode ? 1 : 0);
+  useEffect(() => {
+    mode.set(scrollMode ? 1 : 0);
+  }, [scrollMode, mode]);
+  const drive = useTransform(() => {
+    const onScroll = mode.get() > 0;
+    const scrolledNow = scrolled.get();
+    const clockNow = progress.get();
+    return onScroll ? scrolledNow : clockNow;
+  });
   const lastStage = useRef(0);
-  const [scrollT, setScrollT] = useState(0);
   useMotionValueEvent(scrolled, "change", (v) => {
-    if (!scrollMode) return;
-    progress.set(v);
-    setScrollT((prev) => (Math.abs(prev - v) < 0.0015 ? prev : v));
+    if (mode.get() <= 0) return;
     const stage = v >= SUMMIT_T - 0.002 ? 2 : v > 0.01 ? 1 : 0;
     if (stage === 2 && lastStage.current !== 2) sfx("achievement");
     lastStage.current = stage;
   });
-  useEffect(() => {
-    if (scrollMode) progress.set(scrolled.get());
-  }, [scrollMode, progress, scrolled]);
 
-  const drawn = useTransform(progress, (p) => {
+  const drawn = useTransform(drive, (p) => {
     const mi = p * TRAIL.miles;
     return Math.max(0.002, mi <= SUMMIT_MI ? routeFraction(mi) : 1);
   });
-  const dotX = useTransform(progress, (p) => at(routeFraction(p * TRAIL.miles))[0]);
-  const dotY = useTransform(progress, (p) => at(routeFraction(p * TRAIL.miles))[1]);
+  const dashOffset = useTransform(drawn, (d) => (1 - d) * routeLen);
+  const dotX = useTransform(drive, (p) => at(routeFraction(p * TRAIL.miles))[0]);
+  const dotY = useTransform(drive, (p) => at(routeFraction(p * TRAIL.miles))[1]);
+
+  // Space, page down and end can jump a whole viewport. Hold them at the
+  // summit frame; a flick that skips the pin entirely is pulled back to it.
+  useEffect(() => {
+    if (!scrollMode) return;
+    const el = ref.current;
+    if (!el) return;
+    let cache = { start: 0, summit: 0, end: 0 };
+    let armed = false;
+    let holdUntil = 0;
+    const measure = () => {
+      const start = el.getBoundingClientRect().top + window.scrollY;
+      const pin = Math.max(1, el.offsetHeight - window.innerHeight);
+      cache = { start, summit: start + pin * SUMMIT_AT, end: start + pin };
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    ro.observe(document.body);
+    // Non-passive only while this section is on screen, so the rest of the
+    // page keeps compositor scrolling. A flick that would skip the summit is
+    // stopped on it; the rest of that gesture is swallowed, then the next one leaves.
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) return;
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) dy *= 16;
+      else if (e.deltaMode === 2) dy *= window.innerHeight;
+      const y = window.scrollY;
+      const now = performance.now();
+      if (dy < 0) {
+        holdUntil = 0;
+        return;
+      }
+      if (now < holdUntil && y >= cache.summit - 2 && y <= cache.end + 40) {
+        e.preventDefault();
+        return;
+      }
+      if (y < cache.summit && y + dy > cache.end - 8 && y + dy > cache.start) {
+        e.preventDefault();
+        window.scrollTo({ top: cache.summit, behavior: "instant" });
+        holdUntil = now + 380;
+      }
+    };
+    let listening = false;
+    const attach = () => {
+      if (listening) return;
+      listening = true;
+      measure();
+      window.addEventListener("wheel", onWheel, { passive: false });
+    };
+    const detach = () => {
+      if (!listening) return;
+      listening = false;
+      window.removeEventListener("wheel", onWheel);
+    };
+    // Arm only as the hike approaches, so the rest of the page is not wheel-blocked.
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y >= cache.start - window.innerHeight && y <= cache.end + 24) attach();
+      else detach();
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    const big = new Set([" ", "PageDown", "End"]);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
+      if (!big.has(e.key)) return;
+      const target = e.target;
+      if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) return;
+      const y = window.scrollY;
+      if (y < cache.start - 4 || y > cache.end + 4) return;
+      if (armed && y >= cache.summit - 2 && y < cache.end - 2) {
+        e.preventDefault();
+        return;
+      }
+      const jump = e.key === "End" ? Number.POSITIVE_INFINITY : window.innerHeight;
+      if (y < cache.summit - 2 && y + jump > cache.summit) {
+        e.preventDefault();
+        armed = true;
+        window.scrollTo({ top: cache.summit, behavior: "instant" });
+      }
+    };
+    const onKeyUp = () => {
+      armed = false;
+    };
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", onScroll);
+      detach();
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("keyup", onKeyUp);
+    };
+  }, [scrollMode]);
 
   useEffect(() => {
     if (!running) return;
@@ -139,6 +253,15 @@ export function Record() {
     return () => window.clearInterval(id);
   }, [running, progress]);
 
+  // Numbers and the chart follow the same clock as the dot. Scroll mode writes
+  // them here, not from a spring, and the route map is memoized so this render
+  // doesn't remeasure the path.
+  const [scrollT, setScrollT] = useState(0);
+  useMotionValueEvent(drive, "change", (v) => {
+    if (mode.get() <= 0) return;
+    setScrollT((prev) => (Math.abs(prev - v) < 0.008 ? prev : v));
+  });
+
   // Everything below reads the scroll position in scroll mode, the clock otherwise.
   const t = scrollMode ? scrollT : clockT;
   const miles = t * TRAIL.miles;
@@ -150,7 +273,7 @@ export function Record() {
 
   return (
     <section
-      className={scrollMode ? "relative h-[190vh]" : "relative overflow-hidden py-28 sm:py-36"}
+      className={scrollMode ? "relative h-[240svh]" : "relative overflow-hidden py-28 sm:py-36"}
       id="record"
       ref={ref}
     >
@@ -216,37 +339,18 @@ export function Record() {
                 {paused ? <Play className="size-4" /> : <Pause className="size-4" />}
               </button>
               )}
-              <svg aria-label={`Route of ${TRAIL.name}`} className="absolute inset-0 size-full" role="img" viewBox="0 0 400 400">
-                <defs>
-                  <pattern height="22" id="grid" patternUnits="userSpaceOnUse" width="22">
-                    <path d="M22 0H0v22" fill="none" stroke="#EFE9DD" strokeWidth="1" />
-                  </pattern>
-                </defs>
-                <rect fill="url(#grid)" height="400" width="400" />
-                <path d={route.d} fill="none" stroke="#E4DCCB" strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" />
-                <motion.path
-                  d={route.d}
-                  fill="none"
-                  stroke="#94552A"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="5"
-                  style={{ pathLength: drawn }}
-                />
-                {/* Summit flag and trailhead. */}
-                <g transform={`translate(${topX} ${topY})`}>
-                  <circle fill="#fff" r="7" stroke="#94552A" strokeWidth="3" />
-                </g>
-                <circle cx={startX} cy={startY} fill="#1C211E" r="6" />
-                <motion.g style={{ x: dotX, y: dotY }}>
-                  {!reduce && (
-                    <circle fill="#2B6A99" opacity="0.18" r="16">
-                      <animate attributeName="r" dur="1.6s" repeatCount="indefinite" values="8;18;8" />
-                    </circle>
-                  )}
-                  <circle fill="#2B6A99" r="7" stroke="#fff" strokeWidth="3" />
-                </motion.g>
-              </svg>
+              <RouteMap
+                dashOffset={dashOffset}
+                dotX={dotX}
+                dotY={dotY}
+                drawnLen={routeLen}
+                reduce={!!reduce}
+                routeD={route.d}
+                startX={startX}
+                startY={startY}
+                topX={topX}
+                topY={topY}
+              />
               <p className="absolute bottom-4 left-4 font-medium text-[12px] text-muted-ink">
                 {TRAIL.region} · {fmt(TRAIL.peakFt)} ft summit
               </p>
@@ -293,6 +397,64 @@ export function Record() {
     </section>
   );
 }
+
+const RouteMap = memo(function RouteMap({
+  routeD,
+  drawnLen,
+  dashOffset,
+  dotX,
+  dotY,
+  startX,
+  startY,
+  topX,
+  topY,
+  reduce,
+}: {
+  routeD: string;
+  drawnLen: number;
+  dashOffset: MotionValue<number>;
+  dotX: MotionValue<number>;
+  dotY: MotionValue<number>;
+  startX: number;
+  startY: number;
+  topX: number;
+  topY: number;
+  reduce: boolean;
+}) {
+  return (
+    <svg aria-label={`Route of ${TRAIL.name}`} className="absolute inset-0 size-full" role="img" viewBox="0 0 400 400">
+      <defs>
+        <pattern height="22" id="grid" patternUnits="userSpaceOnUse" width="22">
+          <path d="M22 0H0v22" fill="none" stroke="#EFE9DD" strokeWidth="1" />
+        </pattern>
+      </defs>
+      <rect fill="url(#grid)" height="400" width="400" />
+      <path d={routeD} fill="none" stroke="#E4DCCB" strokeLinecap="round" strokeLinejoin="round" strokeWidth="5" />
+      {/* Dash offset uses the precomputed length, so the browser never calls getPointAtLength per frame. */}
+      <motion.path
+        d={routeD}
+        fill="none"
+        stroke="#94552A"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="5"
+        style={{ strokeDasharray: drawnLen, strokeDashoffset: dashOffset }}
+      />
+      <g transform={`translate(${topX} ${topY})`}>
+        <circle fill="#fff" r="7" stroke="#94552A" strokeWidth="3" />
+      </g>
+      <circle cx={startX} cy={startY} fill="#1C211E" r="6" />
+      <motion.g style={{ x: dotX, y: dotY }}>
+        {!reduce && (
+          <circle fill="#2B6A99" opacity="0.18" r="16">
+            <animate attributeName="r" dur="1.6s" repeatCount="indefinite" values="8;18;8" />
+          </circle>
+        )}
+        <circle fill="#2B6A99" r="7" stroke="#fff" strokeWidth="3" />
+      </motion.g>
+    </svg>
+  );
+});
 
 function Stat({ label, value, unit, tone }: { label: string; value: string; unit: string; tone: string }) {
   return (
