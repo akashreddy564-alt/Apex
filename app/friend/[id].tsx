@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { PostCard } from '@/components/feed/PostCard';
@@ -16,6 +17,10 @@ import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
 import type { FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
+import { RankedList } from '@/components/profile/RankedList';
+import { TasteLine } from '@/components/profile/TasteLine';
+import { Segmented } from '@/components/social/Segmented';
+import { usePersonRankings, useTasteMatch } from '@/hooks/useRankLists';
 
 /** Their ranked hikes, newest first. Friends and yourself only. */
 function TheirHikes({ id, name, posts, loading, error, onMore }: {
@@ -32,8 +37,7 @@ function TheirHikes({ id, name, posts, loading, error, onMore }: {
   const mine = useMyRankedTrails();
   const first = name.split(/\s+/)[0];
   return (
-    <View className="mt-10 self-stretch" accessibilityLabel={`${first}’s hikes`}>
-      <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18 }}>Hikes</Text>
+    <View className="mt-5 self-stretch" accessibilityLabel={`${first}’s hikes`}>
       {loading ? (
         <View className="mt-3">
           <Skeleton shape="row" count={3} />
@@ -73,6 +77,10 @@ function PersonPage({ id }: { id: string }) {
   // Friends and followers both see someone's hikes.
   const canSee = person ? ['friend', 'self'].includes(relationTo(person.id)) || counts?.iFollow === true : false;
   const hikes = usePersonPosts(id, canSee);
+  const list = usePersonRankings(id, canSee);
+  const taste = useTasteMatch(id, canSee);
+  const mine = useMyRankedTrails();
+  const [tab, setTab] = useState<'list' | 'hikes'>('list');
 
   if (loading) {
     return (
@@ -97,9 +105,10 @@ function PersonPage({ id }: { id: string }) {
         ? 'Request sent. You’ll see their hikes once they accept.'
         : relation === 'none'
           ? counts?.iFollow
-            ? 'You see their hikes. Friends also share boards and groups.'
-            : 'Follow to see their hikes. Friends also share boards and groups.'
+            ? 'You see their list and hikes. Friends also share boards and groups.'
+            : 'Follow to see their ranked list and hikes. Friends also share boards and groups.'
           : null;
+  const first = person.display_name.split(/\s+/)[0] || person.display_name;
 
   return (
     <View className="items-center pt-6">
@@ -113,6 +122,7 @@ function PersonPage({ id }: { id: string }) {
         @{person.username}
       </Text>
       <FirstAscentBadge userId={person.id} size="lg" style={{ marginTop: 12 }} />
+      {relation !== 'self' ? <TasteLine match={taste.data} firstName={first} /> : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
         {friendCount !== null ? (
           <Text style={{ color: c.fg2, fontFamily: fonts.uiMedium, fontSize: 14 }}>
@@ -171,6 +181,34 @@ function PersonPage({ id }: { id: string }) {
         </Pressable>
       ) : null}
       {canSee ? (
+        <View className="mt-8 self-stretch">
+          <Segmented
+            options={[
+              { value: 'list', label: list.data.length > 0 ? `List · ${list.data.length}` : 'List' },
+              { value: 'hikes', label: 'Hikes' },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+        </View>
+      ) : null}
+      {canSee && tab === 'list' ? (
+        <View className="mt-5 self-stretch">
+          {list.loading ? <Skeleton shape="row" count={4} /> : null}
+          {list.error ? (
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{list.error}</Text>
+          ) : null}
+          {!list.loading && !list.error && list.data.length === 0 ? (
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20 }}>
+              {relation === 'self' ? 'You haven’t ranked a trail yet. Log a hike and it lands here.' : `${first} hasn’t ranked a trail yet.`}
+            </Text>
+          ) : null}
+          {list.data.length > 0 ? (
+            <RankedList rows={list.data} firstName={first} self={relation === 'self'} mine={mine} />
+          ) : null}
+        </View>
+      ) : null}
+      {canSee && tab === 'hikes' ? (
         <TheirHikes
           id={person.id}
           name={person.display_name}
@@ -180,7 +218,7 @@ function PersonPage({ id }: { id: string }) {
           onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
         />
       ) : null}
-      {canSee && hikes.hasMore ? (
+      {canSee && tab === 'hikes' && hikes.hasMore ? (
         <Pressable accessibilityRole="button" onPress={hikes.loadMore} hitSlop={10} className="mt-6 active:opacity-60">
           <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 14 }}>
             {hikes.loadingMore ? 'Loading…' : 'Show older hikes'}
