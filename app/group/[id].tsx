@@ -5,7 +5,9 @@ import { Alert, RefreshControl, ScrollView, Share, Text, View } from 'react-nati
 
 import { GroupMark, groupColor } from '@/components/groups/GroupMark';
 import { Leaderboard, PeriodSwitch } from '@/components/groups/Leaderboard';
+import { BOARD_KINDS, TrailBoard, type BoardKind } from '@/components/groups/TrailBoard';
 import { SecondaryButton } from '@/components/social/Buttons';
+import { Segmented } from '@/components/social/Segmented';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useGroupActions, useGroupPage, useMyGroups } from '@/hooks/useGroups';
@@ -151,6 +153,7 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
   const c = useColors();
   const router = useRouter();
   const [period, setPeriod] = useState<Period>('week');
+  const [kind, setKind] = useState<BoardKind>('trails');
   const { groups, loading: groupsLoading } = useMyGroups();
   const group = groups.find((row) => row.id === id);
   const { board, summary, loading, refreshing, error, refetch } = useGroupPage(id, period);
@@ -212,22 +215,35 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
         </View>
       ) : null}
 
-      <PeriodSwitch period={period} onChange={setPeriod} />
+      <Segmented options={BOARD_KINDS} value={kind} onChange={setKind} />
 
-      {error ? (
-        <View className="mt-6 gap-2">
-          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
-          <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+      {kind === 'trails' ? (
+        <View className="mt-5">
+          <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18, marginBottom: 6 }}>
+            {group ? `${group.name}’s top trails` : 'Top trails'}
+          </Text>
+          <TrailBoard kind="group" id={id} />
         </View>
-      ) : null}
+      ) : (
+        <View className="mt-3">
+          <PeriodSwitch period={period} onChange={setPeriod} />
 
-      {summary ? (
-        <>
-          <Together summary={summary} period={period} />
-          <StatCards summary={summary} />
-        </>
-      ) : null}
-      {board.length > 0 ? <Board rows={board} group={group} /> : null}
+          {error ? (
+            <View className="mt-6 gap-2">
+              <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
+              <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+            </View>
+          ) : null}
+
+          {summary ? (
+            <>
+              <Together summary={summary} period={period} />
+              <StatCards summary={summary} />
+            </>
+          ) : null}
+          {board.length > 0 ? <Board rows={board} group={group} /> : null}
+        </View>
+      )}
       {group ? <Invite group={group} fresh={fresh} /> : null}
 
       {group ? (
