@@ -39,6 +39,17 @@ describe('mapFeedPost', () => {
     assert.equal(mapFeedPost({ ...row, bucket: 'meh' }), null);
   });
 
+  it('reads the list placement, and leaves it null on older posts', () => {
+    const post = mapFeedPost({ ...row, list_rank: 2, list_size: '14', above_trail_name: 'Half Dome', below_trail_name: null });
+    assert.equal(post?.listRank, 2);
+    assert.equal(post?.listSize, 14);
+    assert.equal(post?.aboveTrailName, 'Half Dome');
+    assert.equal(post?.belowTrailName, null);
+    const old = mapFeedPost(row);
+    assert.equal(old?.listRank, null);
+    assert.equal(old?.listSize, null);
+  });
+
   it('has no route when the server sent none', () => {
     assert.deepEqual(mapFeedPost({ ...row, route: null })?.route, []);
   });

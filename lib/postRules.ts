@@ -40,6 +40,12 @@ export interface FeedPost {
   gear: string[];
   /** Who they hiked with (friends or people they follow), minus anyone you've blocked. */
   companions: { id: string; username: string; displayName: string }[];
+  /** Where the trail landed on the poster's list when they posted. Null on posts from before 028. */
+  listRank: number | null;
+  listSize: number | null;
+  /** The trails just above and below it then; null when hidden from you or there wasn't one. */
+  aboveTrailName: string | null;
+  belowTrailName: string | null;
 }
 
 const strings = (value: unknown): string[] =>
@@ -104,6 +110,10 @@ export function mapFeedPost(row: Record<string, unknown>): FeedPost | null {
     conditions: strings(row.conditions),
     gear: strings(row.gear),
     companions: companionsOf(row.companions),
+    listRank: num(row.list_rank),
+    listSize: num(row.list_size),
+    aboveTrailName: typeof row.above_trail_name === 'string' ? row.above_trail_name : null,
+    belowTrailName: typeof row.below_trail_name === 'string' ? row.below_trail_name : null,
   };
 }
 
@@ -112,6 +122,8 @@ export interface MyRankedTrail {
   name: string;
   bucket: Bucket;
   score: number;
+  /** Tie-breaker inside a score, for "You have it at #5". */
+  position?: string;
 }
 
 const NEIGHBOURS: Record<Bucket, Bucket[]> = {

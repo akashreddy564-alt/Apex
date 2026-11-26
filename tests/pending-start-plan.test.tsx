@@ -56,6 +56,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 const mockLocation = { message: null };
 jest.mock('@/hooks/useLiveLocation', () => ({ useLiveLocation: () => mockLocation }));
+jest.mock('@/hooks/useProfile', () => ({ useMyProfile: () => ({ profile: null }) }));
 jest.mock('@/components/log/RecordSession', () => ({ RecordSession: () => null }));
 jest.mock('@/components/ranking/RankingsList', () => ({ RankingsList: () => null }));
 jest.mock('@/components/ranking/PairwiseModal', () => ({ PairwiseModal: () => null }));

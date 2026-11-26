@@ -33,6 +33,7 @@ import { PrimaryButton } from '@/components/social/Buttons';
 import { RankingsList } from '@/components/ranking/RankingsList';
 import { PhotoStrip } from '@/components/trail/PhotoStrip';
 import { useLiveLocation } from '@/hooks/useLiveLocation';
+import { useMyProfile } from '@/hooks/useProfile';
 import { useTrailComparison } from '@/hooks/useTrailComparison';
 import { useTrailTracker } from '@/hooks/useTrailTracker';
 import { catalogNear } from '@/lib/catalogRemote';
@@ -91,6 +92,7 @@ function hikeClock(totalSeconds: number): string {
 
 export default function LogScreen() {
   const c = useColors();
+  const { profile: myProfile } = useMyProfile();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
     setOptions: (options: Record<string, unknown>) => void;
@@ -530,7 +532,21 @@ export default function LogScreen() {
         />
 
         {view === 'rankings' ? (
-          <RankingsList onOpenTrail={(id) => router.push(`/trail/${id}`)} />
+          <>
+            {myProfile ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push({ pathname: '/friend/[id]', params: { id: myProfile.id } })}
+                hitSlop={8}
+                className="mx-4 mb-2 self-start active:opacity-60"
+              >
+                <Text style={{ color: c.accent, fontFamily: fonts.uiSemibold, fontSize: 14 }}>
+                  See your list as friends see it
+                </Text>
+              </Pressable>
+            ) : null}
+            <RankingsList onOpenTrail={(id) => router.push(`/trail/${id}`)} />
+          </>
         ) : (
         <View style={{ paddingHorizontal: 16 }}>
 

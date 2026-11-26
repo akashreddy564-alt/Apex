@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { Alert, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { Leaderboard, PeriodSwitch } from '@/components/groups/Leaderboard';
+import { BOARD_KINDS, TrailBoard, type BoardKind } from '@/components/groups/TrailBoard';
+import { possessive } from '@/lib/rankListRules';
 import { haptics, Skeleton } from '@/components/motion';
 import { SecondaryButton } from '@/components/social/Buttons';
+import { Segmented } from '@/components/social/Segmented';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useMyOrganizations, useOrgActions, useOrgBoard } from '@/hooks/useOrganizations';
@@ -17,6 +20,7 @@ function OrgPage({ id }: { id: string }) {
   const c = useColors();
   const router = useRouter();
   const [period, setPeriod] = useState<Period>('week');
+  const [kind, setKind] = useState<BoardKind>('trails');
   const { organizations, loading: orgsLoading } = useMyOrganizations();
   const org = organizations.find((row) => row.id === id);
   const { board, loading, refreshing, error, refetch } = useOrgBoard(id, period);
@@ -86,33 +90,46 @@ function OrgPage({ id }: { id: string }) {
         </View>
       ) : null}
 
-      <PeriodSwitch period={period} onChange={setPeriod} />
+      <Segmented options={BOARD_KINDS} value={kind} onChange={setKind} />
 
-      {error ? (
-        <View className="mt-6 gap-2">
-          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
-          <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+      {kind === 'trails' ? (
+        <View className="mt-5">
+          <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18, marginBottom: 6 }}>
+            {org ? `${possessive(org.name)} top trails` : 'Top trails'}
+          </Text>
+          <TrailBoard kind="org" id={id} />
         </View>
-      ) : null}
-      {loading ? (
-        <View className="mt-6">
-          <Skeleton shape="row" count={4} />
+      ) : (
+        <View className="mt-3">
+          <PeriodSwitch period={period} onChange={setPeriod} />
+
+          {error ? (
+            <View className="mt-6 gap-2">
+              <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14 }}>{error}</Text>
+              <SecondaryButton compact label="Try again" onPress={() => void refetch()} />
+            </View>
+          ) : null}
+          {loading ? (
+            <View className="mt-6">
+              <Skeleton shape="row" count={4} />
+            </View>
+          ) : null}
+          {board.length > 0 ? (
+            <View className="mt-6">
+              <Leaderboard
+                rows={board}
+                title={`Climbed ${periodLabel(period)}`}
+                footnote="Everyone here verified an email at this domain in the last year. Recorded hikes only; weeks run Monday to Sunday."
+              />
+            </View>
+          ) : null}
+          {!loading && !error && board.length === 1 ? (
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20, marginTop: 12 }}>
+              You’re the first one here. Tell people at {org?.name ?? 'work'} to verify their email in Apex and they’ll show up on this board.
+            </Text>
+          ) : null}
         </View>
-      ) : null}
-      {board.length > 0 ? (
-        <View className="mt-6">
-          <Leaderboard
-            rows={board}
-            title={`Climbed ${periodLabel(period)}`}
-            footnote="Everyone here verified an email at this domain in the last year. Recorded hikes only; weeks run Monday to Sunday."
-          />
-        </View>
-      ) : null}
-      {!loading && !error && board.length === 1 ? (
-        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20, marginTop: 12 }}>
-          You’re the first one here. Tell people at {org?.name ?? 'work'} to verify their email in Apex and they’ll show up on this board.
-        </Text>
-      ) : null}
+      )}
 
       {org ? (
         <View className="mt-8">

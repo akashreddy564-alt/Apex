@@ -11,10 +11,12 @@ import { PostCard } from '@/components/feed/PostCard';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
 import { NearbyTrails } from '@/components/home/NearbyTrails';
 import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
+import { TastePicks } from '@/components/home/TastePicks';
 import { TopTrails } from '@/components/home/TopTrails';
 import { WeekHero } from '@/components/home/WeekHero';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
+import { Avatar } from '@/components/social/Avatar';
 import { SymbolIcon } from '@/components/SymbolIcon';
 import { useColors } from '@/hooks/useColors';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
@@ -49,6 +51,7 @@ function Header() {
   const c = useColors();
   const router = useRouter();
   const unread = useUnreadCount();
+  const { profile } = useMyProfile();
   return (
     <View className="flex-row items-center px-4">
       <View className="flex-row items-center gap-3">
@@ -80,6 +83,18 @@ function Header() {
           />
         ) : null}
       </Pressable>
+      {profile ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Your profile and ranked list"
+          onPress={() => router.push({ pathname: '/friend/[id]', params: { id: profile.id } })}
+          hitSlop={8}
+          className="ml-4 items-center justify-center active:opacity-70"
+          style={{ minHeight: 44 }}
+        >
+          <Avatar name={profile.display_name} size={30} />
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -208,6 +223,7 @@ function Feed() {
               onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
             />
           </Animated.View>
+          {index === Math.min(2, posts.length - 1) ? <TastePicks /> : null}
         </View>
       )}
       ItemSeparatorComponent={() => <View className="mx-4 h-px bg-raised" />}
