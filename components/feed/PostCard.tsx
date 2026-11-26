@@ -8,7 +8,8 @@ import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { Avatar } from '@/components/social/Avatar';
 import { useColors } from '@/hooks/useColors';
 import { formatCompactDuration, formatDistance, formatElevation } from '@/lib/format';
-import { myRankOf, placementLine } from '@/lib/listPlace';
+import { useMyRank } from '@/hooks/useMyListOrder';
+import { placementLine } from '@/lib/listPlace';
 import { comparisonTag, hikeDayLabel, type FeedPost, type MyRankedTrail } from '@/lib/postRules';
 import { postReasons } from '@/lib/reasons';
 import { useSavedTrails } from '@/stores/savedTrailsStore';
@@ -81,7 +82,8 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
 
   const firstName = post.displayName.split(/\s+/)[0] || post.displayName;
   const placement = placementLine({ ...post, firstName, isMine: post.isMine });
-  const myRank = post.isMine ? null : myRankOf(mine, post.trailId);
+  const rankOf = useMyRank();
+  const myRank = post.isMine ? null : rankOf(post.trailId);
   // Your own rank for the same trail says more than "ranked above your X"; show one or the other.
   const tag = myRank == null ? comparisonTag(post, mine) : null;
   const where = [post.region, hikeDayLabel(post.hikedAt)].filter(Boolean).join(' · ');

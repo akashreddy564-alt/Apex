@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { listPlacement, myRankOf, placementLine } from './listPlace.ts';
+import { isMissingNeighbour, listPlacement, myRankOf, placementLine, serverListRows } from './listPlace.ts';
 
 const rows = [
   { trail_id: 'c', score: 5.5, position: 'a1' },
@@ -49,6 +49,29 @@ describe('placementLine', () => {
   });
   it('is null for older posts with no placement', () => {
     assert.equal(placementLine({ ...base, listRank: null, listSize: null }), null);
+  });
+});
+
+describe('serverListRows', () => {
+  const id = (n: number) => `7e570000-0000-4000-8000-00000000000${n}`;
+  it('keeps only standard hikes on trails the server knows, with or without a cached name', () => {
+    const rows = serverListRows([
+      { trail_id: id(1), hike_type: 'hike', score: 9, position: 'a1' },
+      { trail_id: 'local-draft', hike_type: 'hike', score: 8, position: 'a2' },
+      { trail_id: id(2), hike_type: 'other', score: 7, position: 'a3' },
+      { trail_id: id(3), hike_type: 'hike', score: 6, position: 'a4' },
+    ]);
+    assert.deepEqual(rows.map((r) => r.trail_id), [id(1), id(3)]);
+    // "#2 of 2", matching the list friends see, not "#3 of 3" from the local draft.
+    assert.deepEqual(listPlacement(rows, id(3)), { rank: 2, size: 2, aboveTrailId: id(1), belowTrailId: null });
+  });
+});
+
+describe('isMissingNeighbour', () => {
+  it('spots a foreign-key failure so the post retries without neighbours', () => {
+    assert.equal(isMissingNeighbour({ code: '23503' }), true);
+    assert.equal(isMissingNeighbour({ code: '42501' }), false);
+    assert.equal(isMissingNeighbour(null), false);
   });
 });
 

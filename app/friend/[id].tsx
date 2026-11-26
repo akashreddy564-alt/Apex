@@ -79,7 +79,6 @@ function PersonPage({ id }: { id: string }) {
   const hikes = usePersonPosts(id, canSee);
   const list = usePersonRankings(id, canSee);
   const taste = useTasteMatch(id, canSee);
-  const mine = useMyRankedTrails();
   const [tab, setTab] = useState<'list' | 'hikes'>('list');
 
   if (loading) {
@@ -204,7 +203,7 @@ function PersonPage({ id }: { id: string }) {
             </Text>
           ) : null}
           {list.data.length > 0 ? (
-            <RankedList rows={list.data} firstName={first} self={relation === 'self'} mine={mine} />
+            <RankedList rows={list.data} firstName={first} self={relation === 'self'} />
           ) : null}
         </View>
       ) : null}

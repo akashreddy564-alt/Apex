@@ -7,8 +7,7 @@ import { Eyebrow } from '@/components/motion';
 import { RouteThumb } from '@/components/ranking/RouteFigure';
 import { ScoreBadge } from '@/components/score/ScoreBadge';
 import { useColors } from '@/hooks/useColors';
-import { myRankOf } from '@/lib/listPlace';
-import type { MyRankedTrail } from '@/lib/postRules';
+import { useMyRank } from '@/hooks/useMyListOrder';
 import { formatRankScore, type Bucket } from '@/lib/ranking';
 import { possessive, splitTopTen, type RankedRow } from '@/lib/rankListRules';
 import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
@@ -16,10 +15,11 @@ import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
 const THUMB = 56;
 
 /** "You: #5" when you've ranked it too, "Not hiked yet" when you haven't. Nothing on your own list. */
-function useMarker(mine: MyRankedTrail[], self: boolean) {
+function useMarker(self: boolean) {
+  const rankOf = useMyRank();
   return (row: RankedRow): string | null => {
     if (self || !row.trailId) return null;
-    const rank = myRankOf(mine, row.trailId);
+    const rank = rankOf(row.trailId);
     return rank == null ? 'Not hiked yet' : `You: #${rank}`;
   };
 }
@@ -58,16 +58,14 @@ export function RankedList({
   rows,
   firstName,
   self,
-  mine,
 }: {
   rows: RankedRow[];
   firstName: string;
   self: boolean;
-  mine: MyRankedTrail[];
 }) {
   const c = useColors();
   const open = useOpen();
-  const marker = useMarker(mine, self);
+  const marker = useMarker(self);
   const { top, rest } = splitTopTen(rows);
   const bucketSizes = useMemo(() => {
     const sizes: Record<Bucket, number> = { loved: 0, fine: 0, disliked: 0 };

@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { dropUnreadableFriendTrails, isFriendTrail } from '@/lib/friendTrails';
 import { asLineString, isUuid, lineStringToEwkt } from '@/lib/geo';
-import { listPlacement } from '@/lib/listPlace';
+import { isMissingNeighbour, listPlacement, serverListRows } from '@/lib/listPlace';
 import { shouldPost } from '@/lib/postRules';
 import { DEFAULT_HIKE_TYPE, withStoredScores } from '@/lib/ranking';
 import { supabase } from '@/lib/supabase';
@@ -578,28 +578,27 @@ async function sendPost(logId: string): Promise<boolean> {
     (row) => row.bucket === ranking.bucket && row.hike_type === ranking.hike_type,
   ).length;
   // Where it landed on the whole list right now: "#2 of 14, just above Angels Landing".
-  const placement = listPlacement(
-    rankings.filter((row) => row.hike_type === ranking.hike_type),
-    ranking.trail_id,
-  );
-  const known = (id: string | null) => (id && isUuid(id) ? id : null);
-  const { error } = await supabase.from('posts').upsert(
-    {
-      id: log.id,
-      user_id: uid,
-      trail_id: log.trail_id,
-      bucket: ranking.bucket,
-      score: Math.round(ranking.score * 100) / 100,
-      bucket_size: Math.max(1, bucketSize),
-      hiked_at: log.created_at,
-      list_rank: placement?.rank ?? null,
-      list_size: placement?.size ?? null,
-      above_trail_id: known(placement?.aboveTrailId ?? null),
-      below_trail_id: known(placement?.belowTrailId ?? null),
-    },
-    // Re-ranking later never rewrites what friends already saw.
-    { onConflict: 'id', ignoreDuplicates: true },
-  );
+  // Counted over the list the server holds, so it matches what friends see on your page.
+  const placement = listPlacement(serverListRows(rankings), ranking.trail_id);
+  const row = {
+    id: log.id,
+    user_id: uid,
+    trail_id: log.trail_id,
+    bucket: ranking.bucket,
+    score: Math.round(ranking.score * 100) / 100,
+    bucket_size: Math.max(1, bucketSize),
+    hiked_at: log.created_at,
+    list_rank: placement?.rank ?? null,
+    list_size: placement?.size ?? null,
+    above_trail_id: placement?.aboveTrailId ?? null,
+    below_trail_id: placement?.belowTrailId ?? null,
+  };
+  // Re-ranking later never rewrites what friends already saw.
+  const send = (body: typeof row) => supabase!.from('posts').upsert(body, { onConflict: 'id', ignoreDuplicates: true });
+  let { error } = await send(row);
+  // A neighbour trail the server doesn't have (deleted, or never uploaded) must
+  // not hold the post back forever: keep the rank, drop the neighbours.
+  if (isMissingNeighbour(error)) ({ error } = await send({ ...row, above_trail_id: null, below_trail_id: null }));
   // Without a profile yet (no username), this fails and retries until there is one.
   return !error;
 }

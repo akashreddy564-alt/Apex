@@ -16,7 +16,8 @@ export interface Placement {
   belowTrailId: string | null;
 }
 
-function order<T extends ListRow>(rows: T[]): T[] {
+/** Best first: score, then position, then trail id. */
+export function order<T extends ListRow>(rows: T[]): T[] {
   return [...rows].sort((a, b) => {
     if (a.score !== b.score) return b.score - a.score;
     if (a.position !== b.position) return a.position < b.position ? -1 : 1;
@@ -35,6 +36,22 @@ export function listPlacement(rows: ListRow[], trailId: string): Placement | nul
     aboveTrailId: sorted[index - 1]?.trail_id ?? null,
     belowTrailId: sorted[index + 1]?.trail_id ?? null,
   };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Your list as the server holds it: the standard hike type, on trails with a
+ * server id. Use this for "#2 of 14" and "You: #5" so they match the list
+ * friends see, whether or not this phone has the trail's name cached.
+ */
+export function serverListRows<T extends { trail_id: string; hike_type: string }>(rows: T[]): T[] {
+  return rows.filter((row) => row.hike_type === 'hike' && UUID.test(row.trail_id));
+}
+
+/** A post's neighbour trail isn't on the server (foreign-key failure); send it without neighbours. */
+export function isMissingNeighbour(error: { code?: string } | null | undefined): boolean {
+  return error?.code === '23503';
 }
 
 /** "#2 of 14 · just above Angels Landing". Null for older posts that have no placement. */
