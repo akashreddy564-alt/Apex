@@ -25,6 +25,8 @@ describe('notificationText', () => {
     assert.equal(notificationText(make({ kind: 'passed', group_name: 'Desk hikers' })), 'passed you in Desk hikers this week');
     assert.equal(notificationText(make({ kind: 'group_join' })), 'joined your group');
     assert.equal(notificationText(make({ kind: 'follow' })), 'followed you');
+    assert.equal(notificationText(make({ kind: 'tagged', trail_name: 'Raven Cliffs' })), 'tagged you on a Raven Cliffs hike');
+    assert.deepEqual(notificationTarget(make({ kind: 'tagged', post_id: 'p9' })), { pathname: '/post/[id]', params: { id: 'p9' } });
   });
 
   it('keeps a follow notification (not dropped as unknown) and opens their page', () => {

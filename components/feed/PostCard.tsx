@@ -11,6 +11,7 @@ import { formatCompactDuration, formatDistance, formatElevation } from '@/lib/fo
 import { comparisonTag, hikeDayLabel, type FeedPost, type MyRankedTrail } from '@/lib/postRules';
 import { postReasons } from '@/lib/reasons';
 import { useSavedTrails } from '@/stores/savedTrailsStore';
+import { PostDetails } from '@/components/feed/PostDetails';
 import { ensureTrail } from '@/lib/catalogRemote';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
@@ -204,6 +205,8 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
           {post.notes}
         </Text>
       ) : null}
+
+      <PostDetails post={post} full={full} />
 
       {tag ? (
         <View

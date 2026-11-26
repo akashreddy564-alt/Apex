@@ -25,6 +25,7 @@ jest.mock('@/components/trail/TrailMap', () => ({ TrailMap: () => null }));
 
 // Friends' rankings come from the server; covered in trail-rankings.test.tsx.
 jest.mock('@/components/trail/TrailRankings', () => ({ TrailRankings: () => null }));
+jest.mock('@/components/trail/TrailConditions', () => ({ TrailConditions: () => null }));
 
 const mockTrails = [...CATALOG_TRAILS, ...MOCK_TRAILS];
 let mockLogs: unknown[] = [];

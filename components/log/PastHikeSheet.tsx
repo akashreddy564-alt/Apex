@@ -1,5 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Check, ChevronRight, X } from 'lucide-react-native';
+import { ChevronRight, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Image,
@@ -15,6 +15,8 @@ import { Path, Svg } from 'react-native-svg';
 
 import { useColors } from '@/hooks/useColors';
 import { useYourTrailStats } from '@/hooks/useYourTrailStats';
+import { HikeDetailsFields, type HikeDetails } from '@/components/log/HikeDetailsFields';
+import { splitChips } from '@/lib/hikeDetails';
 import { Glass } from '@/components/motion';
 import { HikeDateField } from '@/components/log/HikeDateField';
 import { TrailNameField } from '@/components/log/TrailNameField';
@@ -31,8 +33,6 @@ import { formatHikeDay } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
 import { fonts, numericStyle, type Palette } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
-const CHIPS = ['Dry', 'Muddy', 'Snow', 'Rocky', 'Rain', 'Fog', 'Hot', 'Windy'] as const;
-const TERRAIN = new Set(['Snow', 'Rocky']);
 
 interface PastHikeSheetProps {
   visible: boolean;
@@ -54,6 +54,8 @@ interface PastHikeSheetProps {
     elevationGainM: number | null;
     terrain: string[];
     conditions: string[];
+    gear: string[];
+    companions: string[];
     difficulty: string | null;
     hikeType: string | null;
     photos: string[];
@@ -115,7 +117,11 @@ export function PastHikeSheet({
   const [editingDistance, setEditingDistance] = useState(false);
   const [typeTouched, setTypeTouched] = useState(false);
   const [hikeType, setHikeType] = useState<string>(DEFAULT_HIKE_TYPE);
-  const [selectedChips, setSelectedChips] = useState<string[]>([]);
+  // Terrain and conditions, who you hiked with, and gear (shared with the after-Finish sheet).
+  const [details, setDetails] = useState<HikeDetails>({ chips: [], gear: [], companions: [] });
+  useEffect(() => {
+    if (!visible) setDetails({ chips: [], gear: [], companions: [] });
+  }, [visible]);
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -141,8 +147,7 @@ export function PastHikeSheet({
   // The fields are in miles and feet; storage stays in kilometres and metres.
   const distanceKm = distanceText.trim() === '' ? null : milesToKm(Number(distanceText));
   const climbM = climbText.trim() === '' ? null : Math.round(Number(climbText) / 3.28084);
-  const terrain = selectedChips.filter((chip) => TERRAIN.has(chip));
-  const conditions = selectedChips.filter((chip) => !TERRAIN.has(chip));
+  const { terrain, conditions } = splitChips(details.chips);
 
   const addPhoto = () => {
     void ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 }).then(
@@ -502,27 +507,7 @@ export function PastHikeSheet({
                   </View>
                 ) : null}
 
-                <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                    Terrain and conditions
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                    {CHIPS.map((chip) => (
-                      <Chip
-                        key={chip}
-                        label={chip}
-                        on={selectedChips.includes(chip)}
-                        onPress={() =>
-                          setSelectedChips((current) =>
-                            current.includes(chip)
-                              ? current.filter((item) => item !== chip)
-                              : [...current, chip],
-                          )
-                        }
-                      />
-                    ))}
-                  </View>
-                </View>
+                <HikeDetailsFields value={details} onChange={setDetails} />
 
                 {/* Difficulty is asked once, in the ranking sheet that follows (Easy to Very strenuous). */}
                 <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
@@ -612,6 +597,8 @@ export function PastHikeSheet({
                   elevationGainM: climbM != null && Number.isFinite(climbM) ? climbM : null,
                   terrain,
                   conditions,
+                  gear: details.gear,
+                  companions: details.companions,
                   difficulty: null,
                   hikeType: HIKE_TYPES.length === 1 ? HIKE_TYPES[0] : hikeType,
                   photos,
@@ -677,37 +664,5 @@ function PastPhoto({ stored }: { stored: string }) {
       accessibilityLabel="Hike photo"
       style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.raised }}
     />
-  );
-}
-
-function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
-  const c = useColors();
-  return (
-    <Pressable
-      onPress={onPress}
-      style={{
-        height: 32,
-        paddingHorizontal: 13,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: on ? c.fg : c.border,
-        backgroundColor: on ? c.fg : 'transparent',
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 6,
-      }}
-    >
-      {on ? <Check size={13} strokeWidth={3} color={c.onAccent} /> : null}
-      <Text
-        style={{
-          fontSize: 14,
-          color: on ? c.onAccent : c.fg2,
-          fontFamily: on ? fonts.uiSemibold : fonts.ui,
-          fontWeight: 'normal',
-        }}
-      >
-        {label}
-      </Text>
-    </Pressable>
   );
 }

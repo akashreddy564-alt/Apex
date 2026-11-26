@@ -27,6 +27,7 @@ import { LocationExplainer } from '@/components/log/LocationExplainer';
 import { PastHikeSheet } from '@/components/log/PastHikeSheet';
 import { RecordSession } from '@/components/log/RecordSession';
 import { TrailAssignSheet } from '@/components/log/TrailAssignSheet';
+import { HikeDetailsSheet } from '@/components/log/HikeDetailsSheet';
 import { PairwiseModal } from '@/components/ranking/PairwiseModal';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { RankingsList } from '@/components/ranking/RankingsList';
@@ -113,6 +114,16 @@ export default function LogScreen() {
   const [locationDenied, setLocationDenied] = useState(false);
   const comparison = useTrailComparison();
   const [modalOpen, setModalOpen] = useState(false);
+  // A recorded hike gets a details step (terrain, who with, gear) once ranking closes.
+  const detailsPending = useRef<string | null>(null);
+  const [detailsLogId, setDetailsLogId] = useState<string | null>(null);
+  const closeRanking = useCallback(() => {
+    setModalOpen(false);
+    const pending = detailsPending.current;
+    detailsPending.current = null;
+    // Never in the same instant as ranking's dismiss: iOS can leave an invisible layer.
+    if (pending) setTimeout(() => setDetailsLogId(pending), 450);
+  }, []);
   const addTrail = useTrailCache((s) => s.addTrail);
   const [selectedTrailId, setSelectedTrailId] = useState(FREEFORM);
   const [pastTrailId, setPastTrailId] = useState(trails[0]?.id ?? '');
@@ -234,6 +245,7 @@ export default function LogScreen() {
     setRecording(false);
     if (!log) return;
     haptics.success();
+    detailsPending.current = log.id;
     comparison.start(log.trail_id, log.id);
     const fly = shouldFly({
       coords: log.recorded_path?.coordinates,
@@ -332,6 +344,8 @@ export default function LogScreen() {
     elevationGainM: number | null;
     terrain: string[];
     conditions: string[];
+    gear: string[];
+    companions: string[];
     difficulty: string | null;
     hikeType: string | null;
     photos: string[];
@@ -439,8 +453,9 @@ export default function LogScreen() {
       <PairwiseModal
         visible={modalOpen}
         comparison={comparison}
-        onClose={() => setModalOpen(false)}
+        onClose={closeRanking}
       />
+      <HikeDetailsSheet logId={detailsLogId} onClose={() => setDetailsLogId(null)} />
     </>
   );
 
