@@ -80,6 +80,11 @@ export function mapRankedRow(row: Record<string, unknown>): RankedRow | null {
   };
 }
 
+/** "Maya’s", "Desk hikers’". */
+export function possessive(name: string): string {
+  return /s$/i.test(name.trim()) ? `${name.trim()}’` : `${name.trim()}’s`;
+}
+
 /** The top ten and everything after it. */
 export function splitTopTen<T extends { rank: number }>(rows: T[]): { top: T[]; rest: T[] } {
   return { top: rows.filter((r) => r.rank <= TOP_COUNT), rest: rows.filter((r) => r.rank > TOP_COUNT) };

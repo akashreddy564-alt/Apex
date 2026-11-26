@@ -6,6 +6,7 @@ import { Alert, RefreshControl, ScrollView, Share, Text, View } from 'react-nati
 import { GroupMark, groupColor } from '@/components/groups/GroupMark';
 import { Leaderboard, PeriodSwitch } from '@/components/groups/Leaderboard';
 import { BOARD_KINDS, TrailBoard, type BoardKind } from '@/components/groups/TrailBoard';
+import { possessive } from '@/lib/rankListRules';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { Segmented } from '@/components/social/Segmented';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -220,7 +221,7 @@ function GroupPage({ id, fresh }: { id: string; fresh: boolean }) {
       {kind === 'trails' ? (
         <View className="mt-5">
           <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18, marginBottom: 6 }}>
-            {group ? `${group.name}’s top trails` : 'Top trails'}
+            {group ? `${possessive(group.name)} top trails` : 'Top trails'}
           </Text>
           <TrailBoard kind="group" id={id} />
         </View>

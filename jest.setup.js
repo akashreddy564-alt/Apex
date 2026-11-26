@@ -14,3 +14,15 @@ jest.mock('react-native-reanimated', () => {
 // lucide-react-native ships ESM that jest can't parse, and the motion barrel imports it.
 // Trade-off: a misspelled icon name will not fail in jest. Icons render nothing in tests; a test can still mock specific icons itself.
 jest.mock('lucide-react-native', () => new Proxy({ __esModule: true }, { get: (t, k) => (k in t ? t[k] : () => null) }));
+
+// Ranked lists, trail boards and taste match come from the server through TanStack Query.
+// Screens that only show them get empty results; a test can mock '@/hooks/useRankLists' itself.
+jest.mock('@/hooks/useRankLists', () => {
+  const empty = (data) => () => ({ data, loading: false, error: null, refetch: jest.fn() });
+  return {
+    usePersonRankings: empty([]),
+    useTrailBoard: empty([]),
+    useTasteMatch: empty(null),
+    useTastePicks: empty([]),
+  };
+});

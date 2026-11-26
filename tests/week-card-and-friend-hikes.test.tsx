@@ -37,6 +37,24 @@ jest.mock('@/hooks/useFollows', () => ({
   useFollowCounts: () => ({ counts: { followers: 4, following: 2, iFollow: mockIFollow, followsMe: false }, loading: false }),
   useFollowToggle: () => ({ mutate: jest.fn(), isPending: false, variables: undefined }),
 }));
+const mockRankings = jest.fn();
+let mockTaste: { shared: number; agreement: number | null } | null = null;
+jest.mock('@/hooks/useRankLists', () => ({
+  usePersonRankings: (...args: unknown[]) => mockRankings(...args),
+  useTasteMatch: () => ({ data: mockTaste, loading: false, error: null, refetch: jest.fn() }),
+}));
+function rankedRows(count: number) {
+  return Array.from({ length: count }, (_, i) => ({
+    trailId: i === 4 ? null : `t${i + 1}`,
+    name: i === 4 ? 'A private trail' : `Trail ${i + 1}`,
+    region: i === 4 ? '' : 'WA',
+    bucket: 'loved',
+    score: 9.9 - i * 0.1,
+    rank: i + 1,
+    difficulty: null,
+    route: [],
+  }));
+}
 jest.mock('@/components/feed/PostCard', () => {
   const { Text: T } = jest.requireActual('react-native');
   return { PostCard: ({ post }: { post: { trailName: string } }) => <T>{`post:${post.trailName}`}</T> };
@@ -87,13 +105,63 @@ describe('friend page', () => {
       posts: [{ id: 'p1', authorId: 'u2', trailName: 'Lake Serene', isMine: false }],
       loading: false, error: null, hasMore: false, loadingMore: false, loadMore: jest.fn(), refetch: jest.fn(),
     });
+    mockRankings.mockReturnValue({ data: rankedRows(12), loading: false, error: null, refetch: jest.fn() });
+    mockTaste = null;
   });
 
-  it('lists a friend’s hikes', () => {
+  it('opens on their ranked list: the top ten apart, then the rest from #11', () => {
     mockRelation = 'friend';
     let tree!: ReactTestRenderer;
     act(() => {
       tree = create(<FriendScreen />);
+    });
+    const all = texts(tree);
+    expect(mockRankings).toHaveBeenCalledWith('u2', true);
+    expect(all).toContain('Maya’s best trails');
+    expect(all).toContain('The rest of the list');
+    expect(all).toContain('#11');
+    expect(all).toContain('A private trail');
+    expect(all).toContain('Not hiked yet');
+    expect(all).not.toContain('post:Lake Serene');
+  });
+
+  it('leaves out the rest of the list with ten or fewer', () => {
+    mockRelation = 'friend';
+    mockRankings.mockReturnValue({ data: rankedRows(10), loading: false, error: null, refetch: jest.fn() });
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<FriendScreen />);
+    });
+    expect(texts(tree)).toContain('Top 10');
+    expect(texts(tree)).not.toContain('The rest of the list');
+  });
+
+  it('shows how much your taste agrees, or only the shared count below four', () => {
+    mockRelation = 'friend';
+    mockTaste = { shared: 9, agreement: 82 };
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<FriendScreen />);
+    });
+    expect(texts(tree)).toContain('82%');
+    expect(texts(tree)).toContain('9 trails in common');
+    mockTaste = { shared: 3, agreement: null };
+    act(() => {
+      tree.update(<FriendScreen />);
+    });
+    expect(texts(tree)).not.toContain('%');
+    expect(texts(tree)).toContain('3 trails in common');
+  });
+
+  it('lists a friend’s hikes on the Hikes tab', () => {
+    mockRelation = 'friend';
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<FriendScreen />);
+    });
+    const hikesTab = tree.root.find((n) => n.props.accessibilityRole === 'tab' && texts({ root: n } as unknown as ReactTestRenderer) === 'Hikes');
+    act(() => {
+      hikesTab.props.onPress();
     });
     expect(texts(tree)).toContain('post:Lake Serene');
     expect(mockPersonPosts).toHaveBeenCalledWith('u2', true);

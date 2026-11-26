@@ -5,6 +5,7 @@ import { Alert, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { Leaderboard, PeriodSwitch } from '@/components/groups/Leaderboard';
 import { BOARD_KINDS, TrailBoard, type BoardKind } from '@/components/groups/TrailBoard';
+import { possessive } from '@/lib/rankListRules';
 import { haptics, Skeleton } from '@/components/motion';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { Segmented } from '@/components/social/Segmented';
@@ -94,7 +95,7 @@ function OrgPage({ id }: { id: string }) {
       {kind === 'trails' ? (
         <View className="mt-5">
           <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18, marginBottom: 6 }}>
-            {org ? `${org.name}’s top trails` : 'Top trails'}
+            {org ? `${possessive(org.name)} top trails` : 'Top trails'}
           </Text>
           <TrailBoard kind="org" id={id} />
         </View>

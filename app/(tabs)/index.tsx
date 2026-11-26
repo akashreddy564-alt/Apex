@@ -11,6 +11,7 @@ import { PostCard } from '@/components/feed/PostCard';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
 import { NearbyTrails } from '@/components/home/NearbyTrails';
 import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
+import { TastePicks } from '@/components/home/TastePicks';
 import { TopTrails } from '@/components/home/TopTrails';
 import { WeekHero } from '@/components/home/WeekHero';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
@@ -222,6 +223,7 @@ function Feed() {
               onMore={(post) => safety({ person: post.authorId, name: post.displayName, post: post.id })}
             />
           </Animated.View>
+          {index === Math.min(2, posts.length - 1) ? <TastePicks /> : null}
         </View>
       )}
       ItemSeparatorComponent={() => <View className="mx-4 h-px bg-raised" />}

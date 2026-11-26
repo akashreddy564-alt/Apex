@@ -15,6 +15,7 @@ import { ElevationScrubber } from '@/components/craft/ElevationScrubber';
 import { RouteTracer } from '@/components/craft/RouteTracer';
 import { Eyebrow, PressScale, SlideToStart } from '@/components/motion';
 import { TrailConditions } from '@/components/trail/TrailConditions';
+import { TrailTasteLine } from '@/components/home/TastePicks';
 import { TrailRankings } from '@/components/trail/TrailRankings';
 import { TrailStats } from '@/components/trail/TrailStats';
 import { TrailHero, heroHeight } from '@/components/trail/TrailHero';
@@ -263,6 +264,7 @@ export default function TrailDetailScreen() {
             )}
           </View>
 
+          <TrailTasteLine trailId={trail.id} />
           <TrailRankings trailId={trail.id} />
           <TrailConditions trailId={trail.id} />
 

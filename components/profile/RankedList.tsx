@@ -10,7 +10,7 @@ import { useColors } from '@/hooks/useColors';
 import { myRankOf } from '@/lib/listPlace';
 import type { MyRankedTrail } from '@/lib/postRules';
 import { formatRankScore, type Bucket } from '@/lib/ranking';
-import { splitTopTen, type RankedRow } from '@/lib/rankListRules';
+import { possessive, splitTopTen, type RankedRow } from '@/lib/rankListRules';
 import { cardStyle, fonts, numericStyle } from '@/theme/tokens';
 
 const THUMB = 56;
@@ -74,7 +74,7 @@ export function RankedList({
     for (const row of rows) sizes[row.bucket] += 1;
     return sizes;
   }, [rows]);
-  const owner = self ? 'Your' : `${firstName}’s`;
+  const owner = self ? 'Your' : possessive(firstName);
 
   return (
     <View className="self-stretch">

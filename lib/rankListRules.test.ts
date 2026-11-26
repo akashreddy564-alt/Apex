@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { mapBoardTrail, mapRankedRow, mapTasteMatch, mapTastePick, PRIVATE_TRAIL, splitTopTen } from './rankListRules.ts';
+import { mapBoardTrail, mapRankedRow, mapTasteMatch, mapTastePick, possessive, PRIVATE_TRAIL, splitTopTen } from './rankListRules.ts';
 
 describe('mapRankedRow', () => {
   const row = {
@@ -27,6 +27,14 @@ describe('mapRankedRow', () => {
   it('drops rows without a rank or with an unknown bucket', () => {
     assert.equal(mapRankedRow({ ...row, list_rank: null }), null);
     assert.equal(mapRankedRow({ ...row, bucket: 'meh' }), null);
+  });
+});
+
+describe('possessive', () => {
+  it('adds ’s, or just ’ after a final s', () => {
+    assert.equal(possessive('Maya'), 'Maya’s');
+    assert.equal(possessive('Desk hikers'), 'Desk hikers’');
+    assert.equal(possessive('UW Trail Runners'), 'UW Trail Runners’');
   });
 });
 

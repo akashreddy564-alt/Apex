@@ -63,6 +63,14 @@ function texts(tree: ReactTestRenderer): string {
     .join(' | ');
 }
 
+/** Boards open on Top trails; the climb board is one tap away. */
+function showClimb(tree: ReactTestRenderer) {
+  const tab = tree.root.find(
+    (n) => n.props.accessibilityRole === 'tab' && n.findAll((t) => t.type === 'Text' && t.props.children === 'Climb').length > 0,
+  );
+  act(() => tab.props.onPress());
+}
+
 function input(tree: ReactTestRenderer, label: string) {
   return tree.root.find((n) => n.props.accessibilityLabel === label && n.props.onChangeText);
 }
@@ -80,6 +88,8 @@ describe('friends board', () => {
     act(() => {
       tree = create(<FriendsBoard />);
     });
+    expect(texts(tree)).toContain('Your friends’ top trails');
+    showClimb(tree);
     expect(texts(tree)).toContain('Who climbed the most this week');
     const maya = tree.root.find((n) => n.props.accessibilityLabel === '1. Maya, 5,906 ft' && n.props.onPress);
     act(() => maya.props.onPress());
@@ -92,6 +102,7 @@ describe('friends board', () => {
     act(() => {
       tree = create(<FriendsBoard />);
     });
+    showClimb(tree);
     expect(texts(tree)).toContain('Add friends and their recorded climbs show up here');
   });
 });
@@ -167,6 +178,9 @@ describe('schools and companies', () => {
     act(() => {
       tree = create(<OrgScreen />);
     });
+    expect(texts(tree)).toContain('University of Washington’s top trails');
+    expect(texts(tree)).toContain('three other members');
+    showClimb(tree);
     const all = texts(tree);
     expect(all).toContain('School · verified @uw.edu · 2 people');
     expect(all).toContain('Climbed this week');
