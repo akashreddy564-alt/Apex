@@ -12,6 +12,7 @@ import {
   Text,
   View,
   useWindowDimensions,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { onlineManager } from '@tanstack/react-query';
@@ -501,6 +502,24 @@ export default function LogScreen() {
           onFinish={() => {
             tracker.dismissRecovery();
             setFinishOpen(true);
+          }}
+          onDiscard={() => {
+            // Started by mistake: throw it away without saving or ranking.
+            const go = () => {
+              setFinishOpen(false);
+              usePendingStart.setState({ pending: null });
+              tracker.dismissRecovery();
+              tracker.discard();
+              haptics.tapMedium();
+            };
+            if (Platform.OS === 'web') {
+              if (window.confirm('Discard this hike? Nothing is saved.')) go();
+              return;
+            }
+            Alert.alert('Discard this hike?', 'Nothing is saved, and it won’t be ranked.', [
+              { text: 'Keep recording', style: 'cancel' },
+              { text: 'Discard', style: 'destructive', onPress: go },
+            ]);
           }}
         />
         </View>
