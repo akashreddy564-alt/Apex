@@ -98,6 +98,8 @@ from (values
                                            and to_regprocedure('public.group_trail_board(uuid)') is not null
                                            and to_regprocedure('public.taste_picks(integer)') is not null
                                            and position('list_rank' in pg_get_function_result('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) > 0),
-  (34, '030 school under @username',      to_regprocedure('public.person_orgs(uuid)') is not null)
+  (34, '030 school under @username',      to_regprocedure('public.person_orgs(uuid)') is not null),
+  (35, '031 monthly challenges',          to_regclass('public.challenge_entries') is not null
+                                           and to_regprocedure('public.challenge_board(text, text)') is not null)
 ) as checks (n, step, ok)
 order by n;

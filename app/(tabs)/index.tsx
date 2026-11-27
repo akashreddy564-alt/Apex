@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
+import { ChallengesCard } from '@/components/home/ChallengesCard';
 import { NearbyTrails } from '@/components/home/NearbyTrails';
 import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
 import { TastePicks } from '@/components/home/TastePicks';
@@ -233,6 +234,7 @@ function Feed() {
           <Header />
           <WeekHero />
           <StartHikeCard />
+          <ChallengesCard />
           <TopTrails />
           <View className="px-4">
             <NotificationAsk />
@@ -294,6 +296,7 @@ export default function HomeScreen() {
       <Header />
       <WeekHero />
       <StartHikeCard />
+      <ChallengesCard />
       <TopTrails />
       <NearbyTrails />
       <SignInStrip />
