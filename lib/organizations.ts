@@ -72,3 +72,14 @@ export async function leaveOrganization(orgId: string): Promise<void> {
   const { error } = await client().rpc('leave_organization', { o: orgId });
   if (error) throw apiError(error);
 }
+
+/** A person's verified school or company names. Yourself and friends only (030); empty otherwise. */
+export async function fetchPersonOrgs(person: string): Promise<string[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.rpc('person_orgs', { person });
+  // Before 030 runs, or offline: no label rather than an error.
+  if (error) return [];
+  return ((data ?? []) as { name?: unknown }[])
+    .map((row) => (typeof row.name === 'string' ? row.name.trim() : ''))
+    .filter((name) => name.length > 0);
+}

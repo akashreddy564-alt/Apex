@@ -97,6 +97,7 @@ from (values
                                            and to_regprocedure('public.person_rankings(uuid)') is not null
                                            and to_regprocedure('public.group_trail_board(uuid)') is not null
                                            and to_regprocedure('public.taste_picks(integer)') is not null
-                                           and position('list_rank' in pg_get_function_result('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) > 0)
+                                           and position('list_rank' in pg_get_function_result('public.feed_posts(timestamptz, integer, uuid)'::regprocedure)) > 0),
+  (34, '030 school under @username',      to_regprocedure('public.person_orgs(uuid)') is not null)
 ) as checks (n, step, ok)
 order by n;

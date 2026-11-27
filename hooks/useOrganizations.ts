@@ -7,6 +7,7 @@ import {
   createOrganization,
   fetchMyOrganizations,
   fetchOrgBoard,
+  fetchPersonOrgs,
   leaveOrganization,
   requestOrgCode,
   type OrgKind,
@@ -54,6 +55,7 @@ export function useOrgActions() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['organizations'] }),
       queryClient.invalidateQueries({ queryKey: ['orgBoard'] }),
+      queryClient.invalidateQueries({ queryKey: ['personOrgs'] }),
     ]);
   };
   const send = useMutation({ mutationFn: requestOrgCode });
@@ -78,4 +80,17 @@ export function useOrgActions() {
     leave: (orgId: string) => leave.mutateAsync(orgId),
     leaving: leave.isPending,
   };
+}
+
+/** A person's verified school or company names, for the line under their @username. */
+export function usePersonOrgs(personId: string | null | undefined): string[] {
+  const { session } = useAuth();
+  const uid = session?.user.id ?? null;
+  const query = useQuery({
+    queryKey: ['personOrgs', uid, personId],
+    queryFn: () => fetchPersonOrgs(personId!),
+    enabled: uid !== null && Boolean(personId),
+    staleTime: 10 * 60 * 1000,
+  });
+  return query.data ?? [];
 }
