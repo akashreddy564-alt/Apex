@@ -52,5 +52,15 @@ export function weekCard(
 
 /** The best `n` rankings by score, best first. */
 export function topTrails<T extends { trail_id: string; score: number; position: string }>(rankings: T[], n = 3): T[] {
-  return overallByScore(rankings).slice(0, n);
+  return uniqueByTrail(overallByScore(rankings)).slice(0, n);
+}
+
+/**
+ * One row per trail, keeping the first (best placed). A trail can be ranked
+ * twice on a phone (a row saved before sign-in and the synced one), and two
+ * rows with one trail would also share a list key.
+ */
+export function uniqueByTrail<T extends { trail_id: string }>(rows: readonly T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((row) => (seen.has(row.trail_id) ? false : (seen.add(row.trail_id), true)));
 }

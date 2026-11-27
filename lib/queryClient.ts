@@ -156,7 +156,8 @@ export const persistOptions: Omit<PersistQueryClientOptions, 'queryClient'> = {
   persister,
   maxAge: 7 * DAY_MS,
   // Bump when a cached shape changes, so old caches are dropped instead of misread.
-  buster: 'apex-1',
+  // apex-2: the First Ascent roster is a plain object now (a saved Map read back as {}).
+  buster: 'apex-2',
   dehydrateOptions: {
     shouldDehydrateQuery: (query) => query.state.status === 'success' && !EPHEMERAL.has(String(query.queryKey[0])),
     // Paused (queued) writes are kept by default; that's the offline queue.

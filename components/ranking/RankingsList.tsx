@@ -201,7 +201,11 @@ export function RankingsList({ onOpenTrail }: RankingsListProps) {
 
   const placed: Placed[] = useMemo(() => {
     let rank = 0;
-    return sections.flatMap((section) => section.entries.map((entry) => ({ entry, section, rank: ++rank })));
+    const seen = new Set<string>();
+    // One row per trail (a trail ranked both before and after sign-in shows once).
+    return sections.flatMap((section) =>
+      section.entries.filter((e) => (seen.has(e.trail.id) ? false : (seen.add(e.trail.id), true))).map((entry) => ({ entry, section, rank: ++rank })),
+    );
   }, [sections]);
 
   // Neighbours by the overall order: "Above X, below Y".

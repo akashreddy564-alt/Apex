@@ -84,3 +84,12 @@ test('topTrails takes a count', () => {
   const rows = [rank('a', 9, 'a0'), rank('b', 8, 'a1'), rank('c', 7, 'a2')];
   assert.equal(topTrails(rows, 2).length, 2);
 });
+
+test('topTrails shows each trail once even when it is ranked twice', () => {
+  const rows = [
+    { trail_id: 'a', score: 9, position: 'a0', bucket: 'loved' as const },
+    { trail_id: 'a', score: 9, position: 'a0', bucket: 'loved' as const },
+    { trail_id: 'b', score: 8, position: 'a1', bucket: 'loved' as const },
+  ];
+  assert.deepEqual(topTrails(rows as never[], 3).map((r: { trail_id: string }) => r.trail_id), ['a', 'b']);
+});
