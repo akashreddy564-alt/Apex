@@ -38,7 +38,8 @@ function WeekRing(props: WeekWidgetProps, environment: WidgetEnvironment) {
         min={0}
         max={1}
         currentValueLabel={<Text modifiers={[font({ size: 13, weight: 'semibold' }), monospacedDigit()]}>{done}</Text>}
-        modifiers={[gaugeStyle('circularCapacity'), widgetURL('apex://goal')]}
+        // Lock Screen widgets still need a container background on iOS 17+, or iOS shows a placeholder.
+        modifiers={[gaugeStyle('circularCapacity'), containerBackground('clear', 'widget'), widgetURL('apex://goal')]}
       >
         <Text>{props.unit}</Text>
       </Gauge>
