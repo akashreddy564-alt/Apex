@@ -104,6 +104,12 @@
         {
           "color": "#09090B"
         }
+      ],
+      [
+        "expo-widgets",
+        {
+          "frequentUpdates": true
+        }
       ]
     ],
     "experiments": {

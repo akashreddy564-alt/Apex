@@ -9,10 +9,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PostCard } from '@/components/feed/PostCard';
 import { NotificationAsk } from '@/components/habit/NotificationAsk';
+import { ChallengesCard } from '@/components/home/ChallengesCard';
 import { NearbyTrails } from '@/components/home/NearbyTrails';
 import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
 import { TastePicks } from '@/components/home/TastePicks';
 import { TopTrails } from '@/components/home/TopTrails';
+import { TrailIqCard } from '@/components/home/TrailIqCard';
 import { WeekHero } from '@/components/home/WeekHero';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
@@ -233,7 +235,9 @@ function Feed() {
           <Header />
           <WeekHero />
           <StartHikeCard />
+          <ChallengesCard />
           <TopTrails />
+          <TrailIqCard />
           <View className="px-4">
             <NotificationAsk />
           </View>
@@ -294,7 +298,9 @@ export default function HomeScreen() {
       <Header />
       <WeekHero />
       <StartHikeCard />
+      <ChallengesCard />
       <TopTrails />
+      <TrailIqCard />
       <NearbyTrails />
       <SignInStrip />
     </ScrollView>
