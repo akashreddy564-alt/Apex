@@ -1,9 +1,11 @@
-import { Undo2, X } from 'lucide-react-native';
+import { Frown, Heart, Meh, Undo2, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ContourLoader, haptics } from '@/components/motion';
+import { ContourLoader, haptics, PressScale } from '@/components/motion';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { withAlpha } from '@/theme/color';
 import { useColors } from '@/hooks/useColors';
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
 import { ElevationStrip, RouteThumb } from '@/components/ranking/RouteFigure';
@@ -17,7 +19,7 @@ import {
   toFeet,
   toMiles,
 } from '@/lib/format';
-import { BUCKET_BANDS, BUCKETS, DEFAULT_HIKE_TYPE } from '@/lib/ranking';
+import { BUCKET_BANDS, BUCKETS } from '@/lib/ranking';
 import { yourTrailStats } from '@/lib/yourTrailStats';
 import { DIFFICULTY_LABELS } from '@/lib/difficulty';
 import { resolveRoute, routeSourceLabel } from '@/lib/routeSource';
@@ -195,6 +197,7 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
   const insets = useSafeAreaInsets();
   const {
     phase,
+    trailId,
     bucket,
     round,
     preview,
@@ -242,11 +245,12 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
     choose(choice);
   };
 
-  const typeName = DEFAULT_HIKE_TYPE === 'hike' ? 'Hike' : DEFAULT_HIKE_TYPE;
-  const chip = bucket ? `${typeName} · ${BUCKET_BANDS[bucket].label}` : 'Compare';
+  const trailName = useTrailCache((s) => s.trails.find((t) => t.id === trailId)?.name ?? 'this hike');
+  // Leaving the result screen keeps the ranking; anywhere earlier, nothing is saved.
+  const close = phase === 'preview' && preview ? confirmPlace : discard;
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={discard}>
+    <Modal visible={visible} animationType="fade" transparent onRequestClose={close}>
       <View style={{ flex: 1, backgroundColor: c.bg, paddingTop: insets.top + 6 }}>
         {phase === 'preview' && preview ? (
           <View style={{ flex: 1, paddingHorizontal: 16, paddingBottom: insets.bottom + 16 }}>
@@ -256,8 +260,9 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
               score={preview.score}
               count={preview.count}
               bucket={preview.bucket}
-              onUndo={undo}
-              onPlace={confirmPlace}
+              trailName={trailName}
+              onBack={undo}
+              onDone={confirmPlace}
             />
           </View>
         ) : phase === 'bucket' ? (
@@ -280,27 +285,64 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                 <X size={18} strokeWidth={1.75} color={c.fgMuted} />
               </Pressable>
             </View>
-            <Text
-              style={{
-                color: c.fg,
-                fontFamily: fonts.displayExtraBold,
-                fontWeight: 'normal',
-                fontSize: 30,
-                lineHeight: 32,
-              }}
+            <Animated.Text
+              entering={FadeIn.duration(260)}
+              accessibilityRole="header"
+              style={{ color: c.fg, fontFamily: fonts.displayExtraBold, fontWeight: 'normal', fontSize: 30, lineHeight: 34 }}
             >
-              How was it?
+              How was {trailName}?
+            </Animated.Text>
+            <View style={{ marginTop: 20, gap: 10 }}>
+              {BUCKETS.map((item, index) => {
+                const tone = c[item];
+                const Icon = item === 'loved' ? Heart : item === 'fine' ? Meh : Frown;
+                return (
+                  <Animated.View key={item} entering={FadeInDown.delay(60 + index * 60).duration(320)}>
+                    <PressScale
+                      to={0.97}
+                      haptic={false}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${BUCKET_BANDS[item].label}, ${BUCKET_BANDS[item].lo.toFixed(0)} to ${Math.round(BUCKET_BANDS[item].hi)}`}
+                      onPress={() => {
+                        haptics.select();
+                        pickBucket(item);
+                      }}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 14,
+                        borderRadius: 20,
+                        borderWidth: 1.5,
+                        borderColor: withAlpha(tone, 0.45),
+                        backgroundColor: withAlpha(tone, 0.1),
+                        paddingHorizontal: 18,
+                        minHeight: 76,
+                      }}
+                    >
+                      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: withAlpha(tone, 0.2), alignItems: 'center', justifyContent: 'center' }}>
+                        <Icon size={22} strokeWidth={2} color={tone} fill={item === 'loved' ? tone : 'none'} />
+                      </View>
+                      <Text style={{ flex: 1, fontSize: 19, color: c.fg, fontFamily: fonts.uiSemibold }}>{BUCKET_BANDS[item].label}</Text>
+                      <Text style={{ fontSize: 13, color: tone, ...numericStyle('medium') }}>
+                        {BUCKET_BANDS[item].lo.toFixed(0)}–{Math.round(BUCKET_BANDS[item].hi)}
+                      </Text>
+                    </PressScale>
+                  </Animated.View>
+                );
+              })}
+            </View>
+            <Text style={{ marginTop: 26, color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 }}>
+              HOW HARD WAS IT? · OPTIONAL
             </Text>
-            <Text style={{ marginTop: 18, color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 }}>
-              HOW HARD WAS IT? (OPTIONAL)
-            </Text>
-            <View style={{ marginTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            <View style={{ marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {DIFFICULTY_LABELS.map((label, index) => {
                 const value = index + 1;
                 const on = difficulty === value;
                 return (
-                  <Pressable
+                  <PressScale
                     key={label}
+                    to={0.94}
+                    haptic={false}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: on }}
                     accessibilityLabel={`Difficulty: ${label}`}
@@ -308,55 +350,20 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
                       haptics.select();
                       setDifficulty(on ? null : value);
                     }}
-                  >
-                    <View
-                      style={{
-                        borderRadius: 999,
-                        borderWidth: 1,
-                        borderColor: on ? c.fg : c.raised,
-                        backgroundColor: on ? c.fg : c.surface,
-                        paddingHorizontal: 12,
-                        paddingVertical: 7,
-                      }}
-                    >
-                      <Text style={{ color: on ? c.bg : c.fg2, fontFamily: fonts.uiMedium, fontSize: 13 }}>{label}</Text>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
-            <View style={{ marginTop: 18, gap: 10 }}>
-              {BUCKETS.map((item) => (
-                <Pressable
-                  key={item}
-                  onPress={() => {
-                    haptics.select();
-                    pickBucket(item);
-                  }}
-                  style={{
-                    borderRadius: 18,
-                    borderWidth: 1,
-                    borderColor: c.raised,
-                    backgroundColor: c.surface,
-                    paddingHorizontal: 16,
-                    paddingVertical: 16,
-                  }}
-                >
-                  <Text
                     style={{
-                      fontSize: 17,
-                      color: c.fg,
-                      fontFamily: fonts.uiSemibold,
-                      fontWeight: 'normal',
+                      borderRadius: 999,
+                      borderWidth: 1,
+                      borderColor: on ? c.fg : c.raised,
+                      backgroundColor: on ? c.fg : c.surface,
+                      paddingHorizontal: 14,
+                      minHeight: 38,
+                      justifyContent: 'center',
                     }}
                   >
-                    {BUCKET_BANDS[item].label}
-                  </Text>
-                  <Text style={{ marginTop: 4, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                    {BUCKET_BANDS[item].lo.toFixed(1)}–{BUCKET_BANDS[item].hi.toFixed(1)}
-                  </Text>
-                </Pressable>
-              ))}
+                    <Text style={{ color: on ? c.bg : c.fg2, fontFamily: fonts.uiMedium, fontSize: 13 }}>{label}</Text>
+                  </PressScale>
+                );
+              })}
             </View>
           </View>
         ) : round ? (
@@ -378,31 +385,27 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
               >
                 <X size={18} strokeWidth={1.75} color={c.fgMuted} />
               </Pressable>
-              <View
+              <Progress step={progress?.step ?? 1} estimate={progress?.estimate ?? 1} tone={bucket ? c[bucket] : c.fg} />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Undo last pick"
+                onPress={undo}
+                disabled={!canUndo}
+                hitSlop={6}
                 style={{
-                  height: 30,
-                  paddingHorizontal: 12,
-                  borderRadius: 15,
+                  width: 40,
+                  height: 40,
+                  borderRadius: 14,
                   backgroundColor: c.surface,
                   borderWidth: 1,
-                  borderColor: c.border,
+                  borderColor: c.raised,
                   alignItems: 'center',
                   justifyContent: 'center',
+                  opacity: canUndo ? 1 : 0.4,
                 }}
               >
-                <Text style={{ fontSize: 13, color: c.fg2, fontFamily: fonts.ui }}>{chip}</Text>
-              </View>
-              <Text
-                style={{
-                  width: 56,
-                  textAlign: 'right',
-                  fontSize: 13,
-                  color: c.fgMuted,
-                  ...numericStyle(),
-                }}
-              >
-                {progress ? `${progress.step} of ~${progress.estimate}` : ''}
-              </Text>
+                <Undo2 size={17} strokeWidth={2} color={c.fgMuted} />
+              </Pressable>
             </View>
             <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: insets.bottom + 16 }}>
               <Text
@@ -418,41 +421,23 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
               >
                 Which hike was better?
               </Text>
-              <View style={{ marginTop: 16, gap: 12 }}>
+              <Animated.View key={round.opponent.id} entering={FadeIn.duration(220)} style={{ marginTop: 16 }}>
                 <HikePanel trail={round.challenger} onPress={() => pick('challenger')} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 8, paddingHorizontal: 8 }}>
+                  <View style={{ flex: 1, height: 1, backgroundColor: c.raised }} />
+                  <Text style={{ color: c.fgFaint, fontFamily: fonts.mono, fontSize: 11, letterSpacing: 1.2 }}>OR</Text>
+                  <View style={{ flex: 1, height: 1, backgroundColor: c.raised }} />
+                </View>
                 <HikePanel trail={round.opponent} onPress={() => pick('opponent')} />
-              </View>
-              <View style={{ marginTop: 16, flexDirection: 'row', gap: 8 }}>
-                <Pressable
-                  onPress={undo}
-                  disabled={!canUndo}
-                  style={actionStyle(c)}
-                >
-                  <Undo2 size={16} strokeWidth={2} color={canUndo ? c.fgMuted : c.fgFaint} />
-                  <Text style={{ fontSize: 14, color: canUndo ? c.fg2 : c.fgFaint, fontFamily: fonts.uiMedium }}>
-                    Undo
-                  </Text>
+              </Animated.View>
+              <View style={{ marginTop: 18, flexDirection: 'row', justifyContent: 'center', gap: 28 }}>
+                <Pressable accessibilityRole="button" onPress={() => pick('too_close')} hitSlop={8} style={{ minHeight: 40, justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 14, color: c.fgMuted, fontFamily: fonts.uiMedium }}>Too close to call</Text>
                 </Pressable>
-                <Pressable onPress={() => pick('too_close')} style={[actionStyle(c), { flex: 1.6 }]}>
-                  <Text style={{ fontSize: 14, color: c.fg2, fontFamily: fonts.uiMedium }}>
-                    Too close to call
-                  </Text>
-                </Pressable>
-                <Pressable onPress={() => pick('skip')} style={actionStyle(c)}>
-                  <Text style={{ fontSize: 14, color: c.fg2, fontFamily: fonts.uiMedium }}>Skip</Text>
+                <Pressable accessibilityRole="button" onPress={() => pick('skip')} hitSlop={8} style={{ minHeight: 40, justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 14, color: c.fgMuted, fontFamily: fonts.uiMedium }}>Skip</Text>
                 </Pressable>
               </View>
-              <Text
-                style={{
-                  marginTop: 14,
-                  textAlign: 'center',
-                  fontSize: 13,
-                  color: c.fgMuted,
-                  fontFamily: fonts.ui,
-                }}
-              >
-                Tap the better hike
-              </Text>
             </ScrollView>
           </View>
         ) : (
@@ -474,6 +459,31 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
 }
 
 export const LOADER_TIMEOUT_MS = 3000;
+
+/** How far through the picks you are: one segment per expected pick, filled up to this one. */
+function Progress({ step, estimate, tone }: { step: number; estimate: number; tone: string }) {
+  const c = useColors();
+  const total = Math.max(1, Math.min(8, estimate));
+  return (
+    <View
+      accessibilityLabel={`Pick ${step} of about ${estimate}`}
+      style={{ flex: 1, flexDirection: 'row', gap: 4, marginHorizontal: 14 }}
+    >
+      {Array.from({ length: total }, (_, i) => (
+        <Segment key={i} on={i < step} tone={tone} track={c.raised} />
+      ))}
+    </View>
+  );
+}
+
+function Segment({ on, tone, track }: { on: boolean; tone: string; track: string }) {
+  const fill = useAnimatedStyle(() => ({ transform: [{ scaleX: withTiming(on ? 1 : 0, { duration: 320 }) }] }));
+  return (
+    <View style={{ flex: 1, height: 4, borderRadius: 2, backgroundColor: track, overflow: 'hidden' }}>
+      <Animated.View style={[{ height: 4, borderRadius: 2, backgroundColor: tone, transformOrigin: 'left' }, fill]} />
+    </View>
+  );
+}
 
 const actionStyle = (c: Palette) => ({
   flex: 1,
