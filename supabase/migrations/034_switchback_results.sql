@@ -11,10 +11,29 @@ create table if not exists public.switchback_results (
   seconds integer not null check (seconds between 1 and 36000),
   size smallint not null check (size between 4 and 9),
   created_at timestamptz not null default now(),
-  primary key (user_id, puzzle_date),
-  -- A day's result only around that day (time zones), not backfilled or from the future.
-  check (puzzle_date between (created_at at time zone 'utc')::date - 2 and (created_at at time zone 'utc')::date + 2)
+  primary key (user_id, puzzle_date)
 );
+
+-- The server sets the time, and a result is only accepted for a day close
+-- to now (time zones), so nobody backfills or posts ahead. Times themselves
+-- are reported by the phone: fine for a friendly board, not a prize.
+create or replace function public.switchback_results_stamp()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.created_at := now();
+  if new.puzzle_date not between (now() at time zone 'utc')::date - 1 and (now() at time zone 'utc')::date + 1 then
+    raise exception 'switchback result must be for today';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists switchback_results_stamp on public.switchback_results;
+create trigger switchback_results_stamp
+  before insert or update on public.switchback_results
+  for each row execute function public.switchback_results_stamp();
 
 create index if not exists switchback_results_day on public.switchback_results (puzzle_date, seconds);
 
@@ -32,7 +51,9 @@ drop policy if exists "switchback_delete_own" on public.switchback_results;
 create policy "switchback_delete_own" on public.switchback_results for delete to authenticated
   using (user_id = auth.uid());
 
-grant select, insert, delete on public.switchback_results to authenticated;
+grant select, delete on public.switchback_results to authenticated;
+-- Only these columns come from the phone; created_at is the server's.
+grant insert (user_id, puzzle_date, seconds, size) on public.switchback_results to authenticated;
 
 -- Today's shared results from people you see (and yours), fastest first, with names for the card.
 create or replace function public.switchback_day(day date)
