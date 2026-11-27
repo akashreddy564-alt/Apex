@@ -1,9 +1,10 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { ChevronRight } from 'lucide-react-native';
-import { useCallback, useMemo, useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react-native';
+import Animated, { LinearTransition, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
-import { GrowBar } from '@/components/motion';
+import { GrowBar, haptics } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useMyChallenges } from '@/hooks/useChallenges';
 import {
@@ -35,14 +36,54 @@ export function ChallengesCard() {
   const left = daysLeft(challenges[0]!, now);
 
   const label = { color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 } as const;
+  const [open, setOpen] = useState(false);
+  const turn = useSharedValue(0);
+  useEffect(() => {
+    turn.value = withTiming(open ? 1 : 0, { duration: 220 });
+  }, [open, turn]);
+  const chevron = useAnimatedStyle(() => ({ transform: [{ rotate: `${turn.value * 180}deg` }] }));
+
+  const joinedCount = challenges.filter((ch) => joined.has(ch.key)).length;
+  // Overall progress across the month's challenges, for the folded row's little bar.
+  const overall =
+    challenges.reduce((sum, ch) => sum + Math.min(1, challengeFraction(ch, challengeAmount(ch, logs))), 0) / Math.max(1, challenges.length);
 
   return (
-    <View style={[cardStyle(c), { marginHorizontal: 16, marginTop: 14 }]} accessibilityLabel={`${challenges[0]!.month} challenges`}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        <Text style={[label, { flex: 1 }]}>{challenges[0]!.month.toUpperCase()} CHALLENGES</Text>
-        <Text style={label}>{left === 1 ? 'LAST DAY' : `${left} DAYS LEFT`}</Text>
-      </View>
-      {challenges.map((challenge, index) => {
+    <Animated.View
+      layout={LinearTransition.duration(240)}
+      style={[cardStyle(c), { marginHorizontal: 16, marginTop: 12, paddingVertical: 12 }]}
+      accessibilityLabel={`${challenges[0]!.month} challenges`}
+    >
+      {/* Folded by default: one row, so the feed below stays in view. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        accessibilityLabel={`${challenges[0]!.month} challenges, ${joinedCount} of ${challenges.length} joined`}
+        accessibilityHint={open ? 'Folds the challenges' : 'Shows the challenges'}
+        onPress={() => {
+          haptics.select();
+          setOpen((o) => !o);
+        }}
+        hitSlop={6}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 32 }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={label}>{challenges[0]!.month.toUpperCase()} CHALLENGES</Text>
+          <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 14, marginTop: 3 }}>
+            {joinedCount > 0 ? `${joinedCount} of ${challenges.length} joined` : `${challenges.length} to join`}
+            <Text style={{ color: c.fgMuted, fontFamily: fonts.ui }}>{` · ${left === 1 ? 'last day' : `${left} days left`}`}</Text>
+          </Text>
+        </View>
+        {!open ? (
+          <View style={{ width: 54 }}>
+            <GrowBar fraction={overall} color={c.climb} track={c.raised} index={0} />
+          </View>
+        ) : null}
+        <Animated.View style={chevron}>
+          <ChevronDown size={18} strokeWidth={1.8} color={c.fgMuted} />
+        </Animated.View>
+      </Pressable>
+      {open ? challenges.map((challenge, index) => {
         const amount = challengeAmount(challenge, logs);
         const fraction = challengeFraction(challenge, amount);
         const done = fraction >= 1;
@@ -80,7 +121,7 @@ export function ChallengesCard() {
             </View>
           </Pressable>
         );
-      })}
-    </View>
+      }) : null}
+    </Animated.View>
   );
 }

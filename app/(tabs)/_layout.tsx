@@ -2,14 +2,19 @@ import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation
 import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
 import { Tabs } from 'expo-router';
 import { CircleUser, Footprints, House, Users } from 'lucide-react-native';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
+import { useEffect } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptics } from '@/components/motion';
 import { TabBarGlass } from '@/components/motion/TabBarGlass';
 import { TabIcon } from '@/components/TabIcon';
 import { useColors } from '@/hooks/useColors';
+import { NativeTabsContext } from '@/hooks/useTabBarInset';
 import { useTourTarget } from '@/hooks/useTourTarget';
+import { useSettings } from '@/stores/settingsStore';
+import { useTour } from '@/stores/tourStore';
 import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
 
 /** Fills the tab slot. minHeight is the touch target; icon and label styles stay put. */
@@ -27,7 +32,7 @@ function SocialTabButton(props: BottomTabBarButtonProps) {
   );
 }
 
-export default function TabsLayout() {
+function JsTabsLayout() {
   const c = useColors();
   const insets = useSafeAreaInsets();
   return (
@@ -90,6 +95,56 @@ export default function TabsLayout() {
       />
     </Tabs>
   );
+}
+
+/**
+ * iOS: the system tab bar, which on iOS 26 is Liquid Glass, with the pill
+ * that slides between tabs and shrinks as you scroll. Screens keep their own
+ * bottom padding (automatic insets off), sized by useTabBarInset.
+ */
+function NativeTabsLayout() {
+  const c = useColors();
+  const appearance = useSettings((s) => s.appearance);
+  const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  // The native bar can't be measured from JS; tell the Home tour roughly where Social sits.
+  useEffect(() => {
+    const item = (width - 40) / 4;
+    useTour.getState().setRect('social', { x: 20 + item, y: height - insets.bottom - 58, width: item, height: 50 });
+  }, [height, insets.bottom, width]);
+  return (
+    <NativeTabsContext.Provider value>
+      <NativeTabs
+        tintColor={c.fg}
+        iconColor={{ default: c.fgFaint, selected: c.fg }}
+        labelStyle={{ fontFamily: fonts.uiMedium, fontSize: 11 }}
+        minimizeBehavior="onScrollDown"
+        blurEffect={appearance === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+      >
+        <NativeTabs.Trigger name="index" disableAutomaticContentInsets>
+          <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} />
+          <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="social" disableAutomaticContentInsets>
+          <NativeTabs.Trigger.Icon sf={{ default: 'person.2', selected: 'person.2.fill' }} />
+          <NativeTabs.Trigger.Label>Social</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="log" disableAutomaticContentInsets>
+          <NativeTabs.Trigger.Icon sf="figure.hiking" />
+          <NativeTabs.Trigger.Label>Log</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+        <NativeTabs.Trigger name="profile" disableAutomaticContentInsets>
+          <NativeTabs.Trigger.Icon sf={{ default: 'person.crop.circle', selected: 'person.crop.circle.fill' }} />
+          <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    </NativeTabsContext.Provider>
+  );
+}
+
+/** Native glass tabs on iOS; the frosted JS bar on Android and web. */
+export default function TabsLayout() {
+  return Platform.OS === 'ios' ? <NativeTabsLayout /> : <JsTabsLayout />;
 }
 
 const styles = StyleSheet.create({

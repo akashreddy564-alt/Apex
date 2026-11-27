@@ -329,8 +329,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           <PressScale
             to={0.9}
             accessibilityRole="button"
-            accessibilityLabel="Skip to sign in"
-            onPress={() => setIndex(ONBOARDING_STEPS.length - 1)}
+            accessibilityLabel="Skip this question"
+            // One question at a time: a stray tap can't skip the whole setup.
+            onPress={() => {
+              haptics.select();
+              setIndex(index + 1);
+              scroll.current?.scrollTo({ y: 0, animated: false });
+            }}
             hitSlop={10}
             style={{ minWidth: 44, minHeight: 44, alignItems: 'flex-end', justifyContent: 'center' }}
           >

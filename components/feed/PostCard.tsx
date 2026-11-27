@@ -1,6 +1,8 @@
 import { useRouter } from 'expo-router';
 import { Bookmark, Heart, MessageCircle, MoreHorizontal } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 import { Pressable, Text, View } from 'react-native';
 
 import { PostMedia } from '@/components/feed/PostMedia';
@@ -17,7 +19,7 @@ import { PostDetails } from '@/components/feed/PostDetails';
 import { ensureTrail } from '@/lib/catalogRemote';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle } from '@/theme/tokens';
-import { PressScale, ReasonLine } from '@/components/motion';
+import { haptics, PressScale, ReasonLine } from '@/components/motion';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 
 function ActionButton({
@@ -250,10 +252,65 @@ export function PostCard({ post, mine, onLike, onOpen, full = false, onMore, fee
     </View>
   );
 
-  if (!onOpen || full) return body;
+  return <DoubleTapLike post={post} onLike={onLike} onOpen={full ? undefined : onOpen}>{body}</DoubleTapLike>;
+}
+
+/**
+ * Double-tap anywhere on a post to like it (never unlikes), with a heart
+ * that pops in the middle. A single tap still opens the hike; it waits a
+ * moment to be sure it isn't the first half of a double tap.
+ */
+function DoubleTapLike({
+  post,
+  onLike,
+  onOpen,
+  children,
+}: {
+  post: FeedPost;
+  onLike: (post: FeedPost) => void;
+  onOpen?: (post: FeedPost, focusComment?: boolean) => void;
+  children: ReactNode;
+}) {
+  const c = useColors();
+  const reduceMotion = useReducedMotion();
+  const burst = useSharedValue(0);
+  const heart = useAnimatedStyle(() => ({ opacity: burst.value, transform: [{ scale: 0.5 + burst.value * 0.6 }] }));
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(260)
+    .runOnJS(true)
+    .onEnd((_e, success) => {
+      if (!success) return;
+      if (!post.liked) onLike(post);
+      haptics.tapLight();
+      burst.value = reduceMotion
+        ? withSequence(withTiming(1, { duration: 80 }), withTiming(0, { duration: 500 }))
+        : withSequence(withSpring(1, { damping: 9, stiffness: 320 }), withTiming(0, { duration: 420 }));
+    });
+  const singleTap = Gesture.Tap()
+    .enabled(Boolean(onOpen))
+    .runOnJS(true)
+    .onEnd((_e, success) => {
+      if (success) onOpen?.(post);
+    });
   return (
-    <PressScale accessibilityHint="Opens the full hike" onPress={() => onOpen(post)} to={0.985}>
-      {body}
-    </PressScale>
+    <GestureDetector gesture={Gesture.Exclusive(doubleTap, singleTap)}>
+      <View
+        // Screen readers get the same two things as touch: open, and a Like action.
+        accessible={Boolean(onOpen)}
+        accessibilityRole={onOpen ? 'button' : undefined}
+        accessibilityHint={onOpen ? 'Opens the full hike' : undefined}
+        onAccessibilityTap={onOpen ? () => onOpen(post) : undefined}
+        accessibilityActions={onOpen ? [{ name: 'like', label: post.liked ? 'Unlike' : 'Like' }] : undefined}
+        onAccessibilityAction={(e) => {
+          if (e.nativeEvent.actionName === 'like') onLike(post);
+        }}
+      >
+        {children}
+        <Animated.View pointerEvents="none" style={[{ position: 'absolute', top: '40%', alignSelf: 'center' }, heart]}>
+          <Heart size={72} color={c.disliked} fill={c.disliked} strokeWidth={0} />
+        </Animated.View>
+      </View>
+    </GestureDetector>
   );
 }

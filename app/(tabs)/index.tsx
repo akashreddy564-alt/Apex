@@ -14,7 +14,7 @@ import { NearbyTrails } from '@/components/home/NearbyTrails';
 import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
 import { TastePicks } from '@/components/home/TastePicks';
 import { TopTrails } from '@/components/home/TopTrails';
-import { TrailIqCard } from '@/components/home/TrailIqCard';
+import { SwitchbackFeedCard, SwitchbackRow } from '@/components/home/SwitchbackRow';
 import { WeekHero } from '@/components/home/WeekHero';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
@@ -237,11 +237,11 @@ function Feed() {
         <View>
           <HeaderContours />
           <Header />
-          <WeekHero />
+          <WeekHero tourTarget />
           <StartHikeCard />
           <ChallengesCard />
           <TopTrails />
-          <TrailIqCard />
+          <SwitchbackRow />
           <View className="px-4">
             <NotificationAsk />
           </View>
@@ -253,6 +253,7 @@ function Feed() {
               Friends
             </Text>
           ) : null}
+          {posts.length > 0 ? <SwitchbackFeedCard /> : null}
         </View>
       }
       ListEmptyComponent={empty}
@@ -302,11 +303,11 @@ export default function HomeScreen() {
     <ScrollView ref={scroll} className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
       <HeaderContours />
       <Header />
-      <WeekHero />
+      <WeekHero tourTarget />
       <StartHikeCard />
       <ChallengesCard />
       <TopTrails />
-      <TrailIqCard />
+      <SwitchbackRow />
       <NearbyTrails />
       <SignInStrip />
     </ScrollView>

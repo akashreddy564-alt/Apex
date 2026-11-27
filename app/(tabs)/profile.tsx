@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PressScale } from '@/components/motion';
 import { SecondaryButton } from '@/components/social/Buttons';
+import { WeekHero } from '@/components/home/WeekHero';
 import { SignInGate } from '@/components/social/SignInGate';
 import { WeekCard } from '@/components/social/WeekCard';
 import { useColors } from '@/hooks/useColors';
@@ -45,6 +46,8 @@ export default function ProfileScreen() {
           <Settings size={20} strokeWidth={1.7} color={c.fg2} />
         </PressScale>
       </View>
+      {/* Your week first: it's yours whether or not you're signed in. */}
+      <WeekHero />
       <SignInGate why="keep a profile friends can see" title="Sign in to make your profile">
         {(profile) => (
           <View>

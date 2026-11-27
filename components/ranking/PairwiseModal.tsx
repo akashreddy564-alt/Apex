@@ -1,10 +1,11 @@
-import { Frown, Heart, Meh, Undo2, X } from 'lucide-react-native';
+import { Check, Undo2, X } from 'lucide-react-native';
+import { scheduleOnRN } from 'react-native-worklets';
 import { useEffect, useRef, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ContourLoader, haptics, PressScale } from '@/components/motion';
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { withAlpha } from '@/theme/color';
 import { useColors } from '@/hooks/useColors';
 import { LeaderboardReveal } from '@/components/ranking/LeaderboardReveal';
@@ -19,9 +20,8 @@ import {
   toFeet,
   toMiles,
 } from '@/lib/format';
-import { BUCKET_BANDS, BUCKETS } from '@/lib/ranking';
+import { BUCKET_BANDS, BUCKETS, type Bucket } from '@/lib/ranking';
 import { yourTrailStats } from '@/lib/yourTrailStats';
-import { DIFFICULTY_LABELS } from '@/lib/difficulty';
 import { resolveRoute, routeSourceLabel } from '@/lib/routeSource';
 import { useTrailCache } from '@/stores/trailCache';
 import { fonts, numericStyle, type Palette } from '@/theme/tokens';
@@ -263,6 +263,8 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
               trailName={trailName}
               onBack={undo}
               onDone={confirmPlace}
+              difficulty={difficulty}
+              onDifficulty={setDifficulty}
             />
           </View>
         ) : phase === 'bucket' ? (
@@ -292,78 +294,13 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
             >
               How was {trailName}?
             </Animated.Text>
-            <View style={{ marginTop: 20, gap: 10 }}>
-              {BUCKETS.map((item, index) => {
-                const tone = c[item];
-                const Icon = item === 'loved' ? Heart : item === 'fine' ? Meh : Frown;
-                return (
-                  <Animated.View key={item} entering={FadeInDown.delay(60 + index * 60).duration(320)}>
-                    <PressScale
-                      to={0.97}
-                      haptic={false}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${BUCKET_BANDS[item].label}, ${BUCKET_BANDS[item].lo.toFixed(0)} to ${Math.round(BUCKET_BANDS[item].hi)}`}
-                      onPress={() => {
-                        haptics.select();
-                        pickBucket(item);
-                      }}
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 14,
-                        borderRadius: 20,
-                        borderWidth: 1.5,
-                        borderColor: withAlpha(tone, 0.45),
-                        backgroundColor: withAlpha(tone, 0.1),
-                        paddingHorizontal: 18,
-                        minHeight: 76,
-                      }}
-                    >
-                      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: withAlpha(tone, 0.2), alignItems: 'center', justifyContent: 'center' }}>
-                        <Icon size={22} strokeWidth={2} color={tone} fill={item === 'loved' ? tone : 'none'} />
-                      </View>
-                      <Text style={{ flex: 1, fontSize: 19, color: c.fg, fontFamily: fonts.uiSemibold }}>{BUCKET_BANDS[item].label}</Text>
-                      <Text style={{ fontSize: 13, color: tone, ...numericStyle('medium') }}>
-                        {BUCKET_BANDS[item].lo.toFixed(0)}–{Math.round(BUCKET_BANDS[item].hi)}
-                      </Text>
-                    </PressScale>
-                  </Animated.View>
-                );
-              })}
-            </View>
-            <Text style={{ marginTop: 26, color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 }}>
-              HOW HARD WAS IT? · OPTIONAL
-            </Text>
-            <View style={{ marginTop: 10, flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-              {DIFFICULTY_LABELS.map((label, index) => {
-                const value = index + 1;
-                const on = difficulty === value;
-                return (
-                  <PressScale
-                    key={label}
-                    to={0.94}
-                    haptic={false}
-                    accessibilityRole="radio"
-                    accessibilityState={{ selected: on }}
-                    accessibilityLabel={`Difficulty: ${label}`}
-                    onPress={() => {
-                      haptics.select();
-                      setDifficulty(on ? null : value);
-                    }}
-                    style={{
-                      borderRadius: 999,
-                      borderWidth: 1,
-                      borderColor: on ? c.fg : c.raised,
-                      backgroundColor: on ? c.fg : c.surface,
-                      paddingHorizontal: 14,
-                      minHeight: 38,
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Text style={{ color: on ? c.bg : c.fg2, fontFamily: fonts.uiMedium, fontSize: 13 }}>{label}</Text>
-                  </PressScale>
-                );
-              })}
+            <Text style={{ marginTop: 8, color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15 }}>Pick one. You can compare it next.</Text>
+            <View style={{ marginTop: 22, gap: 12 }}>
+              {BUCKETS.map((item, index) => (
+                <Animated.View key={item} entering={FadeInDown.delay(40 + index * 50).duration(300)}>
+                  <BucketChoice bucket={item} onPick={() => pickBucket(item)} />
+                </Animated.View>
+              ))}
             </View>
           </View>
         ) : round ? (
@@ -459,6 +396,71 @@ export function PairwiseModal({ visible, comparison, onClose }: PairwiseModalPro
 }
 
 export const LOADER_TIMEOUT_MS = 3000;
+
+/**
+ * One rating: a calm row with a ring in its color. Tapping fills the row
+ * with that color from the left, checks the ring and ticks, then moves on,
+ * so the choice is felt before the next screen arrives.
+ */
+function BucketChoice({ bucket, onPick }: { bucket: Bucket; onPick: () => void }) {
+  const c = useColors();
+  const tone = c[bucket];
+  const fill = useSharedValue(0);
+  const [picked, setPicked] = useState(false);
+  const band = BUCKET_BANDS[bucket];
+  const fillStyle = useAnimatedStyle(() => ({ transform: [{ scaleX: fill.value }] }));
+  return (
+    <PressScale
+      to={0.98}
+      haptic={false}
+      disabled={picked}
+      accessibilityRole="button"
+      accessibilityLabel={`${band.label}, scores ${band.lo.toFixed(0)} to ${Math.round(band.hi)}`}
+      onPress={() => {
+        setPicked(true);
+        haptics.tapMedium();
+        fill.value = withTiming(1, { duration: 260 }, (finished) => {
+          if (finished) scheduleOnRN(onPick);
+        });
+      }}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16,
+        minHeight: 72,
+        paddingHorizontal: 18,
+        borderRadius: 18,
+        borderWidth: 1,
+        borderColor: picked ? tone : c.raised,
+        backgroundColor: c.surface,
+        overflow: 'hidden',
+      }}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: withAlpha(tone, 0.16), transformOrigin: 'left' }, fillStyle]}
+      />
+      <View
+        style={{
+          width: 26,
+          height: 26,
+          borderRadius: 13,
+          borderWidth: 2.5,
+          borderColor: tone,
+          backgroundColor: picked ? tone : 'transparent',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        {picked ? <Check size={15} strokeWidth={3} color={c.surface} /> : null}
+      </View>
+      <Text style={{ flex: 1, fontSize: 19, color: c.fg, fontFamily: fonts.uiSemibold }}>{band.label}</Text>
+      <Text style={{ fontSize: 13, color: c.fgMuted, ...numericStyle('medium') }}>
+        {band.lo.toFixed(0)}–{Math.round(band.hi)}
+      </Text>
+    </PressScale>
+  );
+}
 
 /** How far through the picks you are: one segment per expected pick, filled up to this one. */
 function Progress({ step, estimate, tone }: { step: number; estimate: number; tone: string }) {

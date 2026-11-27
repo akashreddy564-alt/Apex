@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
+import { X } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   Easing,
   FadeIn,
@@ -16,6 +18,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { CountUp, haptics, PressScale } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { DIFFICULTY_LABELS } from '@/lib/difficulty';
 import { BUCKET_BANDS, formatRankScore, type Bucket } from '@/lib/ranking';
 import { withAlpha } from '@/theme/color';
 import { fonts, numericStyle } from '@/theme/tokens';
@@ -36,6 +39,51 @@ interface LeaderboardRevealProps {
   /** Back to the last pick, or to the rating when there were no picks. */
   onBack: () => void;
   onDone: () => void;
+  /** Your difficulty rating (1–5), optional; saved with the ranking on Done. */
+  difficulty: number | null;
+  onDifficulty: (value: number | null) => void;
+}
+
+/**
+ * How hard it was, as one bar of five steps. Tap a step to pick it (tap it
+ * again to clear); only the picked step's name shows, so long names never wrap.
+ */
+function DifficultyBar({ value, onChange, tone }: { value: number | null; onChange: (v: number | null) => void; tone: string }) {
+  const c = useColors();
+  return (
+    <View>
+      <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <Text style={{ color: c.fgMuted, fontFamily: fonts.mono, fontSize: 10, letterSpacing: 1.2 }}>HOW HARD WAS IT?</Text>
+        <Text style={{ color: value ? c.fg : c.fgFaint, fontFamily: fonts.uiMedium, fontSize: 13 }}>
+          {value ? DIFFICULTY_LABELS[value - 1] : 'Optional'}
+        </Text>
+      </View>
+      <View accessibilityRole="adjustable" accessibilityLabel="Difficulty" style={{ flexDirection: 'row', gap: 5, marginTop: 10 }}>
+        {DIFFICULTY_LABELS.map((label, i) => {
+          const step = i + 1;
+          const on = value != null && step <= value;
+          return (
+            <Pressable
+              key={label}
+              accessibilityRole="button"
+              accessibilityState={{ selected: value === step }}
+              accessibilityLabel={label}
+              onPress={() => {
+                haptics.select();
+                onChange(value === step ? null : step);
+              }}
+              hitSlop={{ top: 12, bottom: 12 }}
+              style={{ flex: 1, height: 10, borderRadius: 5, backgroundColor: on ? tone : c.raised }}
+            />
+          );
+        })}
+      </View>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 6 }}>
+        <Text style={{ color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>Easy</Text>
+        <Text style={{ color: c.fgFaint, fontFamily: fonts.ui, fontSize: 11 }}>Very strenuous</Text>
+      </View>
+    </View>
+  );
 }
 
 function Row({ entry, index, count, tone }: { entry: LeaderboardEntry; index: number; count: number; tone: string }) {
@@ -123,8 +171,20 @@ function ScoreDisc({ score, count, bucket, tone }: { score: number; count: numbe
  * and the list around it with the new hike sliding into place. Done saves.
  * The first hike in a bucket gets its own moment instead of a one-row list.
  */
-export function LeaderboardReveal({ entries, ordinalRank, score, bucket, count, trailName, onBack, onDone }: LeaderboardRevealProps) {
+export function LeaderboardReveal({
+  entries,
+  ordinalRank,
+  score,
+  bucket,
+  count,
+  trailName,
+  onBack,
+  onDone,
+  difficulty,
+  onDifficulty,
+}: LeaderboardRevealProps) {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const tone = c[bucket];
   const label = BUCKET_BANDS[bucket].label;
   const first = count === 1;
@@ -135,7 +195,27 @@ export function LeaderboardReveal({ entries, ordinalRank, score, bucket, count, 
 
   return (
     <View style={{ flex: 1 }}>
-      <View style={{ alignItems: 'center', paddingTop: 18 }}>
+      {/* Always a way out: closing here keeps the ranking, like Done. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close and save"
+        onPress={onDone}
+        hitSlop={8}
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 14,
+          backgroundColor: c.surface,
+          borderWidth: 1,
+          borderColor: c.raised,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <X size={18} strokeWidth={1.75} color={c.fgMuted} />
+      </Pressable>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+      <View style={{ alignItems: 'center', paddingTop: 4 }}>
         <ScoreDisc score={score} count={count} bucket={bucket} tone={tone} />
         <Animated.Text
           entering={FadeIn.delay(200).duration(300)}
@@ -170,7 +250,11 @@ export function LeaderboardReveal({ entries, ordinalRank, score, bucket, count, 
         </View>
       )}
 
-      <View style={{ flex: 1 }} />
+      </ScrollView>
+      {/* Pinned, so Done never scrolls off however long the list is. */}
+      <View style={{ paddingTop: 12, paddingBottom: Math.max(4, insets.bottom > 0 ? 0 : 8), borderTopWidth: 1, borderTopColor: c.raised }}>
+        <DifficultyBar value={difficulty} onChange={onDifficulty} tone={tone} />
+      </View>
       <PressScale
         to={0.97}
         haptic={false}
@@ -180,7 +264,7 @@ export function LeaderboardReveal({ entries, ordinalRank, score, bucket, count, 
           haptics.success();
           onDone();
         }}
-        style={{ backgroundColor: c.accent, borderRadius: 18, minHeight: 54, alignItems: 'center', justifyContent: 'center' }}
+        style={{ marginTop: 14, backgroundColor: c.accent, borderRadius: 18, minHeight: 54, alignItems: 'center', justifyContent: 'center' }}
       >
         <Text style={{ color: c.onAccent, fontFamily: fonts.uiSemibold, fontSize: 16 }}>Done</Text>
       </PressScale>

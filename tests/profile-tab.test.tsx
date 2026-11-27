@@ -14,6 +14,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 jest.mock('@/hooks/useTabBarInset', () => ({ useTabBarInset: () => 0 }));
+jest.mock('@/components/home/WeekHero', () => ({ WeekHero: () => null }));
 jest.mock('@/components/social/WeekCard', () => ({
   WeekCard: ({ name }: { name: string }) => {
     const { Text: T } = require('react-native');
