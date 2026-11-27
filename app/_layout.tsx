@@ -17,10 +17,12 @@ import { Appearance, View } from 'react-native';
 import { vars } from 'nativewind';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { FirstRunDemo } from '@/components/opening/FirstRunDemo';
 import { OpeningScreen } from '@/components/opening/OpeningScreen';
 import { PeakIntro } from '@/components/opening/PeakIntro';
 import { useAuthLinks } from '@/hooks/useAuthLinks';
 import { useColors } from '@/hooks/useColors';
+import { useFirstRunDemo } from '@/hooks/useFirstRunDemo';
 import { useOpeningPlace } from '@/hooks/useOpeningPlace';
 import { usePrefetchFeed } from '@/hooks/useFeed';
 import { useNudges } from '@/hooks/useNudges';
@@ -80,6 +82,8 @@ export default function RootLayout() {
   const onPhotoShown = useCallback(() => setPhotoShown(true), []);
   const onOpeningDone = useCallback(() => setOpeningDone(true), []);
   const onIntroDone = useCallback(() => setIntroDone(true), []);
+  // The tour follows the opening photo on a normal first launch (not a sign-in or invite link).
+  const demo = useFirstRunDemo(opening.status === 'show' && openingDone);
 
   useEffect(() => {
     void hikeReady.then((hike) => {
@@ -176,6 +180,7 @@ export default function RootLayout() {
                 held={!introDone}
               />
             ) : null}
+            {demo.show ? <FirstRunDemo onDone={demo.done} /> : null}
             {/* Takes over from the splash once it hides, then opens onto the photo above. */}
             {opening.status === 'show' && !introDone ? (
               <PeakIntro play={fontsSettled && openingSettled} onDone={onIntroDone} />
