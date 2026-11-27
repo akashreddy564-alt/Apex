@@ -75,6 +75,35 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
           fontSize: 16,
         }}
       />
+      {/* Pinned under the field: search results arrive a moment later and land below it,
+          so the button never moves under your finger. */}
+      {name && !exact ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Add ${name} as a new trail`}
+          onPress={() => onCreate(name)}
+          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
+        >
+          <View
+            style={{
+              marginTop: 10,
+              marginBottom: 4,
+              height: 52,
+              borderRadius: 14,
+              backgroundColor: c.accent,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              paddingHorizontal: 16,
+            }}
+          >
+            <Plus size={18} strokeWidth={2.2} color={c.onAccent} />
+            <Text style={{ flex: 1, fontSize: 16, color: c.onAccent, fontFamily: fonts.uiSemibold }} numberOfLines={1}>
+              Add “{name}” as a new trail
+            </Text>
+          </View>
+        </Pressable>
+      ) : null}
       {matches.map((trail) => (
         <Pressable
           key={trail.id}
@@ -104,32 +133,6 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
       ))}
       {remote.loading && matches.length === 0 ? (
         <Text style={{ paddingVertical: 12, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Searching trails</Text>
-      ) : null}
-      {name && !exact ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Add ${name} as a new trail`}
-          onPress={() => onCreate(name)}
-          style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
-        >
-          <View
-            style={{
-              marginTop: 12,
-              height: 52,
-              borderRadius: 14,
-              backgroundColor: c.accent,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              paddingHorizontal: 16,
-            }}
-          >
-            <Plus size={18} strokeWidth={2.2} color={c.onAccent} />
-            <Text style={{ flex: 1, fontSize: 16, color: c.onAccent, fontFamily: fonts.uiSemibold }} numberOfLines={1}>
-              Add “{name}” as a new trail
-            </Text>
-          </View>
-        </Pressable>
       ) : null}
     </View>
   );
