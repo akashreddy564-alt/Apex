@@ -33,8 +33,9 @@ jest.mock('@/hooks/useFirstAscent', () => ({ useFirstAscent: (id: string) => (id
 jest.mock('@/components/safety/useSafetyMenu', () => ({ useSafetyMenu: () => jest.fn() }));
 jest.mock('@/components/social/RelationButton', () => ({ RelationButton: () => null }));
 let mockIFollow = false;
+let mockFollowsMe = false;
 jest.mock('@/hooks/useFollows', () => ({
-  useFollowCounts: () => ({ counts: { followers: 4, following: 2, iFollow: mockIFollow, followsMe: false }, loading: false }),
+  useFollowCounts: () => ({ counts: { followers: 4, following: 2, iFollow: mockIFollow, followsMe: mockFollowsMe }, loading: false }),
   useFollowToggle: () => ({ mutate: jest.fn(), isPending: false, variables: undefined }),
 }));
 const mockRankings = jest.fn();
@@ -196,5 +197,20 @@ describe('friend page', () => {
     mockIFollow = false;
     expect(mockPersonPosts).toHaveBeenCalledWith('u2', true);
     expect(texts(tree)).toContain('followers');
+    // Following one way shows hikes, not their ranked list (rankings are friends only).
+    expect(mockRankings).toHaveBeenCalledWith('u2', false);
+    expect(texts(tree)).toContain('Their ranked list shows once you follow each other.');
+  });
+
+  it('shows the ranked list once you follow each other', () => {
+    mockRelation = 'none';
+    mockIFollow = true;
+    mockFollowsMe = true;
+    act(() => {
+      create(<FriendScreen />);
+    });
+    mockIFollow = false;
+    mockFollowsMe = false;
+    expect(mockRankings).toHaveBeenCalledWith('u2', true);
   });
 });
