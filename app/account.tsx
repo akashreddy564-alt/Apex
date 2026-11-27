@@ -19,6 +19,7 @@ import { supabase } from '@/lib/supabase';
 import { useSettings } from '@/stores/settingsStore';
 import { apiError } from '@/lib/apiError';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
+import { OrgLabel } from '@/components/profile/OrgLabel';
 import { FollowCountsRow } from '@/components/social/FollowCountsRow';
 
 const SCORE_STYLES: { value: ScoreStyle; label: string }[] = [
@@ -205,6 +206,7 @@ export default function AccountScreen() {
               <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
                 {profile ? `@${profile.username}` : 'Friends find you by it'}
               </Text>
+              {profile ? <OrgLabel personId={profile.id} style={{ marginTop: 4 }} /> : null}
               {profile ? <FirstAscentBadge userId={profile.id} style={{ marginTop: 6 }} /> : null}
             </View>
             <ChevronRight size={18} strokeWidth={1.6} color={c.fgMuted} />

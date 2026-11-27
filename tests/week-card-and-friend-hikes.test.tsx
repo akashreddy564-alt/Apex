@@ -38,6 +38,8 @@ jest.mock('@/hooks/useFollows', () => ({
   useFollowCounts: () => ({ counts: { followers: 4, following: 2, iFollow: mockIFollow, followsMe: mockFollowsMe }, loading: false }),
   useFollowToggle: () => ({ mutate: jest.fn(), isPending: false, variables: undefined }),
 }));
+let mockOrgs: string[] = [];
+jest.mock('@/hooks/useOrganizations', () => ({ usePersonOrgs: () => mockOrgs }));
 const mockRankings = jest.fn();
 let mockTaste: { shared: number; agreement: number | null } | null = null;
 jest.mock('@/hooks/useRankLists', () => ({
@@ -212,5 +214,20 @@ describe('friend page', () => {
     mockIFollow = false;
     mockFollowsMe = false;
     expect(mockRankings).toHaveBeenCalledWith('u2', true);
+  });
+  it('shows their verified school under the username, and nothing without one', () => {
+    mockRelation = 'friend';
+    mockOrgs = ['Georgia Tech'];
+    let tree!: ReactTestRenderer;
+    act(() => {
+      tree = create(<FriendScreen />);
+    });
+    mockOrgs = [];
+    expect(texts(tree)).toContain('Georgia Tech');
+    expect(tree.root.findAll((n) => n.props.accessibilityLabel === 'Verified: Georgia Tech').length).toBeGreaterThan(0);
+    act(() => {
+      tree.update(<FriendScreen />);
+    });
+    expect(texts(tree)).not.toContain('Georgia Tech');
   });
 });

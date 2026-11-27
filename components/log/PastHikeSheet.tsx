@@ -1,8 +1,6 @@
-import * as ImagePicker from 'expo-image-picker';
 import { ChevronRight, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -16,6 +14,7 @@ import { Path, Svg } from 'react-native-svg';
 import { useColors } from '@/hooks/useColors';
 import { useYourTrailStats } from '@/hooks/useYourTrailStats';
 import { HikeDetailsFields, type HikeDetails } from '@/components/log/HikeDetailsFields';
+import { HikePhotosField } from '@/components/log/HikePhotosField';
 import { splitChips } from '@/lib/hikeDetails';
 import { Glass } from '@/components/motion';
 import { HikeDateField } from '@/components/log/HikeDateField';
@@ -28,7 +27,6 @@ import {
   milesToKm,
   MISSING_METRIC,
 } from '@/lib/format';
-import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
 import { formatHikeDay } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
 import { fonts, numericStyle, type Palette } from '@/theme/tokens';
@@ -124,7 +122,6 @@ export function PastHikeSheet({
   }, [visible]);
   const [notes, setNotes] = useState('');
   const [photos, setPhotos] = useState<string[]>([]);
-  const [photoError, setPhotoError] = useState<string | null>(null);
   const maximumDate = useMemo(() => new Date(), []);
 
   // A typed trail is created on Continue; closing the sheet drops it.
@@ -149,26 +146,6 @@ export function PastHikeSheet({
   const climbM = climbText.trim() === '' ? null : Math.round(Number(climbText) / 3.28084);
   const { terrain, conditions } = splitChips(details.chips);
 
-  const addPhoto = () => {
-    void ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 }).then(
-      async (result) => {
-        if (result.canceled) return;
-        const asset = result.assets[0];
-        if (!asset?.uri) return;
-        try {
-          setPhotoError(null);
-          const stored = await persistHikePhoto({
-            uri: asset.uri,
-            width: asset.width,
-            height: asset.height,
-          });
-          setPhotos((current) => [...current, stored]);
-        } catch {
-          setPhotoError('Could not add that photo.');
-        }
-      },
-    );
-  };
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -531,33 +508,7 @@ export function PastHikeSheet({
                 </View>
 
                 <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
-                  <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Photos</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                    {photos.map((uri) => (
-                      <PastPhoto key={uri} stored={uri} />
-                    ))}
-                    <Pressable
-                      accessibilityLabel="Add photo"
-                      onPress={addPhoto}
-                      style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 12,
-                        borderWidth: 1,
-                        borderStyle: 'dashed',
-                        borderColor: c.borderStrong,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ fontSize: 22, color: c.fgMuted }}>+</Text>
-                    </Pressable>
-                  </View>
-                  {photoError ? (
-                    <Text style={{ marginTop: 8, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>
-                      {photoError}
-                    </Text>
-                  ) : null}
+                  <HikePhotosField photos={photos} onChange={setPhotos} />
                 </View>
               </>
             )}
@@ -639,30 +590,3 @@ const stepStyle = (c: Palette) => ({
   alignItems: 'center' as const,
   justifyContent: 'center' as const,
 });
-
-function PastPhoto({ stored }: { stored: string }) {
-  const c = useColors();
-  const [uri, setUri] = useState(stored.startsWith('sb:') ? '' : stored);
-
-  useEffect(() => {
-    if (!stored.startsWith('sb:')) {
-      setUri(stored);
-      return;
-    }
-    let cancelled = false;
-    void resolvePhotoUri(stored).then((next) => {
-      if (!cancelled) setUri(next);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [stored]);
-
-  return (
-    <Image
-      source={{ uri }}
-      accessibilityLabel="Hike photo"
-      style={{ width: 56, height: 56, borderRadius: 12, backgroundColor: c.raised }}
-    />
-  );
-}

@@ -3,6 +3,7 @@ import { ChevronRight, UserPlus } from 'lucide-react-native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { OrgLabel } from '@/components/profile/OrgLabel';
 import { GroupsSection } from '@/components/groups/GroupsSection';
 import { FriendsBoard } from '@/components/social/FriendsBoard';
 import { OrganizationsSection } from '@/components/social/OrganizationsSection';
@@ -37,6 +38,7 @@ function FriendsSection({ profile }: { profile: Profile }) {
           <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13 }}>
             @{profile.username} · {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
           </Text>
+          <OrgLabel personId={profile.id} style={{ marginTop: 2 }} />
         </View>
       </Pressable>
 

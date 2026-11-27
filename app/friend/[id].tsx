@@ -17,6 +17,7 @@ import { useMyRankedTrails } from '@/hooks/useMyRankedTrails';
 import type { FeedPost } from '@/lib/feed';
 import { fonts } from '@/theme/tokens';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
+import { OrgLabel } from '@/components/profile/OrgLabel';
 import { RankedList } from '@/components/profile/RankedList';
 import { TasteLine } from '@/components/profile/TasteLine';
 import { Segmented } from '@/components/social/Segmented';
@@ -126,6 +127,7 @@ function PersonPage({ id }: { id: string }) {
       <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 15, marginTop: 4 }}>
         @{person.username}
       </Text>
+      <OrgLabel personId={person.id} size={14} center style={{ marginTop: 6 }} />
       <FirstAscentBadge userId={person.id} size="lg" style={{ marginTop: 12 }} />
       {relation !== 'self' ? <TasteLine match={taste.data} firstName={first} /> : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10 }}>
