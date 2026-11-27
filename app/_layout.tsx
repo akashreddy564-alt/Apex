@@ -141,6 +141,8 @@ export default function RootLayout() {
                   // The hero photo runs under the header.
                   headerTransparent: true,
                   headerStyle: { backgroundColor: 'transparent' },
+                  // The elevation scrubber drags sideways; back is the edge swipe here.
+                  fullScreenGestureEnabled: false,
                 }}
               />
               <Stack.Screen name="trails" options={{ title: '', headerBackTitle: 'Home' }} />
@@ -148,9 +150,10 @@ export default function RootLayout() {
               <Stack.Screen name="username" options={{ title: '', headerBackTitle: 'Back' }} />
               <Stack.Screen name="add-friends" options={{ title: 'Add friends', headerBackTitle: 'Social' }} />
               <Stack.Screen name="friend-requests" options={{ title: 'Friend requests', headerBackTitle: 'Social' }} />
-              <Stack.Screen name="friend/[id]" options={{ title: '', headerBackTitle: 'Back' }} />
+              {/* Photo pagers swipe sideways on these two; back is the edge swipe. */}
+              <Stack.Screen name="friend/[id]" options={{ title: '', headerBackTitle: 'Back', fullScreenGestureEnabled: false }} />
               <Stack.Screen name="follows/[id]" options={{ title: 'People', headerBackTitle: 'Back' }} />
-              <Stack.Screen name="post/[id]" options={{ title: 'Hike', headerBackTitle: 'Home' }} />
+              <Stack.Screen name="post/[id]" options={{ title: 'Hike', headerBackTitle: 'Home', fullScreenGestureEnabled: false }} />
               <Stack.Screen name="create-group" options={{ title: 'New group', headerBackTitle: 'Social' }} />
               <Stack.Screen name="join-group" options={{ title: 'Join a group', headerBackTitle: 'Social' }} />
               <Stack.Screen name="group/[id]" options={{ title: '', headerBackTitle: 'Social' }} />

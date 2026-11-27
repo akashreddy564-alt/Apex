@@ -45,7 +45,7 @@ export default function ProfileScreen() {
           <Settings size={20} strokeWidth={1.7} color={c.fg2} />
         </PressScale>
       </View>
-      <SignInGate why="keep a profile friends can see">
+      <SignInGate why="keep a profile friends can see" title="Sign in to make your profile">
         {(profile) => (
           <View>
             <WeekCard name={profile.display_name} />

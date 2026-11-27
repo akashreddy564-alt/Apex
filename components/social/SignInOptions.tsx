@@ -10,7 +10,7 @@ import { useColors } from '@/hooks/useColors';
 import { METHOD_LABEL, maskEmail, type SignInMethod } from '@/lib/signInMemory';
 import { appleAvailable, signInWithApple, signInWithGoogle, type SocialResult } from '@/lib/socialAuth';
 import { useSettings } from '@/stores/settingsStore';
-import { useSignIn } from '@/stores/signInStore';
+import { startSignIn, useSignIn } from '@/stores/signInStore';
 import { fonts } from '@/theme/tokens';
 
 const BUTTON_H = 50;
@@ -98,7 +98,6 @@ export function SignInOptions({ email }: { email: ReactNode }) {
   const c = useColors();
   const lastMethod = useSignIn((s) => s.lastMethod);
   const lastEmail = useSignIn((s) => s.lastEmail);
-  const remember = useSignIn((s) => s.remember);
   const [apple, setApple] = useState(false);
   const [busy, setBusy] = useState<SignInMethod | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -114,11 +113,11 @@ export function SignInOptions({ email }: { email: ReactNode }) {
   const run = async (method: SignInMethod, go: () => Promise<SocialResult>) => {
     setBusy(method);
     setProblem(null);
+    startSignIn(method);
     try {
       const result = await go();
       if (result.ok) {
         haptics.success();
-        remember(method, result.email);
       } else if (!result.canceled) {
         setProblem(result.message);
       }

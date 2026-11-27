@@ -46,9 +46,16 @@ export function PressScale({ to = 0.97, haptic = true, style, onPressIn, onPress
   return (
     <AnimatedPressable
       {...rest}
+      onPress={
+        rest.onPress
+          ? (e) => {
+              // On the completed press, so starting a scroll on a card doesn't buzz. The sink still lands on touch-down.
+              if (haptic) haptics.tapLight();
+              rest.onPress?.(e);
+            }
+          : undefined
+      }
       onPressIn={(e) => {
-        // Feedback lands on touch-down, not release: it reads as instant.
-        if (haptic && !rest.disabled && rest.onPress) haptics.tapLight();
         if (!reduceMotion) scale.value = withSpring(to, PRESS);
         onPressIn?.(e);
       }}

@@ -1,4 +1,5 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
+import Constants from 'expo-constants';
 import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
@@ -14,7 +15,9 @@ const canceled: SocialResult = { ok: false, canceled: true, message: '' };
 
 /** Started at launch, so the Apple button is ready (or known missing) before the screen opens. */
 export const appleAvailable: Promise<boolean> =
-  Platform.OS === 'ios' ? AppleAuthentication.isAvailableAsync().catch(() => false) : Promise.resolve(false);
+  Platform.OS === 'ios' && Constants.expoConfig?.extra?.appleSignIn !== false
+    ? AppleAuthentication.isAvailableAsync().catch(() => false)
+    : Promise.resolve(false);
 
 /**
  * Sign in with Apple, finished by Supabase. Apple gets a SHA-256 of a

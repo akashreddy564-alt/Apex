@@ -4,12 +4,22 @@ import { Alert, Platform } from 'react-native';
 
 import { claimAuthCode, parseAuthLink } from '@/lib/authLink';
 import { supabase } from '@/lib/supabase';
+import { finishSignIn } from '@/stores/signInStore';
 
 /**
  * Finishes sign-in when the email link opens the app. On web, supabase-js
  * reads the URL itself (`detectSessionInUrl`).
  */
 export function useAuthLinks() {
+  // Whatever finished a sign-in, the sign-in screen remembers how.
+  useEffect(() => {
+    if (!supabase) return;
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') finishSignIn(session?.user.email, session?.user.app_metadata?.provider);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     if (!supabase || Platform.OS === 'web') return;
     const client = supabase;

@@ -42,9 +42,12 @@ export function GateCard({ eyebrow, title, body, children }: { eyebrow: string; 
  */
 export function SignInGate({
   why,
+  title = 'Sign in to see your friends',
   children,
 }: {
   why: string;
+  /** The signed-out card's heading. */
+  title?: string;
   children: (profile: Profile) => ReactNode;
 }) {
   const router = useRouter();
@@ -72,7 +75,7 @@ export function SignInGate({
     return (
       <GateCard
         eyebrow="Account"
-        title="Sign in to see your friends"
+        title={title}
         body={`Sign in to ${why}. Your hikes upload when you do, and Log keeps working signed out.`}
       >
         <PrimaryButton label="Sign in" onPress={() => router.push('/account')} />

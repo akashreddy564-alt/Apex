@@ -22,7 +22,7 @@ import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 import { OrgLabel } from '@/components/profile/OrgLabel';
 import { FollowCountsRow } from '@/components/social/FollowCountsRow';
 import { SignInOptions } from '@/components/social/SignInOptions';
-import { useSignIn } from '@/stores/signInStore';
+import { startSignIn } from '@/stores/signInStore';
 
 const SCORE_STYLES: { value: ScoreStyle; label: string }[] = [
   { value: 'number', label: 'Number' },
@@ -93,7 +93,6 @@ export default function AccountScreen() {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const remember = useSignIn((s) => s.remember);
 
   if (!configured || !supabase) {
     return (
@@ -126,6 +125,7 @@ export default function AccountScreen() {
     }
     setBusy(true);
     setStatus(null);
+    startSignIn('email', next);
     try {
       const { error } = await client.auth.signInWithOtp({
         email: next,
@@ -154,7 +154,6 @@ export default function AccountScreen() {
       const { error } = await client.auth.verifyOtp({ email: sentTo, token, type: 'email' });
       if (error) setStatus(error.message);
       else {
-        remember('email', sentTo);
         setStatus(null);
         setCode('');
       }
@@ -168,13 +167,11 @@ export default function AccountScreen() {
     if (!next || !password) return;
     setBusy(true);
     setStatus(null);
+    startSignIn('email', next);
     try {
       const { error } = await client.auth.signInWithPassword({ email: next, password });
       if (error) setStatus(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : apiError(error).message);
-      else {
-        remember('email', next);
-        setPassword('');
-      }
+      else setPassword('');
     } finally {
       setBusy(false);
     }
