@@ -1,4 +1,4 @@
-import { apiError, AppError } from '@/lib/apiError';
+import { apiError, AppError, functionErrorReason } from '@/lib/apiError';
 import { deviceTimeZone, mapBoardRow, type BoardRow, type Period } from '@/lib/groupRules';
 import {
   cleanOrgName,
@@ -27,15 +27,8 @@ export async function requestOrgCode(email: string): Promise<void> {
   const { error } = await client().functions.invoke('org-verify', { body: { email: email.trim() } });
   if (!error) return;
   // The function answers { error: "…" } with a readable reason.
-  const response = (error as { context?: Response }).context;
-  let message = '';
-  try {
-    const body = response ? await response.clone().json() : null;
-    if (body && typeof body.error === 'string') message = body.error;
-  } catch {
-    // Not JSON: fall through to the generic message.
-  }
-  if (message) throw new AppError(message, response?.status === 429 ? 'rate_limited' : 'other');
+  const { message, status } = await functionErrorReason(error);
+  if (message) throw new AppError(message, status === 429 ? 'rate_limited' : 'other');
   throw apiError(error);
 }
 
