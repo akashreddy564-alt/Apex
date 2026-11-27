@@ -5,7 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { PostCard } from '@/components/feed/PostCard';
 import { Skeleton } from '@/components/motion';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
-import { Avatar } from '@/components/social/Avatar';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { FollowButton } from '@/components/social/FollowButton';
 import { RelationButton } from '@/components/social/RelationButton';
 import { SignInGate } from '@/components/social/SignInGate';
@@ -118,7 +118,7 @@ export function PersonPage({ id }: { id: string }) {
 
   return (
     <View className="items-center pt-6">
-      <Avatar name={person.display_name} size={88} />
+      <ProfileAvatar personId={person.id} name={person.display_name} path={person.avatar_path} self={relation === 'self'} />
       <Text
         style={{ color: c.fg, fontFamily: fonts.displayExtraBold, fontSize: 26, marginTop: 16, textAlign: 'center' }}
       >

@@ -20,6 +20,7 @@ import { StreakGrid } from '@/components/craft/StreakGrid';
 import { SummitRegister } from '@/components/craft/SummitRegister';
 import { ContourTexture, Eyebrow, haptics, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { useTourTarget } from '@/hooks/useTourTarget';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationDenied } from '@/components/log/LocationDenied';
@@ -93,6 +94,7 @@ function hikeClock(totalSeconds: number): string {
 export default function LogScreen() {
   const c = useColors();
   const scroll = useRef<ScrollView>(null);
+  const sliderTarget = useTourTarget('slider');
   // A second tap on Log scrolls back to the top.
   useScrollToTop(scroll);
   const { profile: myProfile } = useMyProfile();
@@ -671,7 +673,7 @@ export default function LogScreen() {
       </ScrollView>
 
       {showSlider ? (
-        <View style={{ position: 'absolute', left: 16, right: 16, bottom: tabInset + SLIDER_GAP }}>
+        <View {...sliderTarget} style={{ position: 'absolute', left: 16, right: 16, bottom: tabInset + SLIDER_GAP }}>
           <SlideToStart
             label="Slide to start a hike"
             a11yLabel="Start a hike"

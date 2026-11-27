@@ -16,6 +16,7 @@ import { Eyebrow } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
 import { useAuth } from '@/hooks/useAuth';
 import { deleteErrorMessage } from '@/lib/apiError';
+import { revokeAppleSignIn, usesAppleSignIn } from '@/lib/appleToken';
 import { hikesToCsv, hikesToGpx, photoLines } from '@/lib/exportData';
 import { deleteMyPhotos } from '@/lib/hikePhotos';
 import { supabase } from '@/lib/supabase';
@@ -110,6 +111,16 @@ export default function DeleteAccountScreen() {
       } catch (photoError) {
         setStatus(deleteErrorMessage(photoError, 'Couldn’t delete your photos'));
         return;
+      }
+      // Apple accounts: revoke Sign in with Apple before the account goes
+      // (App Store 5.1.1(v)). If Apple can't be reached, stop so they can retry.
+      if (usesAppleSignIn(session.user)) {
+        try {
+          await revokeAppleSignIn();
+        } catch (appleError) {
+          setStatus(deleteErrorMessage(appleError, 'Couldn’t disconnect Sign in with Apple'));
+          return;
+        }
       }
       const { error } = await supabase.rpc('delete_own_account');
       if (error) {

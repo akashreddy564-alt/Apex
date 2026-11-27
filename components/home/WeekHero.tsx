@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Ring } from '@/components/habit/GoalRing';
 import { useColors } from '@/hooks/useColors';
+import { useTourTarget } from '@/hooks/useTourTarget';
 import { useWeeklyGoal } from '@/hooks/useWeeklyGoal';
 import { weekCard } from '@/lib/homeDashboard';
 import { weekRange } from '@/lib/weekRecap';
@@ -22,6 +23,7 @@ const KM_PER_MILE = 1.609344;
 export function WeekHero() {
   const c = useColors();
   const router = useRouter();
+  const tourTarget = useTourTarget('week');
   const { goal } = useWeeklyGoal();
   const logs = useTrailCache((s) => s.logs);
   const trails = useTrailCache((s) => s.trails);
@@ -50,6 +52,7 @@ export function WeekHero() {
 
   return (
     <Pressable
+      {...tourTarget}
       accessibilityRole="button"
       accessibilityLabel="This week"
       accessibilityHint="Opens your weekly goal"
