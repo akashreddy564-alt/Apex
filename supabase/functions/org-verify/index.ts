@@ -24,6 +24,17 @@ function reply(status: number, body: Record<string, unknown>): Response {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
 }
 
+function codeEmailHtml(code: string): string {
+  const safe = code.replace(/[^0-9]/g, '');
+  return `<!doctype html><html><body style="margin:0;padding:24px;background:#f4f1ea;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;color:#1b1d1c">
+<div style="max-width:440px;margin:0 auto;background:#ffffff;border-radius:16px;padding:28px">
+<p style="margin:0 0 6px;font-size:15px;color:#5b5f5a">Your Apex code is</p>
+<p style="margin:0 0 18px;font-size:34px;font-weight:700;letter-spacing:6px">${safe}</p>
+<p style="margin:0 0 12px;font-size:15px;line-height:22px">Enter it in Apex to join your school or company board. It works for 15 minutes.</p>
+<p style="margin:0;font-size:13px;line-height:19px;color:#5b5f5a">Apex keeps only the part after the @, never your address. If you didn’t ask for this, ignore this email.</p>
+</div></body></html>`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return reply(405, { error: 'Use POST' });
@@ -71,6 +82,9 @@ Deno.serve(async (req) => {
         `Your Apex code is ${code}.\n\n` +
         `Enter it in Apex to join your school or company board. It works for 15 minutes.\n\n` +
         `Apex keeps only the part after the @, never your address. If you didn’t ask for this, ignore this email.`,
+      // A plain HTML part next to the text one. Mail filters trust a normal two-part
+      // message more than bare text. No images, links or tracking.
+      html: codeEmailHtml(String(code)),
     }),
   });
   if (!sent.ok) return reply(502, { error: 'We couldn’t send the email. Check the address and try again.' });
