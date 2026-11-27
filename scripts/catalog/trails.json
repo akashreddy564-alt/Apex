@@ -240,5 +240,16 @@
     "via": [[-72.1083, 42.8614]],
     "prefer": ["White Dot"],
     "expectKm": 6.3
+  },
+  {
+    "slug": "blood-mountain",
+    "name": "Blood Mountain",
+    "region": "Blairsville, GA",
+    "extract": "georgia",
+    "shape": "out-and-back",
+    "trailhead": [-83.9227, 34.7415],
+    "via": [[-83.937, 34.7397]],
+    "prefer": ["Byron Reece", "Appalachian Trail"],
+    "expectKm": 6.9
   }
 ]
