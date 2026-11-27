@@ -61,6 +61,10 @@ describe('challenges', () => {
   it('shows this month’s three challenges with your recorded progress', () => {
     const [climb] = monthChallenges();
     const tree = draw(<ChallengesCard />);
+    // Folded by default: one row. Tap it to show the three challenges.
+    expect(texts(tree)).not.toContain(climb!.title);
+    const fold = tree.root.findAll((n) => typeof n.props.onPress === 'function' && String(n.props.accessibilityLabel ?? '').includes('challenges,'))[0]!;
+    act(() => fold.props.onPress());
     const all = texts(tree);
     expect(all).toContain(`${climb!.month.toUpperCase()} CHALLENGES`);
     expect(all).toContain(climb!.title);

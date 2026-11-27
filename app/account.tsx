@@ -15,6 +15,9 @@ import { cardStyle, fonts } from '@/theme/tokens';
 import type { Appearance, ScoreStyle } from '@/lib/appearance';
 import { pullRemote } from '@/lib/remoteSync';
 import { supabase } from '@/lib/supabase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { TOUR_SEEN_KEY } from '@/hooks/useHomeTour';
+import { useOnboarding } from '@/stores/onboardingStore';
 import { useSettings } from '@/stores/settingsStore';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 import { OrgLabel } from '@/components/profile/OrgLabel';
@@ -192,7 +195,32 @@ export default function AccountScreen() {
         </Section>
       ) : null}
 
+      {__DEV__ ? <DevReset /> : null}
       <PhotoCreditsLink />
     </ScrollView>
+  );
+}
+
+/** Dev builds only: see first-launch onboarding and the Home tour again on the next launch. */
+function DevReset() {
+  const c = useColors();
+  const [done, setDone] = useState(false);
+  return (
+    <Section eyebrow="Developer">
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {
+          useOnboarding.setState({ seen: false });
+          void AsyncStorage.removeItem(TOUR_SEEN_KEY);
+          setDone(true);
+        }}
+        className="mt-2 py-3 active:opacity-70"
+      >
+        <Text className="text-[15px] text-fg">Replay onboarding and tour</Text>
+        <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 2 }}>
+          {done ? 'Done. Close and reopen Apex to see them.' : 'Shows them again on the next launch.'}
+        </Text>
+      </Pressable>
+    </Section>
   );
 }

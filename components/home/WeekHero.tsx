@@ -20,10 +20,11 @@ const KM_PER_MILE = 1.609344;
  * weekly goal, the ring, then hikes, miles and the streak. Shows at zero too,
  * so a new hiker sees what they're aiming at. Opens the goal screen.
  */
-export function WeekHero() {
+/** `tourTarget`: only Home's copy, so a second copy (Profile) never moves the tour's spotlight. */
+export function WeekHero({ tourTarget = false }: { tourTarget?: boolean } = {}) {
   const c = useColors();
   const router = useRouter();
-  const tourTarget = useTourTarget('week');
+  const tour = useTourTarget('week');
   const { goal } = useWeeklyGoal();
   const logs = useTrailCache((s) => s.logs);
   const trails = useTrailCache((s) => s.trails);
@@ -52,7 +53,7 @@ export function WeekHero() {
 
   return (
     <Pressable
-      {...tourTarget}
+      {...(tourTarget ? tour : {})}
       accessibilityRole="button"
       accessibilityLabel="This week"
       accessibilityHint="Opens your weekly goal"
