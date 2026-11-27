@@ -13,7 +13,6 @@ import { TabIcon } from '@/components/TabIcon';
 import { useColors } from '@/hooks/useColors';
 import { NativeTabsContext } from '@/hooks/useTabBarInset';
 import { useTourTarget } from '@/hooks/useTourTarget';
-import { useSettings } from '@/stores/settingsStore';
 import { useTour } from '@/stores/tourStore';
 import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
 
@@ -104,7 +103,6 @@ function JsTabsLayout() {
  */
 function NativeTabsLayout() {
   const c = useColors();
-  const appearance = useSettings((s) => s.appearance);
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   // The native bar can't be measured from JS; tell the Home tour roughly where Social sits.
@@ -119,7 +117,7 @@ function NativeTabsLayout() {
         iconColor={{ default: c.fgFaint, selected: c.fg }}
         labelStyle={{ fontFamily: fonts.uiMedium, fontSize: 11 }}
         minimizeBehavior="onScrollDown"
-        blurEffect={appearance === 'dark' ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
+        // No blurEffect or background: setting either swaps iOS 26 Liquid Glass for the old blur.
       >
         <NativeTabs.Trigger name="index" disableAutomaticContentInsets>
           <NativeTabs.Trigger.Icon sf={{ default: 'house', selected: 'house.fill' }} />

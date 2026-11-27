@@ -9,7 +9,7 @@
       "distribution": "internal",
       "environment": "development",
       "ios": {
-        "image": "latest"
+        "image": "sdk-57"
       }
     },
     "preview": {
@@ -19,14 +19,14 @@
         "buildType": "apk"
       },
       "ios": {
-        "image": "latest"
+        "image": "sdk-57"
       }
     },
     "production": {
       "autoIncrement": true,
       "environment": "production",
       "ios": {
-        "image": "latest"
+        "image": "sdk-57"
       }
     },
     "simulator": {
