@@ -76,10 +76,16 @@ function PersonPage({ id }: { id: string }) {
   const { counts } = useFollowCounts(id);
   // Friends and followers both see someone's hikes.
   const canSee = person ? ['friend', 'self'].includes(relationTo(person.id)) || counts?.iFollow === true : false;
+  // Rankings (the list and taste match) are friends only: mutual follows or an
+  // accepted request (migrations 028/029). A one-way follower sees hikes.
+  const canSeeList = person
+    ? ['friend', 'self'].includes(relationTo(person.id)) || (counts?.iFollow === true && counts?.followsMe === true)
+    : false;
   const hikes = usePersonPosts(id, canSee);
-  const list = usePersonRankings(id, canSee);
-  const taste = useTasteMatch(id, canSee);
-  const [tab, setTab] = useState<'list' | 'hikes'>('list');
+  const list = usePersonRankings(id, canSeeList);
+  const taste = useTasteMatch(id, canSeeList);
+  const [chosenTab, setTab] = useState<'list' | 'hikes'>('list');
+  const tab = canSeeList ? chosenTab : 'hikes';
 
   if (loading) {
     return (
@@ -179,7 +185,12 @@ function PersonPage({ id }: { id: string }) {
           <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 14 }}>Report or block</Text>
         </Pressable>
       ) : null}
-      {canSee ? (
+      {canSee && !canSeeList ? (
+        <Text style={{ marginTop: 24, color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, textAlign: 'center' }}>
+          Their ranked list shows once you follow each other.
+        </Text>
+      ) : null}
+      {canSeeList ? (
         <View className="mt-8 self-stretch">
           <Segmented
             options={[

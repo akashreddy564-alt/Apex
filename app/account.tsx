@@ -139,11 +139,11 @@ export default function AccountScreen() {
     }
   };
 
-  // The same email carries a 6-digit code when the template includes it.
-  // It works where the link can't, like a simulator.
+  // The same email carries a code when the template includes it: 6 digits on
+  // older Supabase projects, 8 on newer ones. It works where the link can't.
   const verifyCode = async () => {
     const token = code.replace(/\D/g, '');
-    if (!sentTo || token.length !== 6) return;
+    if (!sentTo || token.length < 6 || token.length > 8) return;
     setBusy(true);
     setStatus(null);
     try {
@@ -290,8 +290,8 @@ export default function AccountScreen() {
                   keyboardType="number-pad"
                   textContentType="oneTimeCode"
                   autoComplete="one-time-code"
-                  maxLength={6}
-                  placeholder="6-digit code"
+                  maxLength={8}
+                  placeholder="Code from the email"
                   placeholderTextColor={c.fgFaint}
                   accessibilityLabel="Code from the email"
                   className="flex-1 rounded-2xl border border-raised bg-bg px-4 text-fg"
@@ -300,7 +300,7 @@ export default function AccountScreen() {
                 <SecondaryButton
                   label="Sign in"
                   a11y="Sign in with code"
-                  disabled={busy || code.replace(/\D/g, '').length !== 6}
+                  disabled={busy || code.replace(/\D/g, '').length < 6}
                   onPress={() => {
                     void verifyCode();
                   }}
