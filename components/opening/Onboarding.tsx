@@ -159,7 +159,7 @@ function DistanceStep() {
   const setBand = useOnboarding((s) => s.setBand);
   return (
     <View style={{ gap: 28 }}>
-      <Title eyebrow="ABOUT YOU" title="How far do you usually hike?" body="Apex sizes your weekly goal and picks from this." />
+      <Title eyebrow="ABOUT YOU" title="How far do you usually hike?" body="Apex sizes your first weekly goal from this." />
       <View style={{ gap: 12 }} accessibilityRole="radiogroup">
         {DISTANCE_BANDS.map((b) => (
           <ChoiceCard key={b.value} label={b.label} hint={b.hint} selected={band === b.value} onPress={() => setBand(b.value as DistanceBand)} />
@@ -169,25 +169,19 @@ function DistanceStep() {
   );
 }
 
-function GoalStep() {
+/** The goal being picked; saved only when Continue is tapped, so Skip leaves an existing goal alone. */
+type GoalChoice = { metric: GoalMetric; display: number };
+
+function GoalStep({ choice }: { choice: { current: GoalChoice | null } }) {
   const c = useColors();
   const band = useOnboarding((s) => s.band);
-  const metric = useGoal((s) => s.metric);
-  const setMetric = useGoal((s) => s.setMetric);
-  const setTarget = useGoal((s) => s.setTarget);
+  const [metric, setMetric] = useState<GoalMetric>(() => useGoal.getState().metric);
   const [display, setDisplay] = useState(() => suggestedGoal(band, metric));
   const presets = GOAL_PRESETS[metric];
   const unit = metric === 'distance' ? 'mi' : 'ft';
+  choice.current = { metric, display };
 
-  const choose = (next: number, on: GoalMetric = metric) => {
-    setDisplay(next);
-    setTarget(toStored(on, next));
-  };
-  // Save the suggestion straight away, so Continue keeps it.
-  useEffect(() => {
-    choose(suggestedGoal(band, metric));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [metric]);
+  const choose = (next: number) => setDisplay(next);
 
   const max = presets[presets.length - 1];
   return (
@@ -202,6 +196,7 @@ function GoalStep() {
         onChange={(next) => {
           haptics.select();
           setMetric(next);
+          setDisplay(suggestedGoal(band, next));
         }}
       />
       <View style={{ alignItems: 'center', justifyContent: 'center', height: 150 }}>
@@ -225,7 +220,7 @@ function InterestsStep() {
   const setInterests = useOnboarding((s) => s.setInterests);
   return (
     <View style={{ gap: 28 }}>
-      <Title eyebrow="WHAT YOU LOVE" title="What do you hike for?" body="Pick a few. Trail picks lean toward them." />
+      <Title eyebrow="WHAT YOU LOVE" title="What do you hike for?" body="Pick any that fit, or skip this." />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
         {INTERESTS.map((item) => (
           <Chip key={item} label={item} selected={interests.includes(item)} onPress={() => setInterests(toggleInterest(interests, item))} />
@@ -265,6 +260,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   const step = ONBOARDING_STEPS[index];
   const scroll = useRef<ScrollView>(null);
   const finished = useRef(false);
+  const goalChoice = useRef<GoalChoice | null>(null);
 
   const finish = () => {
     if (finished.current) return;
@@ -289,6 +285,11 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   }, [session, step]);
 
   const next = () => {
+    if (step === 'goal' && goalChoice.current) {
+      const { metric, display } = goalChoice.current;
+      useGoal.getState().setMetric(metric);
+      useGoal.getState().setTarget(toStored(metric, display));
+    }
     if (index < ONBOARDING_STEPS.length - 1) {
       setIndex(index + 1);
       scroll.current?.scrollTo({ y: 0, animated: false });
@@ -348,7 +349,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       >
         <Animated.View key={step} entering={entering} exiting={exiting}>
           {step === 'distance' ? <DistanceStep /> : null}
-          {step === 'goal' ? <GoalStep /> : null}
+          {step === 'goal' ? <GoalStep choice={goalChoice} /> : null}
           {step === 'interests' ? <InterestsStep /> : null}
           {step === 'account' ? <AccountStep /> : null}
         </Animated.View>

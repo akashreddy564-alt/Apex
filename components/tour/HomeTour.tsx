@@ -20,6 +20,7 @@ import Svg, { Path } from 'react-native-svg';
 
 import { haptics, PressScale } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { useMyProfile } from '@/hooks/useProfile';
 import { cardTop, holePath, spotlight, type Rect } from '@/lib/tourLayout';
 import { useTour, type TourKey } from '@/stores/tourStore';
 import { cardStyle, fonts } from '@/theme/tokens';
@@ -61,6 +62,13 @@ const SPRING = { damping: 22, stiffness: 190, mass: 0.9 };
  * so nothing starts by accident, and Skip always ends it.
  */
 export function HomeTour({ onDone }: { onDone: () => void }) {
+  // Someone who just signed up picks a username first; the tour would navigate them off it.
+  const { session, profile, loading } = useMyProfile();
+  if (loading || (session && !profile)) return null;
+  return <Tour onDone={onDone} />;
+}
+
+function Tour({ onDone }: { onDone: () => void }) {
   const c = useColors();
   const router = useRouter();
   const screen = useWindowDimensions();
