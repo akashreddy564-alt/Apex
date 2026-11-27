@@ -29,6 +29,7 @@ import { useNudges } from '@/hooks/useNudges';
 import { useRemoteSync } from '@/hooks/useRemoteSync';
 import { hydrateHike } from '@/lib/activeHike';
 import { applyNativeScheme } from '@/lib/appearance';
+import { startLiveActivitySync } from '@/lib/liveActivity';
 import { reconcileTracking } from '@/lib/locationTask';
 import { useSettings } from '@/stores/settingsStore';
 import { cssVars, fonts, navTitle } from '@/theme/tokens';
@@ -90,6 +91,9 @@ export default function RootLayout() {
       void reconcileTracking(Boolean(hike && hike.pausedAt == null));
     });
   }, [hikeReady]);
+
+  // Lock Screen and Dynamic Island while a hike records (iOS builds with the widget extension).
+  useEffect(() => startLiveActivitySync(hikeReady), [hikeReady]);
 
   const fontsSettled = fontsLoaded || Boolean(fontError);
   const openingSettled = opening.status === 'skip' || (opening.status === 'show' && photoShown);
