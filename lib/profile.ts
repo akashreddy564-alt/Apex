@@ -14,6 +14,8 @@ export interface Profile {
    * builds treat it as agreed; release builds don't, so the gate stays shut.
    */
   terms_accepted: boolean;
+  /** Profile photo in the avatars bucket (migration 033), or null for initials. */
+  avatar_path: string | null;
 }
 
 // `*`, not a column list, so the app keeps working before 018 adds the terms columns.
@@ -34,6 +36,7 @@ export function mapProfile(
     created_at: String(row.created_at ?? ''),
     // Before 018 there's no column. Only dev builds let that through.
     terms_accepted: 'terms_accepted_at' in row ? row.terms_accepted_at != null : allowMissingTerms,
+    avatar_path: typeof row.avatar_path === 'string' ? row.avatar_path : null,
   };
 }
 

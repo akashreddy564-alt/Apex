@@ -2,18 +2,29 @@ import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation
 import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
 import { Tabs } from 'expo-router';
 import { CircleUser, Footprints, House, Users } from 'lucide-react-native';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { haptics } from '@/components/motion';
 import { TabBarGlass } from '@/components/motion/TabBarGlass';
 import { TabIcon } from '@/components/TabIcon';
 import { useColors } from '@/hooks/useColors';
+import { useTourTarget } from '@/hooks/useTourTarget';
 import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
 
 /** Fills the tab slot. minHeight is the touch target; icon and label styles stay put. */
 function TabButton(props: BottomTabBarButtonProps) {
   return <PlatformPressable {...props} style={[props.style, styles.tabHit]} />;
+}
+
+/** The Social tab, which the Home tour points at. */
+function SocialTabButton(props: BottomTabBarButtonProps) {
+  const target = useTourTarget('social');
+  return (
+    <View {...target} style={styles.tabSlot}>
+      <TabButton {...props} />
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -57,6 +68,7 @@ export default function TabsLayout() {
         name="social"
         options={{
           title: 'Social',
+          tabBarButton: (props) => <SocialTabButton {...props} />,
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Users} symbol="person.2" filledSymbol="person.2.fill" color={color} focused={focused} />,
         }}
       />
@@ -84,5 +96,8 @@ const styles = StyleSheet.create({
   tabHit: {
     minHeight: 48,
     width: '100%',
+  },
+  tabSlot: {
+    flex: 1,
   },
 });

@@ -1,4 +1,5 @@
 import { photoBodyFromBase64, reencodePhoto, type EncodedPhoto } from '@/lib/photoEncode';
+import { deleteMyAvatars } from '@/lib/avatar';
 import { supabase } from '@/lib/supabase';
 
 const BUCKET = 'hike-photos';
@@ -59,6 +60,7 @@ export async function resolvePhotoUri(stored: string): Promise<string> {
  */
 export async function deleteMyPhotos(userId: string): Promise<void> {
   if (!supabase) return;
+  await deleteMyAvatars(userId);
   const bucket = supabase.storage.from(BUCKET);
   // Each pass removes what it listed, so the next list starts over at the top.
   for (;;) {

@@ -37,13 +37,12 @@ export async function searchPeople(query: string, myId: string): Promise<PersonS
 }
 
 export async function fetchPerson(id: string): Promise<PersonSummary | null> {
-  const { data, error } = await client()
-    .from('profiles')
-    .select('id, username, display_name')
-    .eq('id', id)
-    .maybeSingle();
+  const query = (columns: string) => client().from('profiles').select(columns).eq('id', id).maybeSingle();
+  let { data, error } = await query('id, username, display_name, avatar_path');
+  // Before migration 033 there's no photo column; load the page without it.
+  if (error?.code === '42703') ({ data, error } = await query('id, username, display_name'));
   if (error) throw apiError(error);
-  return (data as PersonSummary | null) ?? null;
+  return (data as unknown as PersonSummary | null) ?? null;
 }
 
 export async function fetchFriendCount(id: string): Promise<number> {

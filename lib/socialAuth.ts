@@ -1,11 +1,12 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
-import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import * as Crypto from 'expo-crypto';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
 import { apiError } from '@/lib/apiError';
+import { saveAppleAuthorizationCode } from '@/lib/appleToken';
 import { claimAuthCode, parseAuthLink } from '@/lib/authLink';
 import { supabase } from '@/lib/supabase';
 
@@ -15,7 +16,10 @@ const canceled: SocialResult = { ok: false, canceled: true, message: '' };
 
 /** Started at launch, so the Apple button is ready (or known missing) before the screen opens. */
 export const appleAvailable: Promise<boolean> =
-  Platform.OS === 'ios' && Constants.expoConfig?.extra?.appleSignIn !== false
+  // The installed app's own bundle id, not the config: a dev build reads its
+  // config from the Mac's Metro server, whose local .env may name a Personal
+  // Team id. Only the real com.apex.trails build carries the Apple capability.
+  Platform.OS === 'ios' && Application.applicationId === 'com.apex.trails'
     ? AppleAuthentication.isAvailableAsync().catch(() => false)
     : Promise.resolve(false);
 
@@ -50,6 +54,9 @@ export async function signInWithApple(): Promise<SocialResult> {
     nonce,
   });
   if (error) return { ok: false, canceled: false, message: apiError(error).message };
+
+  // The server keeps a refresh token so deleting the account can revoke it.
+  void saveAppleAuthorizationCode(credential.authorizationCode);
 
   const name = [credential.fullName?.givenName, credential.fullName?.familyName].filter(Boolean).join(' ').trim();
   if (name) void supabase.auth.updateUser({ data: { full_name: name } });

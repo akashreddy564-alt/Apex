@@ -85,8 +85,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Apex attaches photos to your hike log.",
-          "cameraPermission": "Apex takes photos for your hike log.",
+          "photosPermission": "Apex adds photos to your hike log and profile.",
+          "cameraPermission": "Apex takes photos for your hike log and profile picture.",
           "microphonePermission": false
         }
       ],
@@ -109,7 +109,21 @@
       [
         "expo-widgets",
         {
-          "frequentUpdates": true
+          "frequentUpdates": true,
+          "widgets": [
+            {
+              "name": "WeekRing",
+              "displayName": "Week ring",
+              "description": "Your weekly goal ring and streak.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "accessoryCircular"
+                ],
+                "contentMarginsDisabled": false
+              }
+            }
+          ]
         }
       ],
       "expo-apple-authentication"
