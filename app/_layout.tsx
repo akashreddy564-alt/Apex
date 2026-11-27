@@ -204,7 +204,7 @@ export default function RootLayout() {
               <Stack.Screen name="blocked" options={{ title: 'Blocked people', headerBackTitle: 'Settings' }} />
               <Stack.Screen name="goal" options={{ title: 'Weekly goal', headerBackTitle: 'Back' }} />
               <Stack.Screen name="challenge/[key]" options={{ title: '', headerBackTitle: 'Home' }} />
-              <Stack.Screen name="switchback" options={{ title: '', headerBackTitle: 'Home' }} />
+              <Stack.Screen name="summit" options={{ title: '', headerBackTitle: 'Home' }} />
               <Stack.Screen
                 name="flyover/[logId]"
                 options={{ headerShown: false, presentation: 'fullScreenModal', animation: 'fade', gestureEnabled: false }}

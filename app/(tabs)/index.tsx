@@ -14,7 +14,7 @@ import { NearbyTrails } from '@/components/home/NearbyTrails';
 import { SignInStrip, StartHikeCard } from '@/components/home/StartHikeCard';
 import { TastePicks } from '@/components/home/TastePicks';
 import { TopTrails } from '@/components/home/TopTrails';
-import { SwitchbackFeedCard, SwitchbackRow } from '@/components/home/SwitchbackRow';
+import { SummitFeedCard, SummitRow } from '@/components/home/SummitRow';
 import { WeekHero } from '@/components/home/WeekHero';
 import { useSafetyMenu } from '@/components/safety/useSafetyMenu';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
@@ -241,7 +241,7 @@ function Feed() {
           <StartHikeCard />
           <ChallengesCard />
           <TopTrails />
-          <SwitchbackRow />
+          <SummitRow />
           <View className="px-4">
             <NotificationAsk />
           </View>
@@ -253,7 +253,7 @@ function Feed() {
               Friends
             </Text>
           ) : null}
-          {posts.length > 0 ? <SwitchbackFeedCard /> : null}
+          {posts.length > 0 ? <SummitFeedCard /> : null}
         </View>
       }
       ListEmptyComponent={empty}
@@ -307,7 +307,7 @@ export default function HomeScreen() {
       <StartHikeCard />
       <ChallengesCard />
       <TopTrails />
-      <SwitchbackRow />
+      <SummitRow />
       <NearbyTrails />
       <SignInStrip />
     </ScrollView>
