@@ -49,7 +49,7 @@ function button(tree: ReactTestRenderer, label: string) {
 it('asks a signed-out hiker to sign in', () => {
   mockState = { ...base };
   const tree = render();
-  act(() => button(tree, 'Sign in with email').props.onPress());
+  act(() => button(tree, 'Sign in').props.onPress());
   expect(mockPush).toHaveBeenCalledWith('/account');
 });
 

@@ -1,10 +1,10 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Search } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Eyebrow, Skeleton } from '@/components/motion';
+import { ContourLoader, Eyebrow, Skeleton } from '@/components/motion';
 import { useCatalogSearch } from '@/hooks/useCatalogSearch';
 import { useColors } from '@/hooks/useColors';
 import { useYourStatsByTrail } from '@/hooks/useYourTrailStats';
@@ -123,7 +123,7 @@ export default function TrailsScreen() {
                     <Text style={{ flex: 1, fontSize: 16, color: c.fg, fontFamily: fonts.uiSemibold }} numberOfLines={1}>
                       {trail.name}
                     </Text>
-                    {opening === trail.id ? <ActivityIndicator size="small" color={c.fgMuted} /> : null}
+                    {opening === trail.id ? <ContourLoader size="sm" color={c.fgMuted} /> : null}
                   </View>
                   <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }} numberOfLines={1}>
                     {trail.region} ·{' '}

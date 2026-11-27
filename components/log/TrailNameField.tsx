@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
+import { ContourLoader } from '@/components/motion';
 
 import { useCatalogSearch } from '@/hooks/useCatalogSearch';
 import { useColors } from '@/hooks/useColors';
@@ -118,7 +119,7 @@ export function TrailNameField({ trails, onPick, onCreate, autoFocus }: TrailNam
               <Text style={{ flex: 1, fontSize: 16, color: c.fg, fontFamily: fonts.uiSemibold }} numberOfLines={1}>
                 {trail.name}
               </Text>
-              {opening === trail.id ? <ActivityIndicator size="small" color={c.fgMuted} /> : null}
+              {opening === trail.id ? <ContourLoader size="sm" color={c.fgMuted} /> : null}
             </View>
             <Text style={{ marginTop: 2, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }} numberOfLines={1}>
               {trail.region} ·{' '}

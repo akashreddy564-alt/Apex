@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import * as Location from 'expo-location';
-import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useNavigation, useRouter, useScrollToTop } from 'expo-router';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
@@ -20,6 +20,7 @@ import { StreakGrid } from '@/components/craft/StreakGrid';
 import { SummitRegister } from '@/components/craft/SummitRegister';
 import { ContourTexture, Eyebrow, haptics, SlideToStart } from '@/components/motion';
 import { useColors } from '@/hooks/useColors';
+import { useTourTarget } from '@/hooks/useTourTarget';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { LogHeader, type LogView } from '@/components/log/LogHeader';
 import { LocationDenied } from '@/components/log/LocationDenied';
@@ -92,6 +93,10 @@ function hikeClock(totalSeconds: number): string {
 
 export default function LogScreen() {
   const c = useColors();
+  const scroll = useRef<ScrollView>(null);
+  const sliderTarget = useTourTarget('slider');
+  // A second tap on Log scrolls back to the top.
+  useScrollToTop(scroll);
   const { profile: myProfile } = useMyProfile();
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<{
@@ -515,7 +520,7 @@ export default function LogScreen() {
       <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: CONTOUR_H }}>
         <ContourTexture seed="log" width={screenWidth} height={CONTOUR_H} opacity={0.6} color={withAlpha(c.climb, 0.28)} />
       </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: tabInset + (showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40) }}>
+      <ScrollView ref={scroll} contentContainerStyle={{ paddingBottom: tabInset + (showSlider ? SLIDER_GAP + SLIDER_H + 32 : 40) }}>
         <LogHeader
           view={view}
           onView={setView}
@@ -668,7 +673,7 @@ export default function LogScreen() {
       </ScrollView>
 
       {showSlider ? (
-        <View style={{ position: 'absolute', left: 16, right: 16, bottom: tabInset + SLIDER_GAP }}>
+        <View {...sliderTarget} style={{ position: 'absolute', left: 16, right: 16, bottom: tabInset + SLIDER_GAP }}>
           <SlideToStart
             label="Slide to start a hike"
             a11yLabel="Start a hike"

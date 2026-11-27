@@ -27,7 +27,7 @@ export function TastePicks() {
         <Eyebrow>For your taste</Eyebrow>
         <Text style={{ color: c.fg, fontFamily: fonts.display, fontSize: 18, marginTop: 4 }}>Trails your kind of hiker loved</Text>
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingTop: 12 }}>
+      <ScrollView horizontal scrollsToTop={false} showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingTop: 12 }}>
         {data.map((pick) => (
           <Pressable
             key={pick.trailId}

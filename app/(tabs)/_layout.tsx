@@ -1,18 +1,30 @@
 import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs/types';
 import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
 import { Tabs } from 'expo-router';
-import { Footprints, House, Users } from 'lucide-react-native';
-import { StyleSheet } from 'react-native';
+import { CircleUser, Footprints, House, Users } from 'lucide-react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Glass, haptics } from '@/components/motion';
+import { haptics } from '@/components/motion';
+import { TabBarGlass } from '@/components/motion/TabBarGlass';
 import { TabIcon } from '@/components/TabIcon';
 import { useColors } from '@/hooks/useColors';
+import { useTourTarget } from '@/hooks/useTourTarget';
 import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
 
 /** Fills the tab slot. minHeight is the touch target; icon and label styles stay put. */
 function TabButton(props: BottomTabBarButtonProps) {
   return <PlatformPressable {...props} style={[props.style, styles.tabHit]} />;
+}
+
+/** The Social tab, which the Home tour points at. */
+function SocialTabButton(props: BottomTabBarButtonProps) {
+  const target = useTourTarget('social');
+  return (
+    <View {...target} style={styles.tabSlot}>
+      <TabButton {...props} />
+    </View>
+  );
 }
 
 export default function TabsLayout() {
@@ -26,8 +38,8 @@ export default function TabsLayout() {
         headerTitleStyle: { ...navTitle, color: c.fg },
         headerShadowVisible: false,
         tabBarStyle: tabBarStyle(c, false, insets.bottom),
-        // Frosted, floating bar. Content scrolls under it; tab screens pad by its height.
-        tabBarBackground: () => <Glass />,
+        // Liquid Glass on iOS 26, frosted blur elsewhere. Content scrolls under it; tab screens pad by its height.
+        tabBarBackground: () => <TabBarGlass />,
         tabBarActiveTintColor: c.fg,
         tabBarInactiveTintColor: c.fgFaint,
         headerShown: false,
@@ -56,6 +68,7 @@ export default function TabsLayout() {
         name="social"
         options={{
           title: 'Social',
+          tabBarButton: (props) => <SocialTabButton {...props} />,
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Users} symbol="person.2" filledSymbol="person.2.fill" color={color} focused={focused} />,
         }}
       />
@@ -66,6 +79,15 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Footprints} symbol="figure.hiking" color={color} focused={focused} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={CircleUser} symbol="person.crop.circle" filledSymbol="person.crop.circle.fill" color={color} focused={focused} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
@@ -74,5 +96,8 @@ const styles = StyleSheet.create({
   tabHit: {
     minHeight: 48,
     width: '100%',
+  },
+  tabSlot: {
+    flex: 1,
   },
 });

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { parseAuthLink } from './authLink.ts';
+import { claimAuthCode, parseAuthLink } from './authLink.ts';
 
 describe('parseAuthLink', () => {
   it('ignores links that carry bare tokens', () => {
@@ -30,4 +30,10 @@ describe('parseAuthLink', () => {
     assert.equal(parseAuthLink('apex://friend/abc?ref=qr'), null);
     assert.equal(parseAuthLink(null), null);
   });
+});
+
+it('claimAuthCode lets one caller exchange a code', () => {
+  assert.equal(claimAuthCode('abc'), true);
+  assert.equal(claimAuthCode('abc'), false);
+  assert.equal(claimAuthCode('def'), true);
 });

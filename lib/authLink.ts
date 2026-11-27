@@ -27,3 +27,16 @@ export function parseAuthLink(url: string | null): AuthLink | null {
   if (code) return { kind: 'code', code };
   return null;
 }
+
+const claimed = new Set<string>();
+
+/**
+ * A sign-in code can arrive twice (the browser sheet hands it back and the
+ * app's link handler sees it too). The first caller gets true and exchanges
+ * it; the second gets false and leaves it alone.
+ */
+export function claimAuthCode(code: string): boolean {
+  if (claimed.has(code)) return false;
+  claimed.add(code);
+  return true;
+}

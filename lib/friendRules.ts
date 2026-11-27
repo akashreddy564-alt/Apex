@@ -15,6 +15,8 @@ export interface PersonSummary {
   id: string;
   username: string;
   display_name: string;
+  /** Profile photo (migration 033); missing where only a list row is loaded. */
+  avatar_path?: string | null;
 }
 
 const RELATIONS = new Set(['friend', 'incoming', 'outgoing']);

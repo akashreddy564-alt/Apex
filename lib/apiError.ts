@@ -52,6 +52,22 @@ export function isOffline(error: unknown): boolean {
   return /network request failed|failed to fetch|load failed|networkerror|fetch failed/i.test(message);
 }
 
+/**
+ * An Edge Function's own { error: "…" } reason from a functions.invoke error,
+ * with the HTTP status. Empty message when the body isn't that shape.
+ */
+export async function functionErrorReason(error: unknown): Promise<{ message: string; status: number | null }> {
+  const response = (error as { context?: Response } | null)?.context;
+  let message = '';
+  try {
+    const body = response ? await response.clone().json() : null;
+    if (body && typeof body.error === 'string') message = body.error;
+  } catch {
+    // Not JSON.
+  }
+  return { message, status: typeof response?.status === 'number' ? response.status : null };
+}
+
 /** A failed account delete, in words. Nothing is queued offline, so say to retry. */
 export function deleteErrorMessage(error: unknown, prefix = 'Couldn’t delete your account'): string {
   const mapped = apiError(error);

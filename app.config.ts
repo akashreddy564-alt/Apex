@@ -31,11 +31,16 @@ export function assertProductionEnv(env: NodeJS.ProcessEnv = process.env): void 
 export default ({ config }: ConfigContext): ExpoConfig => {
   assertProductionEnv();
   const bundleIdentifier = process.env.APP_BUNDLE_ID?.trim();
+  // Personal Team signing can't carry the Sign in with Apple capability, and
+  // Supabase only trusts the real bundle id, so local builds go without it.
+  const appleSignIn = !bundleIdentifier;
   return {
     ...(config as ExpoConfig),
     ios: {
       ...config.ios,
-      ...(bundleIdentifier ? { bundleIdentifier } : {}),
+      ...(bundleIdentifier ? { bundleIdentifier, usesAppleSignIn: false } : {}),
     },
+    plugins: appleSignIn ? config.plugins : config.plugins?.filter((p) => p !== 'expo-apple-authentication'),
+    extra: { ...config.extra, appleSignIn },
   };
 };
