@@ -1,4 +1,4 @@
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, useScrollToTop } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { Bell, CircleCheck, Search } from 'lucide-react-native';
@@ -137,6 +137,9 @@ function Feed() {
   const safety = useSafetyMenu();
   const mine = useMyRankedTrails();
   const lastFetch = useRef(0);
+  const list = useRef<FlatList<FeedPost>>(null);
+  // A second tap on Home scrolls back to the newest post.
+  useScrollToTop(list);
 
   // What they'd seen when they last left Home. Read on arrival, so the marker
   // stays put while they scroll; written whenever they leave.
@@ -209,6 +212,7 @@ function Feed() {
 
   return (
     <FlatList
+      ref={list}
       className="flex-1 bg-bg"
       data={posts}
       keyExtractor={(post) => post.id}
@@ -289,11 +293,13 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const tabInset = useTabBarInset();
   const { session, profile } = useMyProfile();
+  const scroll = useRef<ScrollView>(null);
+  useScrollToTop(scroll);
 
   if (session && profile) return <Feed />;
 
   return (
-    <ScrollView className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
+    <ScrollView ref={scroll} className="flex-1 bg-bg" contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}>
       <HeaderContours />
       <Header />
       <WeekHero />

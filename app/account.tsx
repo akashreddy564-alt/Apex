@@ -21,6 +21,8 @@ import { apiError } from '@/lib/apiError';
 import { FirstAscentBadge } from '@/components/profile/FirstAscentBadge';
 import { OrgLabel } from '@/components/profile/OrgLabel';
 import { FollowCountsRow } from '@/components/social/FollowCountsRow';
+import { SignInOptions } from '@/components/social/SignInOptions';
+import { useSignIn } from '@/stores/signInStore';
 
 const SCORE_STYLES: { value: ScoreStyle; label: string }[] = [
   { value: 'number', label: 'Number' },
@@ -91,6 +93,7 @@ export default function AccountScreen() {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const remember = useSignIn((s) => s.remember);
 
   if (!configured || !supabase) {
     return (
@@ -151,6 +154,7 @@ export default function AccountScreen() {
       const { error } = await client.auth.verifyOtp({ email: sentTo, token, type: 'email' });
       if (error) setStatus(error.message);
       else {
+        remember('email', sentTo);
         setStatus(null);
         setCode('');
       }
@@ -167,7 +171,10 @@ export default function AccountScreen() {
     try {
       const { error } = await client.auth.signInWithPassword({ email: next, password });
       if (error) setStatus(error.message === 'Invalid login credentials' ? 'That email and password don’t match.' : apiError(error).message);
-      else setPassword('');
+      else {
+        remember('email', next);
+        setPassword('');
+      }
     } finally {
       setBusy(false);
     }
@@ -188,7 +195,7 @@ export default function AccountScreen() {
       <DisplaySettings />
       <Section eyebrow="Account" title={session ? 'Signed in' : 'Sign in'}>
         <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 14, lineHeight: 20, marginTop: 4 }}>
-          {email ? `Signed in as ${email}` : 'Magic link. Rankings stay private to this account.'}
+          {email ? `Signed in as ${email}` : 'Rankings stay private to this account.'}
         </Text>
 
         {session && !profileLoading ? (
@@ -224,7 +231,9 @@ export default function AccountScreen() {
             />
           </View>
         ) : (
-          <>
+          <SignInOptions
+            email={
+              <>
             <TextInput
               value={address}
               maxLength={254}
@@ -232,12 +241,14 @@ export default function AccountScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               keyboardType="email-address"
+              inputMode="email"
+              spellCheck={false}
               placeholder="you@email.com"
               placeholderTextColor={c.fgFaint}
               accessibilityLabel="Email"
               textContentType="emailAddress"
               autoComplete="email"
-              className="mt-4 rounded-2xl border border-raised bg-bg px-4 text-fg"
+              className="rounded-2xl border border-raised bg-bg px-4 text-fg"
               style={{ fontFamily: fonts.ui, fontSize: 16, minHeight: 48 }}
             />
             {withPassword ? (
@@ -309,7 +320,9 @@ export default function AccountScreen() {
                 />
               </View>
             ) : null}
-          </>
+              </>
+            }
+          />
         )}
 
         {session ? (

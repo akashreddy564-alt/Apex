@@ -137,7 +137,6 @@ export default function FlyoverScreen() {
 
   const startExport = () => {
     if (!sharePlan) return;
-    haptics.tapLight();
     writer.current = videoWriter(`apex-${(trail?.name ?? 'hike').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`);
     setExported(0);
     setPhase('exporting');
@@ -235,10 +234,7 @@ export default function FlyoverScreen() {
                 <PressScale
                   accessibilityRole="button"
                   accessibilityLabel="Rank this hike"
-                  onPress={() => {
-                    haptics.tapLight();
-                    leave();
-                  }}
+                  onPress={leave}
                   style={{ backgroundColor: BONE, borderRadius: 14, alignItems: 'center', paddingVertical: 15 }}
                 >
                   <Text style={{ color: INK, fontFamily: fonts.uiSemibold, fontSize: 16 }}>Rank this hike</Text>

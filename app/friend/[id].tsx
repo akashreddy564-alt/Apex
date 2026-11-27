@@ -68,7 +68,7 @@ function TheirHikes({ id, name, posts, loading, error, onMore }: {
   );
 }
 
-function PersonPage({ id }: { id: string }) {
+export function PersonPage({ id }: { id: string }) {
   const c = useColors();
   const { person, friendCount, loading, error } = usePerson(id);
   const { relationTo } = useFriendships();

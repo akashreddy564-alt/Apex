@@ -127,6 +127,9 @@ export default function RootLayout() {
                 headerBackTitleStyle: { fontFamily: fonts.ui },
                 headerShadowVisible: false,
                 contentStyle: { backgroundColor: c.bg },
+                // Swipe back from anywhere on the screen, not just the left edge.
+                gestureEnabled: true,
+                fullScreenGestureEnabled: true,
               }}
             >
               <Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />

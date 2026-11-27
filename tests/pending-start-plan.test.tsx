@@ -49,6 +49,7 @@ jest.mock('expo-router', () => {
     useRouter: () => mockRouter,
     useIsFocused: () => true,
     useFocusEffect: (cb: () => void) => useEffect(cb, [cb]),
+    useScrollToTop: () => undefined,
   };
 });
 jest.mock('react-native-safe-area-context', () => ({

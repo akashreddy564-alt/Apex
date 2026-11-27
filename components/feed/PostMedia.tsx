@@ -157,6 +157,7 @@ export function PostMedia({
       >
         <ScrollView
           horizontal
+          scrollsToTop={false}
           pagingEnabled
           showsHorizontalScrollIndicator={false}
           scrollEnabled={count > 1}

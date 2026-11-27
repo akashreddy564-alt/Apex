@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
-import { ContourTexture, Eyebrow } from '@/components/motion';
+import { ContourTexture, Eyebrow, Skeleton } from '@/components/motion';
 import { PrimaryButton, SecondaryButton } from '@/components/social/Buttons';
 import { useColors } from '@/hooks/useColors';
 import { profileKey, useMyProfile } from '@/hooks/useProfile';
@@ -61,7 +61,12 @@ export function SignInGate({
     );
   }
   if (loading) {
-    return null;
+    // Hold the space the content will take, so nothing jumps when it lands.
+    return (
+      <View style={{ paddingHorizontal: 16, paddingTop: 20 }}>
+        <Skeleton shape="row" count={4} />
+      </View>
+    );
   }
   if (!session) {
     return (
@@ -70,7 +75,7 @@ export function SignInGate({
         title="Sign in to see your friends"
         body={`Sign in to ${why}. Your hikes upload when you do, and Log keeps working signed out.`}
       >
-        <PrimaryButton label="Sign in with email" onPress={() => router.push('/account')} />
+        <PrimaryButton label="Sign in" onPress={() => router.push('/account')} />
       </GateCard>
     );
   }

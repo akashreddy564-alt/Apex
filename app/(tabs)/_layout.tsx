@@ -1,11 +1,12 @@
 import type { BottomTabBarButtonProps } from 'expo-router/build/react-navigation/bottom-tabs/types';
 import { PlatformPressable } from 'expo-router/build/react-navigation/elements';
 import { Tabs } from 'expo-router';
-import { Footprints, House, Users } from 'lucide-react-native';
+import { CircleUser, Footprints, House, Users } from 'lucide-react-native';
 import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Glass, haptics } from '@/components/motion';
+import { haptics } from '@/components/motion';
+import { TabBarGlass } from '@/components/motion/TabBarGlass';
 import { TabIcon } from '@/components/TabIcon';
 import { useColors } from '@/hooks/useColors';
 import { fonts, navTitle, tabBarStyle } from '@/theme/tokens';
@@ -26,8 +27,8 @@ export default function TabsLayout() {
         headerTitleStyle: { ...navTitle, color: c.fg },
         headerShadowVisible: false,
         tabBarStyle: tabBarStyle(c, false, insets.bottom),
-        // Frosted, floating bar. Content scrolls under it; tab screens pad by its height.
-        tabBarBackground: () => <Glass />,
+        // Liquid Glass on iOS 26, frosted blur elsewhere. Content scrolls under it; tab screens pad by its height.
+        tabBarBackground: () => <TabBarGlass />,
         tabBarActiveTintColor: c.fg,
         tabBarInactiveTintColor: c.fgFaint,
         headerShown: false,
@@ -64,6 +65,15 @@ export default function TabsLayout() {
         options={{
           title: 'Log',
           tabBarIcon: ({ color, focused }) => <TabIcon Icon={Footprints} symbol="figure.hiking" color={color} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon Icon={CircleUser} symbol="person.crop.circle" filledSymbol="person.crop.circle.fill" color={color} focused={focused} />
+          ),
         }}
       />
     </Tabs>

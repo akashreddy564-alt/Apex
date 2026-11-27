@@ -2,7 +2,7 @@ import * as Linking from 'expo-linking';
 import { useEffect } from 'react';
 import { Alert, Platform } from 'react-native';
 
-import { parseAuthLink } from '@/lib/authLink';
+import { claimAuthCode, parseAuthLink } from '@/lib/authLink';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -20,6 +20,7 @@ export function useAuthLinks() {
         Alert.alert('Sign-in link didn’t work', `${link.message}. Send a new link from Settings.`);
         return;
       }
+      if (!claimAuthCode(link.code)) return;
       // Fails unless this phone asked for the link (PKCE code verifier).
       const { error } = await client.auth.exchangeCodeForSession(link.code);
       if (error) Alert.alert('Couldn’t sign in', error.message);

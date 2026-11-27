@@ -7,6 +7,8 @@
  * Motion is for feedback, arrival and a few quiet loops. Only loaders, skeleton shimmer and the start slider's sheen loop, and all of them stop under Reduce Motion.
  */
 import { cssInterop } from 'nativewind';
+
+import { haptics } from './haptics';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Pressable, Text, type PressableProps, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import Animated, {
@@ -27,6 +29,8 @@ type PressScaleProps = Omit<PressableProps, 'style'> & {
   className?: string;
   /** How far it sinks while held. Cards 0.985, buttons 0.96. */
   to?: number;
+  /** A light tap under the finger on press-in. On by default; off for things that fire their own cue. */
+  haptic?: boolean;
   children: ReactNode;
 };
 
@@ -35,7 +39,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 cssInterop(AnimatedPressable, { className: 'style' });
 
 /** A Pressable that sinks a little under the finger and springs back. */
-export function PressScale({ to = 0.97, style, onPressIn, onPressOut, children, ...rest }: PressScaleProps) {
+export function PressScale({ to = 0.97, haptic = true, style, onPressIn, onPressOut, children, ...rest }: PressScaleProps) {
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
   const animated = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -43,6 +47,8 @@ export function PressScale({ to = 0.97, style, onPressIn, onPressOut, children, 
     <AnimatedPressable
       {...rest}
       onPressIn={(e) => {
+        // Feedback lands on touch-down, not release: it reads as instant.
+        if (haptic && !rest.disabled && rest.onPress) haptics.tapLight();
         if (!reduceMotion) scale.value = withSpring(to, PRESS);
         onPressIn?.(e);
       }}

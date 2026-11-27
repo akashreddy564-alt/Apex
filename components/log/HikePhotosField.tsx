@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, Text, View } from 'react-native';
+import { ContourLoader } from '@/components/motion';
 
 import { useColors } from '@/hooks/useColors';
 import { persistHikePhoto, resolvePhotoUri } from '@/lib/hikePhotos';
@@ -53,7 +54,7 @@ export function HikePhotosField({ photos, onChange }: { photos: string[]; onChan
             justifyContent: 'center',
           }}
         >
-          {adding ? <ActivityIndicator size="small" color={c.fgMuted} /> : <Text style={{ fontSize: 22, color: c.fgMuted }}>+</Text>}
+          {adding ? <ContourLoader size="sm" color={c.fgMuted} /> : <Text style={{ fontSize: 22, color: c.fgMuted }}>+</Text>}
         </Pressable>
       </View>
       {error ? <Text style={{ marginTop: 8, fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>{error}</Text> : null}

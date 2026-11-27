@@ -139,8 +139,10 @@ function VerifyFlow() {
           accessibilityLabel="School or work email"
           autoCapitalize="none"
           autoCorrect={false}
+          spellCheck={false}
           autoComplete="email"
           keyboardType="email-address"
+          inputMode="email"
           textContentType="emailAddress"
           autoFocus
           returnKeyType="send"

@@ -1,15 +1,21 @@
+import type { BottomSheetModal } from '@gorhom/bottom-sheet';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { ChevronDown } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, TextInput, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
-import { Skeleton } from '@/components/motion';
+import { haptics, PressScale, Skeleton } from '@/components/motion';
+import { AgeSheet } from '@/components/social/AgeSheet';
 import { PrimaryButton } from '@/components/social/Buttons';
 import { GateCard } from '@/components/social/SignInGate';
 import { TermsCheckbox } from '@/components/social/TermsAgreement';
 import { useColors } from '@/hooks/useColors';
 import { profileKey, useMyProfile } from '@/hooks/useProfile';
+import { oldEnough } from '@/lib/age';
 import { saveProfile } from '@/lib/profile';
+import { useSignIn } from '@/stores/signInStore';
 import {
   DISPLAY_NAME_MAX,
   USERNAME_MAX,
@@ -25,7 +31,7 @@ export default function UsernameScreen() {
   const c = useColors();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { uid, email, profile, loading } = useMyProfile();
+  const { uid, email, session, profile, loading } = useMyProfile();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [touched, setTouched] = useState(false);
@@ -33,14 +39,22 @@ export default function UsernameScreen() {
   const [busy, setBusy] = useState(false);
   const [filled, setFilled] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const birthYear = useSignIn((s) => s.birthYear);
+  const confirmAge = useSignIn((s) => s.confirmAge);
+  const ageSheet = useRef<BottomSheetModal>(null);
+  // The year row pulses once when the sheet saves, so you see where it landed.
+  const pulse = useSharedValue(1);
+  const pulseStyle = useAnimatedStyle(() => ({ transform: [{ scale: pulse.value }] }));
 
   // Start from the saved profile, or a guess from the email.
   useEffect(() => {
     if (filled || loading) return;
-    setName(profile?.display_name ?? '');
+    // Apple sends the name once at sign-in; it's kept on the account for this.
+    const given = session?.user.user_metadata?.full_name;
+    setName(profile?.display_name ?? (typeof given === 'string' ? given : ''));
     setUsername(profile?.username ?? suggestUsername(email));
     setFilled(true);
-  }, [email, filled, loading, profile]);
+  }, [email, filled, loading, profile, session]);
 
   if (loading || !filled) {
     return (
@@ -62,9 +76,13 @@ export default function UsernameScreen() {
 
   // New accounts agree to the terms here; older ones agree on a card (SignInGate).
   const needsTerms = !profile;
+  // New accounts confirm they're 13 or older once on this phone.
+  const needsAge = !profile;
+  const ageOk = birthYear != null && oldEnough(birthYear, new Date().getFullYear());
   const problem =
     usernameProblem(username) ??
     displayNameProblem(name) ??
+    (needsAge && !ageOk ? 'Add your birth year to continue.' : null) ??
     (needsTerms && !agreed ? 'Agree to the terms to continue.' : null);
   const shown = touched ? (message ?? problem) : message;
 
@@ -80,6 +98,7 @@ export default function UsernameScreen() {
         return;
       }
       queryClient.setQueryData(profileKey(uid), result.profile);
+      haptics.success();
       if (router.canGoBack()) router.back();
       else router.replace('/');
     } finally {
@@ -155,6 +174,37 @@ export default function UsernameScreen() {
       >
         {shown ?? 'Letters, numbers and underscores.'}
       </Text>
+
+      {needsAge ? (
+        <>
+          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13, marginTop: 10 }}>Birth year</Text>
+          <Animated.View style={pulseStyle}>
+            <PressScale
+              to={0.98}
+              accessibilityRole="button"
+              accessibilityLabel={birthYear ? `Birth year ${birthYear}. Change` : 'Choose your birth year'}
+              onPress={() => ageSheet.current?.present()}
+              className="mt-2 flex-row items-center justify-between rounded-xl border border-raised bg-surface px-3"
+              style={{ minHeight: 48 }}
+            >
+              <Text style={{ color: birthYear ? c.fg : c.fgFaint, fontFamily: fonts.ui, fontSize: 16 }}>
+                {birthYear ?? 'Choose'}
+              </Text>
+              <ChevronDown size={18} strokeWidth={1.7} color={c.fgMuted} />
+            </PressScale>
+          </Animated.View>
+          <AgeSheet
+            ref={ageSheet}
+            initial={birthYear}
+            onDone={(year) => {
+              confirmAge(year);
+              setMessage(null);
+              ageSheet.current?.dismiss();
+              pulse.value = withSequence(withTiming(1.04, { duration: 120 }), withSpring(1, { damping: 10, stiffness: 260 }));
+            }}
+          />
+        </>
+      ) : null}
 
       {needsTerms ? (
         <View className="mt-4">

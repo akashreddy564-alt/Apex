@@ -1,48 +1,29 @@
-import { useRouter } from 'expo-router';
+import { useRouter, useScrollToTop } from 'expo-router';
+import { useRef } from 'react';
 import { ChevronRight, UserPlus } from 'lucide-react-native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { OrgLabel } from '@/components/profile/OrgLabel';
 import { GroupsSection } from '@/components/groups/GroupsSection';
 import { FriendsBoard } from '@/components/social/FriendsBoard';
 import { OrganizationsSection } from '@/components/social/OrganizationsSection';
-import { WeekCard } from '@/components/social/WeekCard';
 import { Avatar } from '@/components/social/Avatar';
 import { SecondaryButton } from '@/components/social/Buttons';
 import { SignInGate } from '@/components/social/SignInGate';
 import { useColors } from '@/hooks/useColors';
 import { useTabBarInset } from '@/hooks/useTabBarInset';
 import { useFriendships } from '@/hooks/useFriends';
-import type { Profile } from '@/lib/profile';
 import { displayXL, fonts } from '@/theme/tokens';
 
 const TILE = 64;
 
-function FriendsSection({ profile }: { profile: Profile }) {
+function FriendsSection() {
   const c = useColors();
   const router = useRouter();
   const { friends, incoming, loading, error, refetch } = useFriendships();
 
   return (
     <View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Edit profile"
-        onPress={() => router.push('/username')}
-        className="mx-4 mt-5 flex-row items-center gap-3 active:opacity-80"
-      >
-        <Avatar name={profile.display_name} />
-        <View className="flex-1">
-          <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 16 }}>{profile.display_name}</Text>
-          <Text style={{ color: c.fgMuted, fontFamily: fonts.ui, fontSize: 13 }}>
-            @{profile.username} · {friends.length} {friends.length === 1 ? 'friend' : 'friends'}
-          </Text>
-          <OrgLabel personId={profile.id} style={{ marginTop: 2 }} />
-        </View>
-      </Pressable>
-
-      <WeekCard name={profile.display_name} />
 
       {incoming.length > 0 ? (
         <Pressable
@@ -75,6 +56,8 @@ function FriendsSection({ profile }: { profile: Profile }) {
       ) : (
         <ScrollView
           horizontal
+          // Only the page scroller answers a tap on the status bar.
+          scrollsToTop={false}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 14, paddingTop: 12 }}
         >
@@ -130,8 +113,11 @@ export default function SocialScreen() {
   const insets = useSafeAreaInsets();
   const tabInset = useTabBarInset();
   const c = useColors();
+  const scroll = useRef<ScrollView>(null);
+  useScrollToTop(scroll);
   return (
     <ScrollView
+      ref={scroll}
       className="flex-1 bg-bg"
       contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: tabInset + 32 }}
     >
@@ -139,7 +125,7 @@ export default function SocialScreen() {
         Social
       </Text>
       <SignInGate why="add friends and join groups">
-        {(profile) => <FriendsSection profile={profile} />}
+        {() => <FriendsSection />}
       </SignInGate>
     </ScrollView>
   );

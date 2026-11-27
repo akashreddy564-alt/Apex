@@ -80,7 +80,7 @@ export function NearbyTrails() {
       <Text style={{ marginHorizontal: 16, color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 16 }} accessibilityRole="header">
         Trails near you
       </Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
+      <ScrollView horizontal scrollsToTop={false} showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: 16, paddingTop: 8 }}>
         {trails.map((trail) => (
           <Pressable
             key={trail.id}
