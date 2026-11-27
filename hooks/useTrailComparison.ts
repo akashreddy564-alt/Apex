@@ -40,6 +40,8 @@ export interface ComparisonSessionResult {
 
 export interface UseTrailComparisonResult {
   phase: 'idle' | 'bucket' | 'compare' | 'preview';
+  /** The trail being ranked. */
+  trailId: string | null;
   bucket: Bucket | null;
   round: ComparisonRound | null;
   preview: ComparisonSessionResult | null;
@@ -352,6 +354,7 @@ export function useTrailComparison(): UseTrailComparisonResult {
 
   return {
     phase,
+    trailId,
     bucket,
     round,
     preview,

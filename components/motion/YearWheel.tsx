@@ -42,8 +42,10 @@ function Row({
   y,
   reduceMotion,
   onPress,
+  format,
 }: {
   value: number;
+  format: (value: number) => string;
   index: number;
   y: SharedValue<number>;
   reduceMotion: boolean;
@@ -81,7 +83,7 @@ function Row({
           style,
         ]}
       >
-        {value}
+        {format(value)}
       </Animated.Text>
     </Pressable>
   );
@@ -93,16 +95,22 @@ function Row({
  * the middle like a real wheel and blur out at the rim. Past either end it
  * rubber-bands (iOS bounce). Tap a year to roll to it.
  */
-export function YearWheel({
+export function Wheel({
   values,
   value,
   onChange,
-  label = 'Birth year',
+  label,
+  format = String,
+  rim: rimBase,
 }: {
   values: number[];
   value: number;
   onChange: (value: number) => void;
-  label?: string;
+  /** What a screen reader calls it ("Hours", "Birth year"). */
+  label: string;
+  format?: (value: number) => string;
+  /** The color behind the wheel, so the rim fades into it. Defaults to the page. */
+  rim?: string;
 }) {
   const c = useColors();
   const appearance = useSettings((s) => s.appearance);
@@ -176,14 +184,14 @@ export function YearWheel({
   };
 
   // The sheet's own color, so the rim fades into it with no visible edge.
-  const rim = withAlpha(c.bg, 0.7);
+  const rim = withAlpha(rimBase ?? c.bg, 0.7);
 
   return (
     <View
       accessible
       accessibilityRole="adjustable"
       accessibilityLabel={label}
-      accessibilityValue={{ text: String(value) }}
+      accessibilityValue={{ text: format(value) }}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) => step(e.nativeEvent.actionName === 'increment' ? 1 : -1)}
       style={{ height: WHEEL_ROW * VISIBLE, justifyContent: 'center' }}
@@ -221,7 +229,7 @@ export function YearWheel({
         nestedScrollEnabled
       >
         {values.map((year, index) => (
-          <Row key={year} value={year} index={index} y={y} reduceMotion={reduceMotion} onPress={(i) => goTo(i)} />
+          <Row key={year} value={year} index={index} y={y} reduceMotion={reduceMotion} format={format} onPress={(i) => goTo(i)} />
         ))}
       </Animated.ScrollView>
       {/* The rim: years blur and fade as they roll out of view. */}
@@ -260,3 +268,8 @@ const styles = StyleSheet.create({
     height: WHEEL_ROW * 1.25,
   },
 });
+
+/** The birth-year wheel in the age sheet. */
+export function YearWheel(props: { values: number[]; value: number; onChange: (value: number) => void; label?: string }) {
+  return <Wheel {...props} label={props.label ?? 'Birth year'} />;
+}

@@ -1,4 +1,4 @@
-import { Pause, Play, Square } from 'lucide-react-native';
+import { Pause, Play, Square, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { AccessibilityInfo, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -47,6 +47,8 @@ interface RecordSessionProps {
   onPause: () => void;
   onResume: () => void;
   onFinish: () => void;
+  /** Throw the hike away (started by mistake). The screen asks first. */
+  onDiscard: () => void;
 }
 
 function clock(totalSeconds: number): string {
@@ -310,6 +312,7 @@ export function RecordSession({
   onPause,
   onResume,
   onFinish,
+  onDiscard,
 }: RecordSessionProps) {
   const c = useColors();
   const insets = useSafeAreaInsets();
@@ -342,11 +345,30 @@ export function RecordSession({
           left: 16,
           right: 16,
           flexDirection: 'row',
-          justifyContent: 'space-between',
           alignItems: 'center',
           gap: 8,
         }}
       >
+        {/* Discard lives up here, away from Pause and Finish, so nobody hits it by accident. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Discard hike"
+          accessibilityHint="Stops recording without saving"
+          onPress={onDiscard}
+          hitSlop={6}
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 14,
+            backgroundColor: c.surface,
+            borderWidth: 1,
+            borderColor: c.raised,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <X size={18} strokeWidth={1.9} color={c.fgMuted} />
+        </Pressable>
         <View
           style={{
             height: 40,
@@ -388,6 +410,7 @@ export function RecordSession({
             alignItems: 'center',
             gap: 8,
             flexShrink: 1,
+            marginLeft: 'auto',
           }}
         >
           <SignalBars />

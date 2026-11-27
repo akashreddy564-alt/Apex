@@ -1,4 +1,4 @@
-import { ChevronRight, X } from 'lucide-react-native';
+import { ChevronDown, ChevronRight, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import {
   Modal,
@@ -16,7 +16,9 @@ import { useYourTrailStats } from '@/hooks/useYourTrailStats';
 import { HikeDetailsFields, type HikeDetails } from '@/components/log/HikeDetailsFields';
 import { HikePhotosField } from '@/components/log/HikePhotosField';
 import { splitChips } from '@/lib/hikeDetails';
-import { Glass } from '@/components/motion';
+import { Glass, haptics } from '@/components/motion';
+import { Wheel } from '@/components/motion/YearWheel';
+import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { HikeDateField } from '@/components/log/HikeDateField';
 import { TrailNameField } from '@/components/log/TrailNameField';
 import {
@@ -29,7 +31,7 @@ import {
 } from '@/lib/format';
 import { formatHikeDay } from '@/lib/pastHike';
 import { DEFAULT_HIKE_TYPE, HIKE_TYPE_LABELS, HIKE_TYPES } from '@/lib/ranking';
-import { fonts, numericStyle, type Palette } from '@/theme/tokens';
+import { fonts, numericStyle } from '@/theme/tokens';
 import type { ElevationSample, Trail } from '@/types/trail';
 
 interface PastHikeSheetProps {
@@ -85,10 +87,9 @@ function MiniProfile({ samples }: { samples: ElevationSample[] }) {
   );
 }
 
-function stepMinutes(hours: number, minutes: number, delta: number): { hours: number; minutes: number } {
-  const total = Math.max(0, hours * 60 + minutes + delta);
-  return { hours: Math.floor(total / 60), minutes: total % 60 };
-}
+/** Wheel values: 0–23 hours, every minute. */
+const HOURS = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
 
 /** Beli-style past hike sheet. Trail and date are required. Continue is the only accent control. */
 export function PastHikeSheet({
@@ -110,6 +111,7 @@ export function PastHikeSheet({
   const [pickingTrail, setPickingTrail] = useState(false);
   const [hours, setHours] = useState(0);
   const [minutes, setMinutes] = useState(0);
+  const [timeOpen, setTimeOpen] = useState(false);
   const [distanceText, setDistanceText] = useState('');
   const [distanceTouched, setDistanceTouched] = useState(false);
   const [editingDistance, setEditingDistance] = useState(false);
@@ -337,36 +339,30 @@ export function PastHikeSheet({
                 >
                   <View style={{ flex: 1 }}>
                     <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.ui }}>Time taken</Text>
-                    <View style={{ marginTop: 6, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Pressable
-                        accessibilityLabel="Decrease time"
-                        onPress={() => {
-                          const next = stepMinutes(hours, minutes, -5);
-                          setHours(next.hours);
-                          setMinutes(next.minutes);
-                        }}
-                        style={stepStyle(c)}
-                      >
-                        <Text style={{ fontSize: 18, color: c.fg2 }}>−</Text>
-                      </Pressable>
-                      <Text style={{ fontSize: 20, color: c.fg, ...numericStyle('semibold') }}>
+                    {/* Tap to open the wheels in place; tap again (or Done) to close. */}
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={`Time taken, ${hours} hours ${minutes} minutes`}
+                      accessibilityHint={timeOpen ? 'Closes the time wheels' : 'Opens hour and minute wheels'}
+                      onPress={() => {
+                        haptics.tapLight();
+                        setTimeOpen((open) => !open);
+                      }}
+                      style={{ marginTop: 6, height: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+                    >
+                      <Text style={{ fontSize: 20, color: hours || minutes ? c.fg : c.fgFaint, ...numericStyle('semibold') }}>
                         {hours}
                         <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.uiMedium }}>h </Text>
                         {String(minutes).padStart(2, '0')}
                         <Text style={{ fontSize: 13, color: c.fgMuted, fontFamily: fonts.uiMedium }}>m</Text>
                       </Text>
-                      <Pressable
-                        accessibilityLabel="Increase time"
-                        onPress={() => {
-                          const next = stepMinutes(hours, minutes, 5);
-                          setHours(next.hours);
-                          setMinutes(next.minutes);
-                        }}
-                        style={stepStyle(c)}
-                      >
-                        <Text style={{ fontSize: 18, color: c.fg2 }}>+</Text>
-                      </Pressable>
-                    </View>
+                      <ChevronDown
+                        size={18}
+                        strokeWidth={1.8}
+                        color={c.fgMuted}
+                        style={{ transform: [{ rotate: timeOpen ? '180deg' : '0deg' }] }}
+                      />
+                    </Pressable>
                   </View>
                   <View style={{ width: 1, backgroundColor: c.raised }} />
                   <View style={{ flex: 1 }}>
@@ -405,6 +401,42 @@ export function PastHikeSheet({
                     </View>
                   </View>
                 </View>
+                {timeOpen ? (
+                  <Animated.View
+                    entering={FadeIn.duration(180)}
+                    exiting={FadeOut.duration(120)}
+                    layout={LinearTransition.duration(220)}
+                    style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingTop: 6, paddingBottom: 10 }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={{ flex: 1 }}>
+                        <Wheel values={HOURS} value={hours} onChange={setHours} label="Hours" format={(n) => `${n} h`} rim={c.bg} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Wheel
+                          values={MINUTES}
+                          value={minutes}
+                          onChange={setMinutes}
+                          label="Minutes"
+                          format={(n) => `${String(n).padStart(2, '0')} m`}
+                          rim={c.bg}
+                        />
+                      </View>
+                    </View>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Done setting time"
+                      onPress={() => {
+                        haptics.success();
+                        setTimeOpen(false);
+                      }}
+                      hitSlop={8}
+                      style={{ alignSelf: 'flex-end', marginTop: 6, minHeight: 36, justifyContent: 'center', paddingHorizontal: 6 }}
+                    >
+                      <Text style={{ color: c.fg, fontFamily: fonts.uiSemibold, fontSize: 15 }}>Done</Text>
+                    </Pressable>
+                  </Animated.View>
+                ) : null}
 
                 <View style={{ borderTopWidth: 1, borderTopColor: c.raised, paddingVertical: 10 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -582,11 +614,3 @@ export function PastHikeSheet({
   );
 }
 
-const stepStyle = (c: Palette) => ({
-  width: 34,
-  height: 34,
-  borderRadius: 11,
-  backgroundColor: c.raised,
-  alignItems: 'center' as const,
-  justifyContent: 'center' as const,
-});

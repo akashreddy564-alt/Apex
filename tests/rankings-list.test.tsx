@@ -10,7 +10,8 @@ import type { Bucket } from '@/lib/ranking';
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
-jest.mock('lucide-react-native', () => ({ ChevronRight: () => null }));
+jest.mock('lucide-react-native', () => ({ ChevronRight: () => null, Mountain: () => null, Trophy: () => null }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
 
 function ranking(trailId: string, bucket: Bucket, position: string) {
   return {

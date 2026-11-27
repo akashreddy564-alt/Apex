@@ -1,12 +1,11 @@
 import { Check, Mountain } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
   FadeInRight,
   FadeOut,
-  FadeOutLeft,
   useAnimatedStyle,
   useReducedMotion,
   withTiming,
@@ -184,6 +183,8 @@ function GoalStep({ choice }: { choice: { current: GoalChoice | null } }) {
   const choose = (next: number) => setDisplay(next);
 
   const max = presets[presets.length - 1];
+  // Smaller ring on short phones (SE, mini) so the chips fit above the button.
+  const ringSize = useWindowDimensions().height < 740 ? 116 : 150;
   return (
     <View style={{ gap: 24 }}>
       <Title eyebrow="WEEKLY GOAL" title="Set a goal for the week" body="A ring on Home fills as you hike. Change it any time." />
@@ -199,10 +200,10 @@ function GoalStep({ choice }: { choice: { current: GoalChoice | null } }) {
           setDisplay(suggestedGoal(band, next));
         }}
       />
-      <View style={{ alignItems: 'center', justifyContent: 'center', height: 150 }}>
-        <Ring fraction={Math.max(0.12, display / max)} size={150} stroke={12} complete={false} color={metric === 'distance' ? c.distance : c.climb} />
+      <View style={{ alignItems: 'center', justifyContent: 'center', height: ringSize }}>
+        <Ring fraction={Math.max(0.12, display / max)} size={ringSize} stroke={ringSize < 150 ? 10 : 12} complete={false} color={metric === 'distance' ? c.distance : c.climb} />
         <View style={{ position: 'absolute', alignItems: 'center' }}>
-          <Text style={{ color: c.fg, fontSize: 34, lineHeight: 38, ...numericStyle('semibold') }}>{display.toLocaleString('en-US')}</Text>
+          <Text style={{ color: c.fg, fontSize: ringSize < 150 ? 28 : 34, lineHeight: ringSize < 150 ? 32 : 38, ...numericStyle('semibold') }}>{display.toLocaleString('en-US')}</Text>
           <Text style={{ color: c.fgMuted, fontFamily: fonts.uiMedium, fontSize: 13 }}>{unit} a week</Text>
         </View>
       </View>
@@ -299,7 +300,6 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
   const canContinue = step !== 'distance' || band !== null;
   const entering = reduceMotion ? FadeIn.duration(1) : FadeInRight.duration(340).easing(Easing.out(Easing.cubic)).withInitialValues({ transform: [{ translateX: 28 }] });
-  const exiting = reduceMotion ? FadeOut.duration(1) : FadeOutLeft.duration(200);
 
   return (
     <Animated.View
@@ -347,7 +347,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         automaticallyAdjustKeyboardInsets
         showsVerticalScrollIndicator={false}
       >
-        <Animated.View key={step} entering={entering} exiting={exiting}>
+        {/* Entering only: an exit animation inside a ScrollView can leave the old step's chips drawn over the button on iOS. */}
+        <Animated.View key={step} entering={entering}>
           {step === 'distance' ? <DistanceStep /> : null}
           {step === 'goal' ? <GoalStep choice={goalChoice} /> : null}
           {step === 'interests' ? <InterestsStep /> : null}
@@ -355,7 +356,19 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         </Animated.View>
       </ScrollView>
 
-      <View style={{ paddingHorizontal: 20, paddingTop: 12, paddingBottom: insets.bottom + 16 }}>
+      {/* Solid and on top, so content scrolled beneath never shows through the button. */}
+      <View
+        style={{
+          paddingHorizontal: 20,
+          paddingTop: 12,
+          paddingBottom: insets.bottom + 16,
+          backgroundColor: c.bg,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: c.raised,
+          zIndex: 2,
+          elevation: 2,
+        }}
+      >
         {step === 'account' ? (
           <SecondaryButton label="Not now" onPress={finish} />
         ) : (
